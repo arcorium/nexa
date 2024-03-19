@@ -1,0 +1,16 @@
+syntax = "proto3";
+package proto;
+
+
+service UserService {
+  rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
+}
+
+message CreateUserResponse {
+  string id = 1;
+}
+
+message CreateUserRequest {
+  string name = 1;
+  string email = 2;
+}
