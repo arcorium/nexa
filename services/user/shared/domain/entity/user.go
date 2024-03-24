@@ -2,29 +2,24 @@ package entity
 
 import (
 	"errors"
-	"github.com/uptrace/bun"
 	"nexa/services/access_control/shared/domain/entity"
 	"nexa/shared/types"
 	"time"
 )
 
 type User struct {
-	bun.BaseModel `bun:"table:users"`
+	Id       types.Id
+	Username string
+	Email    types.Email
+	Password types.Password
 
-	Id         types.Id         `bun:",type:uuid,pk"`
-	Username   string           `bun:",nullzero,notnull,unique"`
-	Email      types.Email      `bun:",nullzero,notnull,unique"`
-	Password   types.HashString `bun:",nullzero,notnull"`
-	IsVerified bool             `bun:",default:false"`
-	Role       uint8            `bun:",nullzero,notnull"`
+	IsVerified  bool
+	IsDeleted   bool
+	BannedUntil time.Time
 
-	BannedUntil time.Time `bun:",nullzero"`
+	Roles []entity.Role
 
-	DeletedAt time.Time `bun:",nullzero"`
-	CreatedAt time.Time `bun:",nullzero,notnull"`
-	UpdatedAt time.Time `bun:",nullzero,notnull"`
-
-	RoleDetail entity.Role `bun:",scanonly"`
+	toggleDelete bool
 }
 
 func (u *User) ValidatePassword(password string) error {
@@ -35,10 +30,19 @@ func (u *User) ValidatePassword(password string) error {
 }
 
 func (u *User) ValidateEmail() error {
-	if !u.Email.Validate() {
-		return ErrEmailMalformed
+	return u.Email.Validate()
+}
+
+// Delete mark user should be deleted later
+func (u *User) Delete() {
+	if !u.IsDeleted {
+		u.toggleDelete = true
 	}
-	return nil
+}
+
+// ShouldDeleted used for repository either should delete the user or not
+func (u *User) ShouldDeleted() bool {
+	return u.toggleDelete
 }
 
 var ErrPasswordDifferent = errors.New("password different")

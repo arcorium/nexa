@@ -1,0 +1,83 @@
+syntax = "proto3";
+package services.user.schema.proto.v1;
+option go_package = "nexa/services/user/shared/proto";
+
+message Empty {}
+
+service UserService {
+  rpc Create(CreateRequest) returns (CreateResponse);
+  rpc Update(UpdateRequest) returns (UpdateResponse);
+  rpc UpdateVerified(UpdateVerifiedRequest) returns (Empty);
+  rpc UpdatePassword(UpdatePasswordRequest) returns (Empty);
+  rpc ResetPassword(ResetPasswordRequest) returns (Empty);
+  rpc FindUserByIds(FindUsersByIdsRequest) returns (stream FindUsersResponse);
+  rpc FindUserByEmail(FindUsersByEmailRequest) returns (stream FindUsersResponse);
+  rpc BannedUser(BannedUserRequest) returns (Empty);
+  rpc DeleteUser(DeleteUserRequest) returns (DeleteUserResponse);
+}
+
+message CreateResponse {
+  string id = 1;
+}
+
+message CreateRequest {
+  string username = 1;
+  string email = 2;
+  string password = 3;
+}
+
+message User {
+  string id = 1;
+  string username = 2;
+  string email = 3;
+  bool is_verified = 4;
+  repeated string roles = 5;
+}
+
+message UpdateRequest {
+  optional string username = 1;
+  optional string email = 2;
+}
+
+message UpdatePasswordRequest {
+  string id = 1;
+  string last_password = 2;
+  string new_password = 3;
+}
+
+message UpdateVerifiedRequest {
+  string id = 1;
+}
+
+message UpdateResponse {
+  User user = 1;
+}
+
+message FindUsersByIdsRequest {
+  repeated string ids = 1;
+}
+
+message FindUsersByEmailRequest {
+  repeated string emails = 1;
+}
+
+message FindUsersResponse {
+  User users = 1;
+}
+
+message DeleteUserRequest {
+  repeated string id = 1;
+}
+
+message DeleteUserResponse {
+  repeated string id = 1;
+}
+
+message BannedUserRequest {
+  string id = 1;
+}
+
+message ResetPasswordRequest {
+  string id = 1;
+  string new_password = 2;
+}

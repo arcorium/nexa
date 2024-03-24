@@ -1,15 +1,27 @@
 package types
 
-import "regexp"
+import (
+	"errors"
+	"regexp"
+)
 
 var emailRegex = regexp.MustCompile("^[a-zA-Z0-9|._]+@[a-zA-Z0-9|-]+(\\.[a-zA-Z0-9]{2,})+$")
 
+func EmailFromString(email string) Email {
+	return Email(email)
+}
+
 type Email string
 
-func (e Email) underlying() string {
+func (e Email) Underlying() string {
 	return string(e)
 }
 
-func (e Email) Validate() bool {
-	return emailRegex.MatchString(e.underlying())
+func (e Email) Validate() error {
+	if !emailRegex.MatchString(e.Underlying()) {
+		return ErrEmailMalformed
+	}
+	return nil
 }
+
+var ErrEmailMalformed = errors.New("email malformed")

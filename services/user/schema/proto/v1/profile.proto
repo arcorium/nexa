@@ -1,0 +1,44 @@
+syntax = "proto3";
+package services.user.schema.proto.v1;
+option go_package = "nexa/services/user/shared/proto";
+
+message Empty {}
+
+service ProfileService {
+  rpc Find(FindRequest) returns (stream FindResponse);
+  rpc Update(UpdateRequest) returns (UpdateResponse);
+  rpc UpdateAvatar(stream UpdateAvatarRequest) returns (Empty);
+}
+
+message FindRequest {
+  repeated string user_id = 1;
+}
+
+message FindResponse {
+  string user_id = 1;
+  string first_name = 2;
+  string last_name = 3;
+  string bio = 4;
+  string image_path = 5;
+}
+
+message UpdateRequest {
+  string user_id = 1;
+  optional string first_name = 2;
+  optional string last_name = 3;
+  optional string bio = 4;
+}
+
+message UpdateResponse {
+  string user_id = 1;
+  string first_name = 2;
+  string last_name = 3;
+  string bio = 4;
+  string image_path = 5;
+}
+
+message UpdateAvatarRequest {
+  string user_id = 1;
+  string filename = 2;
+  bytes chunk = 3;
+}
