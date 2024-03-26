@@ -4,6 +4,7 @@ import (
 	"nexa/services/user/shared/domain/dto"
 	"nexa/services/user/shared/domain/entity"
 	"nexa/shared/types"
+	"nexa/shared/wrapper"
 	"time"
 )
 
@@ -19,20 +20,24 @@ func MapUserCreateInput(input *dto.UserCreateInput) (entity.User, entity.Profile
 	profile := entity.Profile{
 		Id:        user.Id,
 		FirstName: input.FirstName,
-		LastName:  input.LastName,
-		Bio:       input.Bio,
 	}
+
+	wrapper.SetOnNonNull(&profile.LastName, input.LastName)
+	wrapper.SetOnNonNull(&profile.Bio, input.Bio)
+
 	return user, profile
 }
 
 func MapUserUpdateInput(input *dto.UserUpdateInput) entity.User {
-	return entity.User{
+	user := entity.User{
 		Id:         types.IdFromString(input.Id),
-		Username:   input.Username,
-		Email:      types.EmailFromString(input.Email),
 		IsVerified: false,
 		IsDeleted:  false,
 	}
+
+	wrapper.SetOnNonNull(&user.Username, input.Username)
+	wrapper.SetOnNonNullCasted(&user.Email, input.Email, types.EmailFromString)
+	return user
 }
 
 func MapUserUpdatePasswordInput(input *dto.UserUpdatePasswordInput) entity.User {

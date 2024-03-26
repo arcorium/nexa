@@ -5,7 +5,6 @@ import (
 	domain "nexa/services/user/shared/domain/entity"
 	"nexa/shared/types"
 	"nexa/shared/variadic"
-	"nexa/shared/wrapper"
 	"time"
 )
 
@@ -43,7 +42,7 @@ type Profile struct {
 
 func (p *Profile) ToDomain() domain.Profile {
 	return domain.Profile{
-		Id:        wrapper.SomeF1(types.IdFromString, &p.UserId).Data,
+		Id:        types.IdFromString(p.UserId),
 		FirstName: p.FirstName,
 		LastName:  p.LastName,
 		PhotoURL:  types.FilePathFromString(p.PhotoURL),

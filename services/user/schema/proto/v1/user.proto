@@ -2,28 +2,32 @@ syntax = "proto3";
 package services.user.schema.proto.v1;
 option go_package = "nexa/services/user/shared/proto";
 
-message Empty {}
+import "google/protobuf/duration.proto";
+import "google/protobuf/empty.proto";
 
 service UserService {
-  rpc Create(CreateRequest) returns (CreateResponse);
-  rpc Update(UpdateRequest) returns (UpdateResponse);
-  rpc UpdateVerified(UpdateVerifiedRequest) returns (Empty);
-  rpc UpdatePassword(UpdatePasswordRequest) returns (Empty);
-  rpc ResetPassword(ResetPasswordRequest) returns (Empty);
-  rpc FindUserByIds(FindUsersByIdsRequest) returns (stream FindUsersResponse);
-  rpc FindUserByEmail(FindUsersByEmailRequest) returns (stream FindUsersResponse);
-  rpc BannedUser(BannedUserRequest) returns (Empty);
-  rpc DeleteUser(DeleteUserRequest) returns (DeleteUserResponse);
+  rpc Create(CreateUserRequest) returns (google.protobuf.Empty);
+  rpc Update(UpdateUserRequest) returns (google.protobuf.Empty);
+  rpc UpdateVerified(UpdateUserVerifiedRequest) returns (google.protobuf.Empty);
+  rpc UpdatePassword(UpdateUserPasswordRequest) returns (google.protobuf.Empty);
+  rpc ResetPassword(ResetUserPasswordRequest) returns (google.protobuf.Empty);
+  rpc FindUserByIds(FindUsersByIdsRequest) returns (stream User);
+  rpc FindUserByEmail(FindUsersByEmailRequest) returns (stream User);
+  rpc BannedUser(BannedUserRequest) returns (google.protobuf.Empty);
+  rpc DeleteUser(DeleteUserRequest) returns (google.protobuf.Empty);
 }
 
 message CreateResponse {
   string id = 1;
 }
 
-message CreateRequest {
+message CreateUserRequest {
   string username = 1;
   string email = 2;
   string password = 3;
+  string first_name = 4;
+  optional string last_name = 5;
+  optional string bio = 6;
 }
 
 message User {
@@ -34,23 +38,20 @@ message User {
   repeated string roles = 5;
 }
 
-message UpdateRequest {
-  optional string username = 1;
-  optional string email = 2;
+message UpdateUserRequest {
+  string id = 1;
+  optional string username = 2;
+  optional string email = 3;
 }
 
-message UpdatePasswordRequest {
+message UpdateUserPasswordRequest {
   string id = 1;
   string last_password = 2;
   string new_password = 3;
 }
 
-message UpdateVerifiedRequest {
+message UpdateUserVerifiedRequest {
   string id = 1;
-}
-
-message UpdateResponse {
-  User user = 1;
 }
 
 message FindUsersByIdsRequest {
@@ -61,23 +62,16 @@ message FindUsersByEmailRequest {
   repeated string emails = 1;
 }
 
-message FindUsersResponse {
-  User users = 1;
-}
-
 message DeleteUserRequest {
-  repeated string id = 1;
-}
-
-message DeleteUserResponse {
-  repeated string id = 1;
+  string id = 1;
 }
 
 message BannedUserRequest {
   string id = 1;
+  google.protobuf.Duration duration = 2;
 }
 
-message ResetPasswordRequest {
+message ResetUserPasswordRequest {
   string id = 1;
   string new_password = 2;
 }

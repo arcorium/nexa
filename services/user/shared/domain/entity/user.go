@@ -1,8 +1,6 @@
 package entity
 
 import (
-	"errors"
-	"nexa/services/access_control/shared/domain/entity"
 	"nexa/shared/types"
 	"time"
 )
@@ -17,16 +15,11 @@ type User struct {
 	IsDeleted   bool
 	BannedUntil time.Time
 
-	Roles []entity.Role
-
 	toggleDelete bool
 }
 
 func (u *User) ValidatePassword(password string) error {
-	if !u.Password.Equal(password) {
-		return ErrPasswordDifferent
-	}
-	return nil
+	return u.Password.Equal(password)
 }
 
 func (u *User) ValidateEmail() error {
@@ -44,6 +37,3 @@ func (u *User) Delete() {
 func (u *User) ShouldDeleted() bool {
 	return u.toggleDelete
 }
-
-var ErrPasswordDifferent = errors.New("password different")
-var ErrEmailMalformed = errors.New("bad email format")

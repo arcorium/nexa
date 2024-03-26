@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.3.0
 // - protoc             v4.25.3
-// source: services/user/schema/proto/v1/user.proto
+// source: user.proto
 
 package proto
 
@@ -11,6 +11,7 @@ import (
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -34,15 +35,15 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type UserServiceClient interface {
-	Create(ctx context.Context, in *CreateRequest, opts ...grpc.CallOption) (*CreateResponse, error)
-	Update(ctx context.Context, in *UpdateRequest, opts ...grpc.CallOption) (*UpdateResponse, error)
-	UpdateVerified(ctx context.Context, in *UpdateVerifiedRequest, opts ...grpc.CallOption) (*Empty, error)
-	UpdatePassword(ctx context.Context, in *UpdatePasswordRequest, opts ...grpc.CallOption) (*Empty, error)
-	ResetPassword(ctx context.Context, in *ResetPasswordRequest, opts ...grpc.CallOption) (*Empty, error)
+	Create(ctx context.Context, in *CreateUserRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	Update(ctx context.Context, in *UpdateUserRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	UpdateVerified(ctx context.Context, in *UpdateUserVerifiedRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	UpdatePassword(ctx context.Context, in *UpdateUserPasswordRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	ResetPassword(ctx context.Context, in *ResetUserPasswordRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	FindUserByIds(ctx context.Context, in *FindUsersByIdsRequest, opts ...grpc.CallOption) (UserService_FindUserByIdsClient, error)
 	FindUserByEmail(ctx context.Context, in *FindUsersByEmailRequest, opts ...grpc.CallOption) (UserService_FindUserByEmailClient, error)
-	BannedUser(ctx context.Context, in *BannedUserRequest, opts ...grpc.CallOption) (*Empty, error)
-	DeleteUser(ctx context.Context, in *DeleteUserRequest, opts ...grpc.CallOption) (*DeleteUserResponse, error)
+	BannedUser(ctx context.Context, in *BannedUserRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	DeleteUser(ctx context.Context, in *DeleteUserRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type userServiceClient struct {
@@ -53,8 +54,8 @@ func NewUserServiceClient(cc grpc.ClientConnInterface) UserServiceClient {
 	return &userServiceClient{cc}
 }
 
-func (c *userServiceClient) Create(ctx context.Context, in *CreateRequest, opts ...grpc.CallOption) (*CreateResponse, error) {
-	out := new(CreateResponse)
+func (c *userServiceClient) Create(ctx context.Context, in *CreateUserRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, UserService_Create_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -62,8 +63,8 @@ func (c *userServiceClient) Create(ctx context.Context, in *CreateRequest, opts 
 	return out, nil
 }
 
-func (c *userServiceClient) Update(ctx context.Context, in *UpdateRequest, opts ...grpc.CallOption) (*UpdateResponse, error) {
-	out := new(UpdateResponse)
+func (c *userServiceClient) Update(ctx context.Context, in *UpdateUserRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, UserService_Update_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -71,8 +72,8 @@ func (c *userServiceClient) Update(ctx context.Context, in *UpdateRequest, opts 
 	return out, nil
 }
 
-func (c *userServiceClient) UpdateVerified(ctx context.Context, in *UpdateVerifiedRequest, opts ...grpc.CallOption) (*Empty, error) {
-	out := new(Empty)
+func (c *userServiceClient) UpdateVerified(ctx context.Context, in *UpdateUserVerifiedRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, UserService_UpdateVerified_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -80,8 +81,8 @@ func (c *userServiceClient) UpdateVerified(ctx context.Context, in *UpdateVerifi
 	return out, nil
 }
 
-func (c *userServiceClient) UpdatePassword(ctx context.Context, in *UpdatePasswordRequest, opts ...grpc.CallOption) (*Empty, error) {
-	out := new(Empty)
+func (c *userServiceClient) UpdatePassword(ctx context.Context, in *UpdateUserPasswordRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, UserService_UpdatePassword_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -89,8 +90,8 @@ func (c *userServiceClient) UpdatePassword(ctx context.Context, in *UpdatePasswo
 	return out, nil
 }
 
-func (c *userServiceClient) ResetPassword(ctx context.Context, in *ResetPasswordRequest, opts ...grpc.CallOption) (*Empty, error) {
-	out := new(Empty)
+func (c *userServiceClient) ResetPassword(ctx context.Context, in *ResetUserPasswordRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, UserService_ResetPassword_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -114,7 +115,7 @@ func (c *userServiceClient) FindUserByIds(ctx context.Context, in *FindUsersById
 }
 
 type UserService_FindUserByIdsClient interface {
-	Recv() (*FindUsersResponse, error)
+	Recv() (*User, error)
 	grpc.ClientStream
 }
 
@@ -122,8 +123,8 @@ type userServiceFindUserByIdsClient struct {
 	grpc.ClientStream
 }
 
-func (x *userServiceFindUserByIdsClient) Recv() (*FindUsersResponse, error) {
-	m := new(FindUsersResponse)
+func (x *userServiceFindUserByIdsClient) Recv() (*User, error) {
+	m := new(User)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -146,7 +147,7 @@ func (c *userServiceClient) FindUserByEmail(ctx context.Context, in *FindUsersBy
 }
 
 type UserService_FindUserByEmailClient interface {
-	Recv() (*FindUsersResponse, error)
+	Recv() (*User, error)
 	grpc.ClientStream
 }
 
@@ -154,16 +155,16 @@ type userServiceFindUserByEmailClient struct {
 	grpc.ClientStream
 }
 
-func (x *userServiceFindUserByEmailClient) Recv() (*FindUsersResponse, error) {
-	m := new(FindUsersResponse)
+func (x *userServiceFindUserByEmailClient) Recv() (*User, error) {
+	m := new(User)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
 	return m, nil
 }
 
-func (c *userServiceClient) BannedUser(ctx context.Context, in *BannedUserRequest, opts ...grpc.CallOption) (*Empty, error) {
-	out := new(Empty)
+func (c *userServiceClient) BannedUser(ctx context.Context, in *BannedUserRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, UserService_BannedUser_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -171,8 +172,8 @@ func (c *userServiceClient) BannedUser(ctx context.Context, in *BannedUserReques
 	return out, nil
 }
 
-func (c *userServiceClient) DeleteUser(ctx context.Context, in *DeleteUserRequest, opts ...grpc.CallOption) (*DeleteUserResponse, error) {
-	out := new(DeleteUserResponse)
+func (c *userServiceClient) DeleteUser(ctx context.Context, in *DeleteUserRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, UserService_DeleteUser_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -184,15 +185,15 @@ func (c *userServiceClient) DeleteUser(ctx context.Context, in *DeleteUserReques
 // All implementations must embed UnimplementedUserServiceServer
 // for forward compatibility
 type UserServiceServer interface {
-	Create(context.Context, *CreateRequest) (*CreateResponse, error)
-	Update(context.Context, *UpdateRequest) (*UpdateResponse, error)
-	UpdateVerified(context.Context, *UpdateVerifiedRequest) (*Empty, error)
-	UpdatePassword(context.Context, *UpdatePasswordRequest) (*Empty, error)
-	ResetPassword(context.Context, *ResetPasswordRequest) (*Empty, error)
+	Create(context.Context, *CreateUserRequest) (*emptypb.Empty, error)
+	Update(context.Context, *UpdateUserRequest) (*emptypb.Empty, error)
+	UpdateVerified(context.Context, *UpdateUserVerifiedRequest) (*emptypb.Empty, error)
+	UpdatePassword(context.Context, *UpdateUserPasswordRequest) (*emptypb.Empty, error)
+	ResetPassword(context.Context, *ResetUserPasswordRequest) (*emptypb.Empty, error)
 	FindUserByIds(*FindUsersByIdsRequest, UserService_FindUserByIdsServer) error
 	FindUserByEmail(*FindUsersByEmailRequest, UserService_FindUserByEmailServer) error
-	BannedUser(context.Context, *BannedUserRequest) (*Empty, error)
-	DeleteUser(context.Context, *DeleteUserRequest) (*DeleteUserResponse, error)
+	BannedUser(context.Context, *BannedUserRequest) (*emptypb.Empty, error)
+	DeleteUser(context.Context, *DeleteUserRequest) (*emptypb.Empty, error)
 	mustEmbedUnimplementedUserServiceServer()
 }
 
@@ -200,19 +201,19 @@ type UserServiceServer interface {
 type UnimplementedUserServiceServer struct {
 }
 
-func (UnimplementedUserServiceServer) Create(context.Context, *CreateRequest) (*CreateResponse, error) {
+func (UnimplementedUserServiceServer) Create(context.Context, *CreateUserRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Create not implemented")
 }
-func (UnimplementedUserServiceServer) Update(context.Context, *UpdateRequest) (*UpdateResponse, error) {
+func (UnimplementedUserServiceServer) Update(context.Context, *UpdateUserRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
 }
-func (UnimplementedUserServiceServer) UpdateVerified(context.Context, *UpdateVerifiedRequest) (*Empty, error) {
+func (UnimplementedUserServiceServer) UpdateVerified(context.Context, *UpdateUserVerifiedRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateVerified not implemented")
 }
-func (UnimplementedUserServiceServer) UpdatePassword(context.Context, *UpdatePasswordRequest) (*Empty, error) {
+func (UnimplementedUserServiceServer) UpdatePassword(context.Context, *UpdateUserPasswordRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdatePassword not implemented")
 }
-func (UnimplementedUserServiceServer) ResetPassword(context.Context, *ResetPasswordRequest) (*Empty, error) {
+func (UnimplementedUserServiceServer) ResetPassword(context.Context, *ResetUserPasswordRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ResetPassword not implemented")
 }
 func (UnimplementedUserServiceServer) FindUserByIds(*FindUsersByIdsRequest, UserService_FindUserByIdsServer) error {
@@ -221,10 +222,10 @@ func (UnimplementedUserServiceServer) FindUserByIds(*FindUsersByIdsRequest, User
 func (UnimplementedUserServiceServer) FindUserByEmail(*FindUsersByEmailRequest, UserService_FindUserByEmailServer) error {
 	return status.Errorf(codes.Unimplemented, "method FindUserByEmail not implemented")
 }
-func (UnimplementedUserServiceServer) BannedUser(context.Context, *BannedUserRequest) (*Empty, error) {
+func (UnimplementedUserServiceServer) BannedUser(context.Context, *BannedUserRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method BannedUser not implemented")
 }
-func (UnimplementedUserServiceServer) DeleteUser(context.Context, *DeleteUserRequest) (*DeleteUserResponse, error) {
+func (UnimplementedUserServiceServer) DeleteUser(context.Context, *DeleteUserRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteUser not implemented")
 }
 func (UnimplementedUserServiceServer) mustEmbedUnimplementedUserServiceServer() {}
@@ -241,7 +242,7 @@ func RegisterUserServiceServer(s grpc.ServiceRegistrar, srv UserServiceServer) {
 }
 
 func _UserService_Create_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CreateRequest)
+	in := new(CreateUserRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -253,13 +254,13 @@ func _UserService_Create_Handler(srv interface{}, ctx context.Context, dec func(
 		FullMethod: UserService_Create_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UserServiceServer).Create(ctx, req.(*CreateRequest))
+		return srv.(UserServiceServer).Create(ctx, req.(*CreateUserRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _UserService_Update_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UpdateRequest)
+	in := new(UpdateUserRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -271,13 +272,13 @@ func _UserService_Update_Handler(srv interface{}, ctx context.Context, dec func(
 		FullMethod: UserService_Update_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UserServiceServer).Update(ctx, req.(*UpdateRequest))
+		return srv.(UserServiceServer).Update(ctx, req.(*UpdateUserRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _UserService_UpdateVerified_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UpdateVerifiedRequest)
+	in := new(UpdateUserVerifiedRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -289,13 +290,13 @@ func _UserService_UpdateVerified_Handler(srv interface{}, ctx context.Context, d
 		FullMethod: UserService_UpdateVerified_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UserServiceServer).UpdateVerified(ctx, req.(*UpdateVerifiedRequest))
+		return srv.(UserServiceServer).UpdateVerified(ctx, req.(*UpdateUserVerifiedRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _UserService_UpdatePassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UpdatePasswordRequest)
+	in := new(UpdateUserPasswordRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -307,13 +308,13 @@ func _UserService_UpdatePassword_Handler(srv interface{}, ctx context.Context, d
 		FullMethod: UserService_UpdatePassword_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UserServiceServer).UpdatePassword(ctx, req.(*UpdatePasswordRequest))
+		return srv.(UserServiceServer).UpdatePassword(ctx, req.(*UpdateUserPasswordRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _UserService_ResetPassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ResetPasswordRequest)
+	in := new(ResetUserPasswordRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -325,7 +326,7 @@ func _UserService_ResetPassword_Handler(srv interface{}, ctx context.Context, de
 		FullMethod: UserService_ResetPassword_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UserServiceServer).ResetPassword(ctx, req.(*ResetPasswordRequest))
+		return srv.(UserServiceServer).ResetPassword(ctx, req.(*ResetUserPasswordRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -339,7 +340,7 @@ func _UserService_FindUserByIds_Handler(srv interface{}, stream grpc.ServerStrea
 }
 
 type UserService_FindUserByIdsServer interface {
-	Send(*FindUsersResponse) error
+	Send(*User) error
 	grpc.ServerStream
 }
 
@@ -347,7 +348,7 @@ type userServiceFindUserByIdsServer struct {
 	grpc.ServerStream
 }
 
-func (x *userServiceFindUserByIdsServer) Send(m *FindUsersResponse) error {
+func (x *userServiceFindUserByIdsServer) Send(m *User) error {
 	return x.ServerStream.SendMsg(m)
 }
 
@@ -360,7 +361,7 @@ func _UserService_FindUserByEmail_Handler(srv interface{}, stream grpc.ServerStr
 }
 
 type UserService_FindUserByEmailServer interface {
-	Send(*FindUsersResponse) error
+	Send(*User) error
 	grpc.ServerStream
 }
 
@@ -368,7 +369,7 @@ type userServiceFindUserByEmailServer struct {
 	grpc.ServerStream
 }
 
-func (x *userServiceFindUserByEmailServer) Send(m *FindUsersResponse) error {
+func (x *userServiceFindUserByEmailServer) Send(m *User) error {
 	return x.ServerStream.SendMsg(m)
 }
 
@@ -456,5 +457,5 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 			ServerStreams: true,
 		},
 	},
-	Metadata: "services/user/schema/proto/v1/user.proto",
+	Metadata: "user.proto",
 }

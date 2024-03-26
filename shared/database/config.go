@@ -3,21 +3,13 @@ package database
 import (
 	"fmt"
 	"github.com/caarlos0/env/v10"
-	"github.com/joho/godotenv"
 	"sync"
 	"time"
 )
 
-var dsnOnce sync.Once
-
-func LoadConfig(filenames ...string) (*Config, error) {
-	err := godotenv.Load(filenames...)
-	if err != nil {
-		return nil, err
-	}
-
+func LoadConfig() (*Config, error) {
 	config := &Config{}
-	err = env.Parse(config)
+	err := env.Parse(config)
 	if err != nil {
 		return nil, err
 	}
@@ -37,11 +29,12 @@ type Config struct {
 
 	Timeout time.Duration `env:"DB_TIMEOUT" envDefault:"60s"`
 
-	dsn string
+	dsn     string
+	dsnOnce sync.Once
 }
 
 func (c *Config) DSN() string {
-	dsnOnce.Do(func() {
+	c.dsnOnce.Do(func() {
 		password := ""
 		if len(c.Password) != 0 {
 			password = ":" + c.Password

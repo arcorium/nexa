@@ -2,11 +2,9 @@ package model
 
 import (
 	"github.com/uptrace/bun"
-	"nexa/services/access_control/shared/domain/entity"
 	domain "nexa/services/user/shared/domain/entity"
 	"nexa/shared/types"
 	"nexa/shared/variadic"
-	"nexa/shared/wrapper"
 	"time"
 )
 
@@ -43,14 +41,14 @@ type User struct {
 	CreatedAt   time.Time `bun:",nullzero,notnull"`
 	UpdatedAt   time.Time `bun:",nullzero"`
 
-	Roles []entity.Role `bun:"rel:has-many,join:id=user_id"`
+	//Roles []entity.Role `bun:"rel:has-many,join:id=user_id"`
 }
 
 func (u *User) ToDomain() domain.User {
 	return domain.User{
-		Id:          wrapper.SomeF1(types.IdFromString, &u.Id).Data,
+		Id:          types.IdFromString(u.Id),
 		Username:    u.Username,
-		Email:       wrapper.SomeF1(types.EmailFromString, &u.Email).Data,
+		Email:       types.EmailFromString(u.Email),
 		Password:    types.PasswordFromString(u.Password),
 		IsVerified:  u.IsVerified,
 		BannedUntil: u.BannedUntil,

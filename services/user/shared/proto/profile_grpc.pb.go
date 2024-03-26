@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.3.0
 // - protoc             v4.25.3
-// source: services/user/schema/proto/v1/profile.proto
+// source: profile.proto
 
 package proto
 
@@ -11,6 +11,7 @@ import (
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -28,8 +29,8 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ProfileServiceClient interface {
-	Find(ctx context.Context, in *FindRequest, opts ...grpc.CallOption) (ProfileService_FindClient, error)
-	Update(ctx context.Context, in *UpdateRequest, opts ...grpc.CallOption) (*UpdateResponse, error)
+	Find(ctx context.Context, in *FindProfileRequest, opts ...grpc.CallOption) (ProfileService_FindClient, error)
+	Update(ctx context.Context, in *UpdateProfileRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	UpdateAvatar(ctx context.Context, opts ...grpc.CallOption) (ProfileService_UpdateAvatarClient, error)
 }
 
@@ -41,7 +42,7 @@ func NewProfileServiceClient(cc grpc.ClientConnInterface) ProfileServiceClient {
 	return &profileServiceClient{cc}
 }
 
-func (c *profileServiceClient) Find(ctx context.Context, in *FindRequest, opts ...grpc.CallOption) (ProfileService_FindClient, error) {
+func (c *profileServiceClient) Find(ctx context.Context, in *FindProfileRequest, opts ...grpc.CallOption) (ProfileService_FindClient, error) {
 	stream, err := c.cc.NewStream(ctx, &ProfileService_ServiceDesc.Streams[0], ProfileService_Find_FullMethodName, opts...)
 	if err != nil {
 		return nil, err
@@ -57,7 +58,7 @@ func (c *profileServiceClient) Find(ctx context.Context, in *FindRequest, opts .
 }
 
 type ProfileService_FindClient interface {
-	Recv() (*FindResponse, error)
+	Recv() (*Profile, error)
 	grpc.ClientStream
 }
 
@@ -65,16 +66,16 @@ type profileServiceFindClient struct {
 	grpc.ClientStream
 }
 
-func (x *profileServiceFindClient) Recv() (*FindResponse, error) {
-	m := new(FindResponse)
+func (x *profileServiceFindClient) Recv() (*Profile, error) {
+	m := new(Profile)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
 	return m, nil
 }
 
-func (c *profileServiceClient) Update(ctx context.Context, in *UpdateRequest, opts ...grpc.CallOption) (*UpdateResponse, error) {
-	out := new(UpdateResponse)
+func (c *profileServiceClient) Update(ctx context.Context, in *UpdateProfileRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, ProfileService_Update_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -92,8 +93,8 @@ func (c *profileServiceClient) UpdateAvatar(ctx context.Context, opts ...grpc.Ca
 }
 
 type ProfileService_UpdateAvatarClient interface {
-	Send(*UpdateAvatarRequest) error
-	CloseAndRecv() (*Empty, error)
+	Send(*UpdateProfileAvatarRequest) error
+	CloseAndRecv() (*emptypb.Empty, error)
 	grpc.ClientStream
 }
 
@@ -101,15 +102,15 @@ type profileServiceUpdateAvatarClient struct {
 	grpc.ClientStream
 }
 
-func (x *profileServiceUpdateAvatarClient) Send(m *UpdateAvatarRequest) error {
+func (x *profileServiceUpdateAvatarClient) Send(m *UpdateProfileAvatarRequest) error {
 	return x.ClientStream.SendMsg(m)
 }
 
-func (x *profileServiceUpdateAvatarClient) CloseAndRecv() (*Empty, error) {
+func (x *profileServiceUpdateAvatarClient) CloseAndRecv() (*emptypb.Empty, error) {
 	if err := x.ClientStream.CloseSend(); err != nil {
 		return nil, err
 	}
-	m := new(Empty)
+	m := new(emptypb.Empty)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -120,8 +121,8 @@ func (x *profileServiceUpdateAvatarClient) CloseAndRecv() (*Empty, error) {
 // All implementations must embed UnimplementedProfileServiceServer
 // for forward compatibility
 type ProfileServiceServer interface {
-	Find(*FindRequest, ProfileService_FindServer) error
-	Update(context.Context, *UpdateRequest) (*UpdateResponse, error)
+	Find(*FindProfileRequest, ProfileService_FindServer) error
+	Update(context.Context, *UpdateProfileRequest) (*emptypb.Empty, error)
 	UpdateAvatar(ProfileService_UpdateAvatarServer) error
 	mustEmbedUnimplementedProfileServiceServer()
 }
@@ -130,10 +131,10 @@ type ProfileServiceServer interface {
 type UnimplementedProfileServiceServer struct {
 }
 
-func (UnimplementedProfileServiceServer) Find(*FindRequest, ProfileService_FindServer) error {
+func (UnimplementedProfileServiceServer) Find(*FindProfileRequest, ProfileService_FindServer) error {
 	return status.Errorf(codes.Unimplemented, "method Find not implemented")
 }
-func (UnimplementedProfileServiceServer) Update(context.Context, *UpdateRequest) (*UpdateResponse, error) {
+func (UnimplementedProfileServiceServer) Update(context.Context, *UpdateProfileRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
 }
 func (UnimplementedProfileServiceServer) UpdateAvatar(ProfileService_UpdateAvatarServer) error {
@@ -153,7 +154,7 @@ func RegisterProfileServiceServer(s grpc.ServiceRegistrar, srv ProfileServiceSer
 }
 
 func _ProfileService_Find_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(FindRequest)
+	m := new(FindProfileRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
@@ -161,7 +162,7 @@ func _ProfileService_Find_Handler(srv interface{}, stream grpc.ServerStream) err
 }
 
 type ProfileService_FindServer interface {
-	Send(*FindResponse) error
+	Send(*Profile) error
 	grpc.ServerStream
 }
 
@@ -169,12 +170,12 @@ type profileServiceFindServer struct {
 	grpc.ServerStream
 }
 
-func (x *profileServiceFindServer) Send(m *FindResponse) error {
+func (x *profileServiceFindServer) Send(m *Profile) error {
 	return x.ServerStream.SendMsg(m)
 }
 
 func _ProfileService_Update_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UpdateRequest)
+	in := new(UpdateProfileRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -186,7 +187,7 @@ func _ProfileService_Update_Handler(srv interface{}, ctx context.Context, dec fu
 		FullMethod: ProfileService_Update_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ProfileServiceServer).Update(ctx, req.(*UpdateRequest))
+		return srv.(ProfileServiceServer).Update(ctx, req.(*UpdateProfileRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -196,8 +197,8 @@ func _ProfileService_UpdateAvatar_Handler(srv interface{}, stream grpc.ServerStr
 }
 
 type ProfileService_UpdateAvatarServer interface {
-	SendAndClose(*Empty) error
-	Recv() (*UpdateAvatarRequest, error)
+	SendAndClose(*emptypb.Empty) error
+	Recv() (*UpdateProfileAvatarRequest, error)
 	grpc.ServerStream
 }
 
@@ -205,12 +206,12 @@ type profileServiceUpdateAvatarServer struct {
 	grpc.ServerStream
 }
 
-func (x *profileServiceUpdateAvatarServer) SendAndClose(m *Empty) error {
+func (x *profileServiceUpdateAvatarServer) SendAndClose(m *emptypb.Empty) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func (x *profileServiceUpdateAvatarServer) Recv() (*UpdateAvatarRequest, error) {
-	m := new(UpdateAvatarRequest)
+func (x *profileServiceUpdateAvatarServer) Recv() (*UpdateProfileAvatarRequest, error) {
+	m := new(UpdateProfileAvatarRequest)
 	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -241,5 +242,5 @@ var ProfileService_ServiceDesc = grpc.ServiceDesc{
 			ClientStreams: true,
 		},
 	},
-	Metadata: "services/user/schema/proto/v1/profile.proto",
+	Metadata: "profile.proto",
 }
