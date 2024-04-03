@@ -25,6 +25,7 @@ const (
 	RoleService_Update_FullMethodName            = "/services.authorization.schema.proto.v1.RoleService/Update"
 	RoleService_Delete_FullMethodName            = "/services.authorization.schema.proto.v1.RoleService/Delete"
 	RoleService_Find_FullMethodName              = "/services.authorization.schema.proto.v1.RoleService/Find"
+	RoleService_FindByUserId_FullMethodName      = "/services.authorization.schema.proto.v1.RoleService/FindByUserId"
 	RoleService_FindAll_FullMethodName           = "/services.authorization.schema.proto.v1.RoleService/FindAll"
 	RoleService_AddPermissions_FullMethodName    = "/services.authorization.schema.proto.v1.RoleService/AddPermissions"
 	RoleService_RemovePermissions_FullMethodName = "/services.authorization.schema.proto.v1.RoleService/RemovePermissions"
@@ -40,6 +41,7 @@ type RoleServiceClient interface {
 	Update(ctx context.Context, in *RoleUpdateInput, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	Delete(ctx context.Context, in *RoleDeleteInput, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	Find(ctx context.Context, in *RoleFindInput, opts ...grpc.CallOption) (*RoleFindOutput, error)
+	FindByUserId(ctx context.Context, in *RoleFindByUserIdInput, opts ...grpc.CallOption) (*RoleFindByUserIdOutput, error)
 	FindAll(ctx context.Context, in *proto.PagedElementInput, opts ...grpc.CallOption) (*RoleFindAllOutput, error)
 	AddPermissions(ctx context.Context, in *RoleAddPermissionsInput, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	RemovePermissions(ctx context.Context, in *RoleRemovePermissionsInput, opts ...grpc.CallOption) (*emptypb.Empty, error)
@@ -85,6 +87,15 @@ func (c *roleServiceClient) Delete(ctx context.Context, in *RoleDeleteInput, opt
 func (c *roleServiceClient) Find(ctx context.Context, in *RoleFindInput, opts ...grpc.CallOption) (*RoleFindOutput, error) {
 	out := new(RoleFindOutput)
 	err := c.cc.Invoke(ctx, RoleService_Find_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *roleServiceClient) FindByUserId(ctx context.Context, in *RoleFindByUserIdInput, opts ...grpc.CallOption) (*RoleFindByUserIdOutput, error) {
+	out := new(RoleFindByUserIdOutput)
+	err := c.cc.Invoke(ctx, RoleService_FindByUserId_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -144,6 +155,7 @@ type RoleServiceServer interface {
 	Update(context.Context, *RoleUpdateInput) (*emptypb.Empty, error)
 	Delete(context.Context, *RoleDeleteInput) (*emptypb.Empty, error)
 	Find(context.Context, *RoleFindInput) (*RoleFindOutput, error)
+	FindByUserId(context.Context, *RoleFindByUserIdInput) (*RoleFindByUserIdOutput, error)
 	FindAll(context.Context, *proto.PagedElementInput) (*RoleFindAllOutput, error)
 	AddPermissions(context.Context, *RoleAddPermissionsInput) (*emptypb.Empty, error)
 	RemovePermissions(context.Context, *RoleRemovePermissionsInput) (*emptypb.Empty, error)
@@ -167,6 +179,9 @@ func (UnimplementedRoleServiceServer) Delete(context.Context, *RoleDeleteInput) 
 }
 func (UnimplementedRoleServiceServer) Find(context.Context, *RoleFindInput) (*RoleFindOutput, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Find not implemented")
+}
+func (UnimplementedRoleServiceServer) FindByUserId(context.Context, *RoleFindByUserIdInput) (*RoleFindByUserIdOutput, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FindByUserId not implemented")
 }
 func (UnimplementedRoleServiceServer) FindAll(context.Context, *proto.PagedElementInput) (*RoleFindAllOutput, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method FindAll not implemented")
@@ -264,6 +279,24 @@ func _RoleService_Find_Handler(srv interface{}, ctx context.Context, dec func(in
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RoleServiceServer).Find(ctx, req.(*RoleFindInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RoleService_FindByUserId_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RoleFindByUserIdInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RoleServiceServer).FindByUserId(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RoleService_FindByUserId_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RoleServiceServer).FindByUserId(ctx, req.(*RoleFindByUserIdInput))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -380,6 +413,10 @@ var RoleService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Find",
 			Handler:    _RoleService_Find_Handler,
+		},
+		{
+			MethodName: "FindByUserId",
+			Handler:    _RoleService_FindByUserId_Handler,
 		},
 		{
 			MethodName: "FindAll",

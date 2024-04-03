@@ -9,6 +9,7 @@ import (
 
 type IRole interface {
 	FindByIds(ctx context.Context, id ...types.Id) ([]entity.Role, error)
+	FindByUserId(ctx context.Context, userId types.Id) ([]entity.Role, error)
 	FindAll(ctx context.Context, parameter repo.QueryParameter) (repo.PaginatedResult[entity.Role], error)
 	Create(ctx context.Context, role *entity.Role) error
 	Patch(ctx context.Context, role *entity.Role) error

@@ -26,6 +26,14 @@ func (r *roleService) Find(ctx context.Context, ids ...types.Id) ([]dto.RoleResp
 	return util.CastSlice(roles, mapper.ToRoleResponseDTO), status.FromRepository(err, status.NullCode)
 }
 
+func (r *roleService) FindByUserId(ctx context.Context, userId types.Id) ([]dto.RoleResponseDTO, status.Object) {
+	roles, err := r.repo.FindByUserId(ctx, userId)
+	if err != nil {
+		return nil, status.FromRepository(err, status.NullCode)
+	}
+	return util.CastSlice(roles, mapper.ToRoleResponseDTO), status.Success()
+}
+
 func (r *roleService) FindAll(ctx context.Context, input *sharedDto.PagedElementDTO) (sharedDto.PagedElementResult[dto.RoleResponseDTO], status.Object) {
 	result, err := r.repo.FindAll(ctx, input.ToQueryParam())
 	rolesDTO := util.CastSlice(result.Data, mapper.ToRoleResponseDTO)

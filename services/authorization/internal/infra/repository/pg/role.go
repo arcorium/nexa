@@ -36,6 +36,22 @@ func (r *roleRepository) FindByIds(ctx context.Context, id ...types.Id) ([]entit
 	return roles, result.Err
 }
 
+func (r *roleRepository) FindByUserId(ctx context.Context, userId types.Id) ([]entity.Role, error) {
+	var dbModels []model.UserRole
+
+	err := r.db.NewSelect().
+		Model(&dbModels).
+		Where("user_id = ?", userId.Underlying().String()).
+		Relation("Role").
+		Scan(ctx)
+
+	result := repo.CheckSliceResult(dbModels, err)
+	roles := util.CastSlice(dbModels, func(from *model.UserRole) entity.Role {
+		return from.Role.ToDomain()
+	})
+	return roles, result.Err
+}
+
 func (r *roleRepository) FindAll(ctx context.Context, parameter repo.QueryParameter) (repo.PaginatedResult[entity.Role], error) {
 	var dbModels []model.Role
 

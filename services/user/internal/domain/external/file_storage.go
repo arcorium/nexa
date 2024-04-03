@@ -1,7 +1,10 @@
 package external
 
-import "nexa/shared/types"
+import (
+	"context"
+	"nexa/shared/types"
+)
 
 type IFileStorageClient interface {
-	UploadImage() (types.FilePath, error)
+	UploadImage(ctx context.Context) (types.FilePath, error)
 }

@@ -83,6 +83,20 @@ func (r *RoleHandler) Find(ctx context.Context, input *proto.RoleFindInput) (*pr
 	return &proto.RoleFindOutput{Roles: util.CastSlice(responseDTOS, mapper.ToRoleResponse)}, stats.ToGRPCError()
 }
 
+func (r *RoleHandler) FindByUserId(ctx context.Context, input *proto.RoleFindByUserIdInput) (*proto.RoleFindByUserIdOutput, error) {
+	id := types.IdFromString(input.UserId)
+	if err := id.Validate(); err != nil {
+		stats := status.ErrBadRequest(err)
+		return nil, stats.ToGRPCError()
+	}
+
+	roles, stats := r.svc.FindByUserId(ctx, id)
+	if stats.IsError() {
+		return nil, stats.ToGRPCError()
+	}
+	return &proto.RoleFindByUserIdOutput{Roles: util.CastSlice(roles, mapper.ToRoleResponse)}, stats.ToGRPCError()
+}
+
 func (r *RoleHandler) FindAll(ctx context.Context, input *sharedProto.PagedElementInput) (*proto.RoleFindAllOutput, error) {
 	pagedElementDTO := input.ToDTO()
 	result, stats := r.svc.FindAll(ctx, &pagedElementDTO)

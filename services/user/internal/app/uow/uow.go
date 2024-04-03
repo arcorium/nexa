@@ -12,7 +12,7 @@ func newUserUOWStorage(user repository.IUser, profile repository.IProfile) UserS
 	return UserStorage{user: user, profile: profile}
 }
 
-// UserStorage repository storage, made members as private, so it couldn't initialize outside this package
+// UserStorage repository storage, made members as private, so it couldn't be initialized outside this package
 type UserStorage struct {
 	user    repository.IUser
 	profile repository.IProfile

@@ -10,6 +10,7 @@ import (
 
 type IRole interface {
 	Find(ctx context.Context, ids ...types.Id) ([]dto.RoleResponseDTO, status.Object)
+	FindByUserId(ctx context.Context, userId types.Id) ([]dto.RoleResponseDTO, status.Object)
 	FindAll(ctx context.Context, input *sharedDto.PagedElementDTO) (sharedDto.PagedElementResult[dto.RoleResponseDTO], status.Object)
 	Create(ctx context.Context, createDTO *dto.RoleCreateDTO) (types.Id, status.Object)
 	Update(ctx context.Context, updateDTO *dto.RoleUpdateDTO) status.Object
