@@ -1,7 +1,7 @@
 package mapper
 
 import (
-	"nexa/services/user/shared/domain/dto"
+	"nexa/services/user/internal/domain/dto"
 	"nexa/services/user/shared/proto"
 	"nexa/shared/wrapper"
 )

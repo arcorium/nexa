@@ -1,0 +1,48 @@
+syntax = "proto3";
+package services.authorization.schema.proto.v1;
+option go_package = "nexa/services/authorization/shared/proto";
+
+import "google/protobuf/empty.proto";
+import "arc/paged.proto";
+
+service ResourceService {
+  rpc Create(ResourceCreateInput) returns (ResourceCreateOutput);
+  rpc Update(ResourceUpdateInput) returns (google.protobuf.Empty);
+  rpc Delete(ResourceDeleteInput) returns (google.protobuf.Empty);
+  rpc Find(ResourceFindInput) returns (ResourceResponse);
+  rpc FindAll(arc.PagedElementInput) returns (ResourceFindAllResponse);
+}
+
+message ResourceCreateInput {
+  string name = 1;
+  optional string description = 2;
+}
+
+message ResourceCreateOutput {
+  string id = 1;
+}
+
+message ResourceUpdateInput {
+  string id = 1;
+  optional string name = 2;
+  optional string description = 3;
+}
+
+message ResourceDeleteInput {
+  string id = 1;
+}
+
+message ResourceFindInput {
+  string id = 1;
+}
+
+message ResourceResponse {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+}
+
+message ResourceFindAllResponse {
+  arc.PagedElementOutput details = 1;
+  repeated ResourceResponse resources = 2;
+}

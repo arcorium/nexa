@@ -6,9 +6,8 @@ import (
 	"google.golang.org/protobuf/types/known/emptypb"
 	"io"
 	"nexa/services/user/internal/api/grpc/mapper"
-	"nexa/services/user/internal/app/common"
+	"nexa/services/user/internal/domain/dto"
 	"nexa/services/user/internal/domain/service"
-	"nexa/services/user/shared/domain/dto"
 	"nexa/services/user/shared/proto"
 	"nexa/shared/types"
 	"nexa/shared/util"
@@ -31,7 +30,7 @@ func (p *ProfileHandler) Register(server *grpc.Server) {
 }
 
 func (p *ProfileHandler) Find(request *proto.FindProfileRequest, server proto.ProfileService_FindServer) error {
-	ids, err := util.CastSlice2(request.UserIds, func(from *string) (types.Id, error) {
+	ids, err := util.CastSliceErr(request.UserIds, func(from *string) (types.Id, error) {
 		id := types.IdFromString(*from)
 		return id, id.Validate()
 	})
@@ -56,7 +55,7 @@ func (p *ProfileHandler) Find(request *proto.FindProfileRequest, server proto.Pr
 func (p *ProfileHandler) Update(ctx context.Context, request *proto.UpdateProfileRequest) (*emptypb.Empty, error) {
 	dtoInput := mapper.ToDTOProfileUpdateInput(request)
 
-	if err := common.GetValidator().Struct(&dtoInput); err != nil {
+	if err := util.GetValidator().Struct(&dtoInput); err != nil {
 		return nil, err
 	}
 

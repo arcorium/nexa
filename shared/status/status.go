@@ -1,27 +1,13 @@
 package status
 
-func Success() Object {
-	return New(SUCCESS, nil)
-}
-
-func Created() Object {
-	return New(CREATED, nil)
-}
-
-func Updated() Object {
-	return New(UPDATED, nil)
-}
-
-func Deleted() Object {
-	return New(DELETED, nil)
-}
+import "google.golang.org/grpc/status"
 
 func Error(code Code, err error) Object {
 	return New(code, err)
 }
 
-func Internal(err error) Object {
-	return New(INTERNAL_SERVER_ERROR, err)
+func ErrorC(code Code) Object {
+	return New(code, nil)
 }
 
 func New(code Code, err error) Object {
@@ -37,5 +23,9 @@ type Object struct {
 }
 
 func (s *Object) IsError() bool {
-	return s.Error != nil
+	return s.Error != nil || s.Codes > DELETED
+}
+
+func (s *Object) ToGRPCError() error {
+	return status.Error(MapGRPCCode(s.Codes), s.Error.Error())
 }

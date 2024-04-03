@@ -3,9 +3,9 @@ package service
 import (
 	"context"
 	userUow "nexa/services/user/internal/app/uow"
+	"nexa/services/user/internal/domain/dto"
+	"nexa/services/user/internal/domain/mapper"
 	"nexa/services/user/internal/domain/service"
-	"nexa/services/user/shared/domain/dto"
-	"nexa/services/user/shared/domain/mapper"
 	"nexa/shared/status"
 	"nexa/shared/types"
 	"nexa/shared/uow"

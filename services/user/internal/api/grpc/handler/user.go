@@ -5,7 +5,6 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"nexa/services/user/internal/api/grpc/mapper"
-	"nexa/services/user/internal/app/common"
 	"nexa/services/user/internal/domain/service"
 	"nexa/services/user/shared/proto"
 	"nexa/shared/types"
@@ -30,20 +29,20 @@ func (u *UserHandler) Create(ctx context.Context, request *proto.CreateUserReque
 	dtoInput := mapper.ToDTOCreateInput(request)
 
 	// DTO Validation
-	err := common.GetValidator().StructCtx(ctx, &dtoInput)
-	if err != nil {
-		return nil, err
+	stats := util.ValidateStruct(ctx, &dtoInput)
+	if stats.IsError() {
+		return nil, stats.ToGRPCError()
 	}
 
-	stats := u.userService.Create(ctx, &dtoInput)
-	return &emptypb.Empty{}, stats.Error
+	stats = u.userService.Create(ctx, &dtoInput)
+	return &emptypb.Empty{}, stats.ToGRPCError()
 }
 
 func (u *UserHandler) Update(ctx context.Context, request *proto.UpdateUserRequest) (*emptypb.Empty, error) {
 	dtoInput := mapper.ToDTOUserUpdateInput(request)
 	// TODO: Get user id from access token claims from ctx
 
-	err := common.GetValidator().StructCtx(ctx, &dtoInput)
+	err := util.GetValidator().StructCtx(ctx, &dtoInput)
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +68,7 @@ func (u *UserHandler) UpdatePassword(ctx context.Context, request *proto.UpdateU
 	dtoInput := mapper.ToDTOUserUpdatePasswordInput(request)
 	// TODO: Get user id from access token claims from ctx
 
-	err := common.GetValidator().Struct(&dtoInput)
+	err := util.GetValidator().Struct(&dtoInput)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +80,7 @@ func (u *UserHandler) UpdatePassword(ctx context.Context, request *proto.UpdateU
 func (u *UserHandler) ResetPassword(ctx context.Context, request *proto.ResetUserPasswordRequest) (*emptypb.Empty, error) {
 	dtoInput := mapper.ToDTOUserResetPasswordInput(request)
 
-	err := common.GetValidator().StructCtx(ctx, &dtoInput)
+	err := util.GetValidator().StructCtx(ctx, &dtoInput)
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +90,7 @@ func (u *UserHandler) ResetPassword(ctx context.Context, request *proto.ResetUse
 }
 
 func (u *UserHandler) FindUserByIds(request *proto.FindUsersByIdsRequest, server proto.UserService_FindUserByIdsServer) error {
-	ids, err := util.CastSlice2(request.Ids, func(from *string) (types.Id, error) {
+	ids, err := util.CastSliceErr(request.Ids, func(from *string) (types.Id, error) {
 		id := types.IdFromString(*from)
 		return id, id.Validate()
 	})
@@ -114,7 +113,7 @@ func (u *UserHandler) FindUserByIds(request *proto.FindUsersByIdsRequest, server
 }
 
 func (u *UserHandler) FindUserByEmail(request *proto.FindUsersByEmailRequest, server proto.UserService_FindUserByEmailServer) error {
-	emails, err := util.CastSlice2(request.Emails, func(from *string) (types.Email, error) {
+	emails, err := util.CastSliceErr(request.Emails, func(from *string) (types.Email, error) {
 		email := types.EmailFromString(*from)
 		return email, email.Validate()
 	})
@@ -141,7 +140,7 @@ func (u *UserHandler) BannedUser(ctx context.Context, request *proto.BannedUserR
 	// TODO: Get user id from access token claims from ctx
 	dtoInput := mapper.ToDTOUserBannedInput(request)
 
-	err := common.GetValidator().StructCtx(ctx, &dtoInput)
+	err := util.GetValidator().StructCtx(ctx, &dtoInput)
 	if err != nil {
 		return nil, err
 	}

@@ -4,11 +4,12 @@ import (
 	"github.com/uptrace/bun"
 	domain "nexa/services/user/shared/domain/entity"
 	"nexa/shared/types"
+	"nexa/shared/util/repo"
 	"nexa/shared/variadic"
 	"time"
 )
 
-type UserMapOption = DataAccessModelMapOption[*domain.User, *User]
+type UserMapOption = repo.DataAccessModelMapOption[*domain.User, *User]
 
 func FromUserDomain(user *domain.User, opts ...UserMapOption) User {
 	// Time based field should be handled individually

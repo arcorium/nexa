@@ -1,4 +1,4 @@
-package model
+package repo
 
 // DataAccessModelMapOption function pointer to be used for mapping configuration.
 // D is domain model type and R is repository or database model type

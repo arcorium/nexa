@@ -3,10 +3,10 @@ package service
 import (
 	"context"
 	userUow "nexa/services/user/internal/app/uow"
+	"nexa/services/user/internal/domain/dto"
+	"nexa/services/user/internal/domain/mapper"
 	"nexa/services/user/internal/domain/service"
-	"nexa/services/user/shared/domain/dto"
 	"nexa/services/user/shared/domain/entity"
-	"nexa/services/user/shared/domain/mapper"
 	"nexa/shared/status"
 	"nexa/shared/types"
 	"nexa/shared/uow"
@@ -62,13 +62,13 @@ func (u userService) UpdatePassword(ctx context.Context, input *dto.UserUpdatePa
 	// Validate last password
 	err = users[0].Password.Equal(input.LastPassword)
 	if err != nil {
-		return status.Internal(err)
+		return status.ErrInternal(err)
 	}
 
 	// Hash new password
 	user.Password, err = user.Password.Hash()
 	if err != nil {
-		return status.Internal(err)
+		return status.ErrInternal(err)
 	}
 
 	// Update

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/uptrace/bun"
 	"google.golang.org/grpc"
 	"log"
 	"net"
@@ -11,36 +12,55 @@ import (
 	"nexa/services/user/internal/infra/model"
 	"nexa/shared/database"
 	"nexa/shared/util"
+	"nexa/shared/wrapper"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 )
 
-func NewServer(dbConfig *database.Config, serverConfig *config.ServerConfig) Server {
-	return Server{
+func NewServer(dbConfig *database.Config, serverConfig *config.ServerConfig) (*Server, error) {
+	svr := &Server{
 		dbConfig:     dbConfig,
 		serverConfig: serverConfig,
-		server:       grpc.NewServer(),
 	}
+
+	err := svr.Init()
+	return svr, err
 }
 
 type Server struct {
 	dbConfig     *database.Config
 	serverConfig *config.ServerConfig
+	db           *bun.DB
 
 	server *grpc.Server
+
+	wg sync.WaitGroup
+}
+
+func (s *Server) validationSetup() {
+	wrapper.RegisterDefaultNullableValidations(util.GetValidator())
+}
+
+func (s *Server) grpcServerSetup() {
+	s.server = grpc.NewServer()
 }
 
 func (s *Server) Init() error {
+	s.validationSetup()
+	s.grpcServerSetup()
 
 	// Database
-	db, err := database.OpenPostgres(s.dbConfig, true, util.Nil[model.User](), util.Nil[model.Profile]())
+	var err error
+	s.db, err = database.OpenPostgres(s.dbConfig, true)
+	model.RegisterBunModels(s.db)
 	if err != nil {
 		return err
 	}
 
 	// UOW
-	userUOW := uow.NewUserUOW(db)
+	userUOW := uow.NewUserUOW(s.db)
 
 	// Service
 	userService := service.NewUser(userUOW)
@@ -59,6 +79,10 @@ func (s *Server) Init() error {
 func (s *Server) shutdown() {
 	log.Println("Server Stopped!")
 	s.server.GracefulStop()
+	if err := s.db.Close(); err != nil {
+		log.Println(err)
+	}
+	s.wg.Wait()
 }
 
 func (s *Server) Run() error {
@@ -68,6 +92,10 @@ func (s *Server) Run() error {
 	}
 
 	go func() {
+		s.wg.Add(1)
+		defer s.wg.Done()
+
+		log.Println("Server Listening on ", s.serverConfig.Address())
 		err = s.server.Serve(listener)
 	}()
 

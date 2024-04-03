@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package arc;
+
+option go_package = "nexa/shared/proto";
+
+message PagedElementInput {
+  uint64 element = 1;
+  uint64 page = 2;
+}
+
+message PagedElementOutput {
+  uint64 element = 1;
+  uint64 page = 2;
+  uint64 totalElements = 3;
+  uint64 totalPages = 4;
+}

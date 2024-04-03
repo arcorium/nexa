@@ -4,11 +4,12 @@ import (
 	"github.com/uptrace/bun"
 	domain "nexa/services/user/shared/domain/entity"
 	"nexa/shared/types"
+	"nexa/shared/util/repo"
 	"nexa/shared/variadic"
 	"time"
 )
 
-type ProfileMapOption = DataAccessModelMapOption[*domain.Profile, *Profile]
+type ProfileMapOption = repo.DataAccessModelMapOption[*domain.Profile, *Profile]
 
 func FromProfileDomain(profile *domain.Profile, opts ...ProfileMapOption) Profile {
 	pfl := Profile{

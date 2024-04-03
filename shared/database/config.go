@@ -44,8 +44,8 @@ func (c *Config) DSN() string {
 			param = "?" + c.Parameter
 		}
 
-		c.dsn = fmt.Sprintf("%s://%s%s@%s:%d%s", c.Protocol, c.Username, password,
-			c.Host, c.Port, param)
+		c.dsn = fmt.Sprintf("%s://%s%s@%s:%d/%s%s", c.Protocol, c.Username, password,
+			c.Host, c.Port, c.Name, param)
 	})
 
 	return c.dsn

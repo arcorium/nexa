@@ -50,6 +50,7 @@ func (n Nullable[T]) Value() *T {
 	return n.data
 }
 
+// Value2 Works like Value, but it will copy except for data type that has pointer as underlying, for example string, slice, map
 func (n Nullable[T]) Value2() T {
 	return *n.Value()
 }
@@ -94,12 +95,15 @@ func RegisterDefaultNullableValidations(validate *validator.Validate) {
 	RegisterValidation[uint64](validate)
 }
 
+// SetOnNonNull set value on dest if only the nullable object has value
 func SetOnNonNull[T any, U INullable[T]](dest *T, nullable U) {
 	if nullable.HasValue() {
 		*dest = nullable.Value2()
 	}
 }
 
+// SetOnNonNullCasted set value on dest if only the nullable object has value. Nullable object can have different type from dest parameter.
+// castFunc will be used to do casting from nullable type to destination type
 func SetOnNonNullCasted[T, V any, U INullable[V]](dest *T, nullable U, castFunc func(V) T) {
 	if nullable.HasValue() {
 		*dest = castFunc(nullable.Value2())

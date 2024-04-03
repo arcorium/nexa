@@ -24,8 +24,7 @@ func main() {
 		env.LogError(err, -1)
 	}
 
-	server := NewServer(dbConfig, serverConfig)
-	err = server.Init()
+	server, err := NewServer(dbConfig, serverConfig)
 	if err != nil {
 		log.Fatalln(err)
 	}

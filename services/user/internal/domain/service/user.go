@@ -2,7 +2,7 @@ package service
 
 import (
 	"context"
-	"nexa/services/user/shared/domain/dto"
+	"nexa/services/user/internal/domain/dto"
 	"nexa/shared/status"
 	"nexa/shared/types"
 )

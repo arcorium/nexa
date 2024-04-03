@@ -1,6 +1,6 @@
 
 proto.compile:
-	protoc --proto_path=./proto;./services/user/schema/proto/v1 --go_out=. --go-grpc_out=. --go_opt=module=nexa --go-grpc_opt=module=nexa .\services\user\schema\proto\v1\\*.proto
+	protoc --proto_path=./proto;./services/$(service)/schema/proto/v1 --go_out=. --go-grpc_out=. --go_opt=module=nexa --go-grpc_opt=module=nexa .\services\$(service)\schema\proto\v1\\*.proto
 
 create.service:
 	mkdir services\$(service)
