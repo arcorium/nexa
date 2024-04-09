@@ -1,0 +1,47 @@
+syntax = "proto3";
+package nexa.proto.generated.authorization.v1;
+option go_package = "nexa/proto/generated/golang/authorization/v1";
+
+import "arc/paged.proto";
+
+message PermissionResponse {
+  string resourceId = 1;
+  string resourceName = 2;
+  string resourceDescription = 3;
+  string actionId = 4;
+  string actionName = 5;
+  string actionDescription = 6;
+  string code = 7;
+}
+
+message PermissionCreateRequest {
+  string resourceId = 1;
+  string actionId = 2;
+}
+
+message PermissionCreateResponse {
+  string id = 1;
+}
+
+message PermissionFindRequest {
+  string id = 1;
+}
+
+message PermissionFindAllResponse {
+  arc.PagedElementOutput details = 1;
+  repeated PermissionResponse permissions = 2;
+}
+
+message PermissionDeleteRequest {
+  string id = 1;
+}
+
+message InternalCheckUserRequest {
+  string resourceName = 1;
+  string actionName = 2;
+}
+
+message CheckUserRequest {
+  string userId = 1;
+  repeated InternalCheckUserRequest permissions = 2;
+}

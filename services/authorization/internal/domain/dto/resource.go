@@ -1,44 +1,38 @@
 package dto
 
 import (
-	"nexa/services/authorization/shared/domain/entity"
-	"nexa/shared/types"
-	"nexa/shared/wrapper"
+  "nexa/services/authorization/internal/domain/entity"
+  "nexa/shared/types"
+  "nexa/shared/wrapper"
 )
 
 type ResourceCreateDTO struct {
-	Name        string `validate:"required"`
-	Description wrapper.NullableString
+  Name        string `validate:"required"`
+  Description wrapper.NullableString
 }
 
 func (r *ResourceCreateDTO) ToDomain() entity.Resource {
-	resource := entity.Resource{
-		Id:   types.NewId(),
-		Name: r.Name,
-	}
+  resource := entity.Resource{
+    Id:   types.NewId(),
+    Name: r.Name,
+  }
 
-	wrapper.SetOnNonNull(&resource.Description, r.Description)
-	return resource
+  wrapper.SetOnNonNull(&resource.Description, r.Description)
+  return resource
 }
 
 type ResourceUpdateDTO struct {
-	Id          string `validate:"require,uuid4"`
-	Name        wrapper.NullableString
-	Description wrapper.NullableString
+  Id          string `validate:"require,uuid4"`
+  Name        wrapper.NullableString
+  Description wrapper.NullableString
 }
 
 func (u *ResourceUpdateDTO) ToDomain() entity.Resource {
-	resource := entity.Resource{
-		Id: types.IdFromString(u.Id),
-	}
+  resource := entity.Resource{
+    Id: types.IdFromString(u.Id),
+  }
 
-	wrapper.SetOnNonNull(&resource.Name, u.Name)
-	wrapper.SetOnNonNull(&resource.Description, u.Description)
-	return resource
-}
-
-type ResourceResponseDTO struct {
-	Id          string
-	Name        string
-	Description string
+  wrapper.SetOnNonNull(&resource.Name, u.Name)
+  wrapper.SetOnNonNull(&resource.Description, u.Description)
+  return resource
 }

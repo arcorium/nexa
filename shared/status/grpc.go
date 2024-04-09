@@ -6,7 +6,7 @@ import (
 
 func MapGRPCCode(code Code) codes.Code {
 	switch code {
-	case INTERNAL_SERVER_ERROR, REPOSITORY_ERROR:
+	case INTERNAL_SERVER_ERROR, EXTERNAL_SERVICE_ERROR, REPOSITORY_ERROR:
 		return codes.Internal
 	case SUCCESS, CREATED, UPDATED, DELETED:
 		return codes.OK

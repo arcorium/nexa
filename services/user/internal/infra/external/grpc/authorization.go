@@ -1,39 +1,29 @@
 package grpc
 
 import (
-	"context"
-	"google.golang.org/grpc"
-	"nexa/services/authorization/shared/domain/entity"
-	"nexa/services/authorization/shared/proto"
-	"nexa/services/user/internal/domain/external"
-	"nexa/services/user/internal/infra/external/grpc/mapper"
-	"nexa/shared/types"
-	"nexa/shared/util"
+  "context"
+  "google.golang.org/grpc"
+  authProto "nexa/proto/generated/golang/authorization/v1"
+  "nexa/services/user/internal/domain/external"
+  "nexa/shared/types"
 )
 
 func NewAuthorizationClient(conn grpc.ClientConnInterface) external.IAuthorizationClient {
-	return &authorizationClient{
-		roleClient:       proto.NewRoleServiceClient(conn),
-		permissionClient: proto.NewPermissionServiceClient(conn),
-	}
+  return &authorizationClient{
+    authClient: authProto.NewAuthorizationClient(conn),
+  }
 }
 
 type authorizationClient struct {
-	roleClient       proto.RoleServiceClient
-	permissionClient proto.PermissionServiceClient
-}
-
-func (a *authorizationClient) FindUserRoles(ctx context.Context, userId types.Id) ([]entity.Role, error) {
-	roles, err := a.roleClient.FindByUserId(ctx, &proto.RoleFindByUserIdInput{UserId: userId.Underlying().String()})
-
-	return util.CastSlice2(roles.Roles, mapper.ToRoleEntity), err
+  authClient authProto.AuthorizationClient
 }
 
 func (a *authorizationClient) HasPermission(ctx context.Context, userId types.Id, resource string, actions ...string) error {
-	dto := proto.CheckUserInput{
-		UserId:      userId.Underlying().String(),
-		Permissions: mapper.ToInternalCheckUserInput(resource, actions...),
-	}
-	_, err := a.permissionClient.CheckUser(ctx, &dto)
-	return err
+  //dto := authProto.CheckUserRequest{
+  //  UserId:      userId.Underlying().String(),
+  //  Permissions: mapper.ToInternalCheckUserInput(resource, actions...),
+  //}
+  //_, err := a.authClient.CheckUserPermission(ctx, &dto)
+  //return err
+  return nil
 }

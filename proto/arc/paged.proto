@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package arc;
+package nexa.proto.generated.common;
 
-option go_package = "nexa/shared/proto";
+option go_package = "nexa/proto/generated/golang/common";
 
 message PagedElementInput {
   uint64 element = 1;

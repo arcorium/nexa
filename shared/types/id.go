@@ -1,30 +1,33 @@
 package types
 
 import (
-	"errors"
-	"github.com/google/uuid"
+  "errors"
+  "github.com/google/uuid"
 )
 
-func IdFromString(id string) Id {
-	return Id([]byte(id))
+func IdFromString(id string) (Id, error) {
+  uid, err := uuid.Parse(id)
+  if err != nil {
+    return NullId(), ErrMalformedUUID
+  }
+  return Id(uid), nil
 }
 
-func NewId() Id {
-	return Id(uuid.New())
+func NewId() (Id, error) {
+  uid, err := uuid.NewRandom()
+  return Id(uid), err
 }
+
+func NullId() Id { return Id(uuid.UUID{}) }
 
 type Id uuid.UUID
 
-func (i Id) Validate() error {
-	_, err := uuid.Parse(i.Underlying().String())
-	if err != nil {
-		return ErrMalformedUUID
-	}
-	return nil
+func (i Id) Underlying() uuid.UUID {
+  return uuid.UUID(i)
 }
 
-func (i Id) Underlying() uuid.UUID {
-	return uuid.UUID(i)
+func (i Id) Equal(uuid string) bool {
+  return i.Underlying().String() == uuid
 }
 
 var ErrMalformedUUID = errors.New("value has malformed format for an UUID")

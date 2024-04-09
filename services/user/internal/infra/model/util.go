@@ -1,10 +1,33 @@
 package model
 
 import (
-	"github.com/uptrace/bun"
-	"nexa/shared/util"
+  "context"
+  "github.com/uptrace/bun"
+  "nexa/shared/util"
 )
 
+var models = []any{
+  util.Nil[User](),
+  util.Nil[Profile](),
+  util.Nil[UserRoles](),
+}
+
 func RegisterBunModels(db *bun.DB) {
-	db.RegisterModel(util.Nil[User](), util.Nil[Profile]())
+  db.RegisterModel(models...)
+}
+
+func CreateTables(db *bun.DB) error {
+  ctx := context.Background()
+  for _, model := range models {
+    _, err := db.NewCreateTable().
+      Model(model).
+      IfNotExists().
+      WithForeignKeys().
+      Exec(ctx)
+
+    if err != nil {
+      return err
+    }
+  }
+  return nil
 }

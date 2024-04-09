@@ -1,12 +1,8 @@
 
-proto.compile:
-	protoc --proto_path=./proto;./services/$(service)/schema/proto/v1 --go_out=. --go-grpc_out=. --go_opt=module=nexa --go-grpc_opt=module=nexa .\services\$(service)\schema\proto\v1\\*.proto
-
 create.service:
 	mkdir services\$(service)
 	go mod init -C ./services/$(service) nexa/services/$(service)
 	mkdir services\$(service)\cmd
-	mkdir services\$(service)\schema\proto\v1
 	mkdir services\$(service)\internal
 	mkdir services\$(service)\internal\api
 	mkdir services\$(service)\internal\app\config

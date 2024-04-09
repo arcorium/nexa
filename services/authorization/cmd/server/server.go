@@ -41,6 +41,7 @@ func (s *Server) validationSetup() {
 }
 
 func (s *Server) grpcServerSetup() {
+	// TODO: Add interceptor
 	s.server = grpc.NewServer()
 }
 

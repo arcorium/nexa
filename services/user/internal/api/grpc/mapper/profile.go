@@ -1,34 +1,34 @@
 package mapper
 
 import (
-	"nexa/services/user/internal/domain/dto"
-	"nexa/services/user/shared/proto"
-	"nexa/shared/wrapper"
+  proto "nexa/proto/generated/golang/user/v1"
+  "nexa/services/user/internal/domain/dto"
+  "nexa/shared/wrapper"
 )
 
-func ToDTOProfileUpdateInput(request *proto.UpdateProfileRequest) dto.ProfileUpdateInput {
-	return dto.ProfileUpdateInput{
-		UserId:    request.UserId,
-		FirstName: wrapper.NewNullable(request.FirstName),
-		LastName:  wrapper.NewNullable(request.LastName),
-		Bio:       wrapper.NewNullable(request.Bio),
-	}
+func ToDTOProfileUpdateInput(request *proto.UpdateProfileRequest) dto.ProfileUpdateDTO {
+  return dto.ProfileUpdateDTO{
+    UserId:    request.UserId,
+    FirstName: wrapper.NewNullable(request.FirstName),
+    LastName:  wrapper.NewNullable(request.LastName),
+    Bio:       wrapper.NewNullable(request.Bio),
+  }
 }
 
-func ToDTOProfilePictureUpdateInput(request *proto.UpdateProfileAvatarRequest) dto.ProfilePictureUpdateInput {
-	return dto.ProfilePictureUpdateInput{
-		UserId:   request.UserId,
-		Filename: request.Filename,
-		Bytes:    request.Chunk,
-	}
+func ToDTOProfilePictureUpdateInput(request *proto.UpdateProfileAvatarRequest) dto.ProfilePictureUpdateDTO {
+  return dto.ProfilePictureUpdateDTO{
+    UserId:   request.UserId,
+    Filename: request.Filename,
+    Bytes:    request.Chunk,
+  }
 }
 
-func ToProtoProfile(response *dto.ProfileResponse) proto.Profile {
-	return proto.Profile{
-		UserId:    response.UserId,
-		FirstName: response.FirstName,
-		LastName:  response.LastName,
-		Bio:       response.Bio,
-		ImagePath: response.PhotoURL,
-	}
+func ToProtoProfile(response *dto.ProfileResponseDTO) *proto.Profile {
+  return &proto.Profile{
+    //UserId:    response.UserId,
+    FirstName: response.FirstName,
+    LastName:  response.LastName,
+    Bio:       response.Bio,
+    ImagePath: response.PhotoURL,
+  }
 }

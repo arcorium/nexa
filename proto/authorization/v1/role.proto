@@ -1,0 +1,76 @@
+syntax = "proto3";
+
+package nexa.proto.generated.authorization.v1;
+option go_package = "nexa/proto/generated/golang/authorization/v1";
+
+import "arc/paged.proto";
+
+service RoleService {
+}
+
+message RoleCreateRequest {
+  string name = 1;
+  optional string description = 2;
+}
+
+message RoleCreateResponse {
+  string id = 1;
+}
+
+message RoleUpdateRequest {
+  string id = 1;
+  optional string name = 2;
+  optional string description = 3;
+}
+
+message RoleDeleteRequest {
+  string id = 1;
+}
+
+message RoleFindRequest {
+  repeated string ids = 1;
+}
+
+message RoleFindResponse {
+  repeated RoleResponse roles = 1;
+}
+
+message RoleFindByUserIdRequest {
+  string userId = 1;
+}
+
+message RoleFindByUserIdResponse {
+  repeated RoleResponse roles = 1;
+}
+
+
+message RoleFindAllResponse {
+  arc.PagedElementOutput details = 1;
+  repeated RoleResponse roles = 2;
+}
+
+message RoleResponse {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+}
+
+message RoleAddPermissionsRequest {
+  string role_id = 1;
+  repeated string permission_ids = 2;
+}
+
+message RoleRemovePermissionsRequest {
+  string role_id = 1;
+  repeated string permission_ids = 2;
+}
+
+message RoleAddUserRequest {
+  string user_id = 1;
+  repeated string role_ids = 2;
+}
+
+message RoleRemoveUserRequest {
+  string user_id = 1;
+  repeated string role_ids = 2;
+}

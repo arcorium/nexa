@@ -1,6 +1,13 @@
 package optional
 
-func New[T any](val T) Object[T] {
+func New[T any](val *T) Object[T] {
+	if val == nil {
+		return Null[T]()
+	}
+	return Some(*val)
+}
+
+func Some[T any](val T) Object[T] {
 	return Object[T]{data: []T{val}}
 }
 

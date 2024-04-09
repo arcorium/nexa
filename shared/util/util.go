@@ -1,5 +1,7 @@
 package util
 
 func Nil[T any]() *T {
-	return (*T)(nil)
+  return (*T)(nil)
 }
+
+func DoNothing(...any) {}

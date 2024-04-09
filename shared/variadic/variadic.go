@@ -55,4 +55,10 @@ func (o Object[T]) DoAtFirst(f func(*T)) {
 	f(first)
 }
 
+func (o Object[T]) DoAll(f func(*T)) {
+	for _, d := range o.data {
+		f(&d)
+	}
+}
+
 var ErrObjectNotFound = errors.New("variadic object not found")

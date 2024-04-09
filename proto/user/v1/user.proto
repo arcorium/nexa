@@ -1,0 +1,97 @@
+syntax = "proto3";
+package nexa.proto.generated.user.v1;
+option go_package = "nexa/proto/generated/golang/user/v1";
+
+import "google/protobuf/duration.proto";
+import "google/protobuf/empty.proto";
+
+import "user/v1/profile.proto";
+
+service UserService {
+  rpc Create(CreateUserRequest) returns (google.protobuf.Empty);
+  rpc Update(UpdateUserRequest) returns (google.protobuf.Empty);
+  rpc UpdateVerified(UpdateUserVerifiedRequest) returns (google.protobuf.Empty);
+  rpc UpdatePassword(UpdateUserPasswordRequest) returns (google.protobuf.Empty);
+  rpc ResetPassword(ResetUserPasswordRequest) returns (google.protobuf.Empty);
+  rpc FindUserByIds(FindUsersByIdsRequest) returns (FindUserByIdsResponse);
+  rpc FindUserByEmails(FindUserByEmailsRequest) returns (FindUserByEmailsResponse);
+  rpc BannedUser(BannedUserRequest) returns (google.protobuf.Empty);
+  rpc DeleteUser(DeleteUserRequest) returns (google.protobuf.Empty);
+  rpc Validate(ValidateUserRequest) returns (ValidateUserResponse);
+}
+
+message ValidateUserRequest {
+  string email = 1;
+  string password = 2;
+}
+
+message ValidateUserResponse {
+  User user = 1;
+}
+
+message CreateUserResponse {
+  string id = 1;
+}
+
+message CreateUserRequest {
+  string username = 1;
+  string email = 2;
+  string password = 3;
+  string first_name = 4;
+  optional string last_name = 5;
+  optional string bio = 6;
+}
+
+message User {
+  string id = 1;
+  string username = 2;
+  string email = 3;
+  bool is_verified = 4;
+  Profile profile = 5;
+}
+
+message UpdateUserRequest {
+  string id = 1;
+  optional string username = 2;
+  optional string email = 3;
+}
+
+message UpdateUserPasswordRequest {
+  string id = 1;
+  string last_password = 2;
+  string new_password = 3;
+}
+
+message UpdateUserVerifiedRequest {
+  string id = 1;
+}
+
+message FindUsersByIdsRequest {
+  repeated string ids = 1;
+}
+
+message FindUserByEmailsRequest {
+  repeated string emails = 1;
+}
+
+message FindUserByEmailsResponse {
+  repeated User users = 1;
+}
+
+message DeleteUserRequest {
+  string ids = 1;
+}
+
+message BannedUserRequest {
+  string id = 1;
+  google.protobuf.Duration duration = 2;
+}
+
+message ResetUserPasswordRequest {
+  string id = 1;
+  string new_password = 2;
+}
+
+message FindUserByIdsResponse {
+  repeated User users = 1;
+}

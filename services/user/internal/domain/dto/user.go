@@ -1,48 +1,45 @@
 package dto
 
 import (
-	"nexa/shared/types"
-	"nexa/shared/wrapper"
-	"time"
+  "nexa/shared/wrapper"
+  "time"
 )
 
-type UserResponse struct {
-	Id         types.Id `json:"id"`
-	Username   string   `json:"username"`
-	Email      string   `json:"email"`
-	IsVerified bool     `json:"is_verified"`
-	FirstName  string   `json:"first_name,omitempty"`
-	LastName   string   `json:"last_name,omitempty"`
-	Bio        string   `json:"bio,omitempty"`
+type UserResponseDTO struct {
+  Id         string              `json:"id"`
+  Username   string              `json:"username"`
+  Email      string              `json:"email"`
+  IsVerified bool                `json:"is_verified"`
+  Profile    *ProfileResponseDTO `json:"profile"`
 }
 
-type UserCreateInput struct {
-	Username  string                   `json:"username" validate:"required,gte=6"`
-	Email     string                   `json:"email" validate:"required,email"`
-	Password  string                   `json:"password" validate:"required,gte=6"`
-	FirstName string                   `json:"first_name,omitempty" validate:"required"`
-	LastName  wrapper.Nullable[string] `json:"last_name,omitempty" validate:""`
-	Bio       wrapper.Nullable[string] `json:"bio,omitempty" validate:""`
+type UserCreateDTO struct {
+  Username  string `validate:"required,gte=6"`
+  Email     string `validate:"required,email"`
+  Password  string `validate:"required,gte=6"`
+  FirstName string `validate:"required"`
+  LastName  wrapper.Nullable[string]
+  Bio       wrapper.Nullable[string]
 }
 
-type UserUpdateInput struct {
-	Id       string                   `json:"id"`
-	Username wrapper.Nullable[string] `json:"username" validate:""`
-	Email    wrapper.Nullable[string] `json:"email" validate:""`
+type UserUpdateDTO struct {
+  Id       string `validate:"required,uuid4"`
+  Username wrapper.Nullable[string]
+  Email    wrapper.Nullable[string] `validate:"email"`
 }
 
-type UserUpdatePasswordInput struct {
-	Id           string `json:"id"`
-	LastPassword string `json:"last_password" validate:"required"`
-	NewPassword  string `json:"new_password" validate:"required"`
+type UserUpdatePasswordDTO struct {
+  Id           string `validate:"required,uuid4"`
+  LastPassword string `validate:"required"`
+  NewPassword  string `validate:"required"`
 }
 
-type UserBannedInput struct {
-	Id       string        `json:"id"`
-	Duration time.Duration `json:"duration"`
+type UserBannedDTO struct {
+  Id       string        `validate:"required,uuid4"`
+  Duration time.Duration `validate:"required"`
 }
 
-type UserResetPasswordInput struct {
-	Id          string `json:"id"`
-	NewPassword string `json:"new_password"`
+type UserResetPasswordDTO struct {
+  Id          string `validate:"required,uuid4"`
+  NewPassword string `validate:"required"`
 }

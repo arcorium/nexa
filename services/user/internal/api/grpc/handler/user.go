@@ -1,169 +1,179 @@
 package handler
 
 import (
-	"context"
-	"google.golang.org/grpc"
-	"google.golang.org/protobuf/types/known/emptypb"
-	"nexa/services/user/internal/api/grpc/mapper"
-	"nexa/services/user/internal/domain/service"
-	"nexa/services/user/shared/proto"
-	"nexa/shared/types"
-	"nexa/shared/util"
+  "context"
+  "errors"
+  "google.golang.org/genproto/googleapis/rpc/errdetails"
+  "google.golang.org/grpc"
+  "google.golang.org/protobuf/types/known/emptypb"
+  proto "nexa/proto/generated/golang/user/v1"
+  "nexa/services/user/internal/api/grpc/mapper"
+  "nexa/services/user/internal/domain/service"
+  sharedErr "nexa/shared/errors"
+  "nexa/shared/types"
+  "nexa/shared/util"
 )
 
 func NewUserHandler(user service.IUser) UserHandler {
-	return UserHandler{userService: user}
+  return UserHandler{userService: user}
 }
 
 type UserHandler struct {
-	proto.UnimplementedUserServiceServer
+  proto.UnimplementedUserServiceServer
 
-	userService service.IUser
+  userService service.IUser
 }
 
 func (u *UserHandler) Register(server *grpc.Server) {
-	proto.RegisterUserServiceServer(server, u)
+  proto.RegisterUserServiceServer(server, u)
 }
 
 func (u *UserHandler) Create(ctx context.Context, request *proto.CreateUserRequest) (*emptypb.Empty, error) {
-	dtoInput := mapper.ToDTOCreateInput(request)
+  dtoInput := mapper.ToDTOCreateInput(request)
 
-	// DTO Validation
-	stats := util.ValidateStruct(ctx, &dtoInput)
-	if stats.IsError() {
-		return nil, stats.ToGRPCError()
-	}
+  err := util.ValidateStruct(ctx, &dtoInput)
+  if err != nil {
+    return nil, err
+  }
 
-	stats = u.userService.Create(ctx, &dtoInput)
-	return &emptypb.Empty{}, stats.ToGRPCError()
+  stats := u.userService.Create(ctx, &dtoInput)
+  if stats.IsError() {
+    return nil, stats.ToGRPCError()
+  }
+  return &emptypb.Empty{}, nil
 }
 
 func (u *UserHandler) Update(ctx context.Context, request *proto.UpdateUserRequest) (*emptypb.Empty, error) {
-	dtoInput := mapper.ToDTOUserUpdateInput(request)
-	// TODO: Get user id from access token claims from ctx
+  dtoInput := mapper.ToDTOUserUpdateInput(request)
+  // TODO: Get user id from access token claims from ctx
 
-	err := util.GetValidator().StructCtx(ctx, &dtoInput)
-	if err != nil {
-		return nil, err
-	}
+  err := util.ValidateStruct(ctx, &dtoInput)
+  if err != nil {
+    return nil, err
+  }
 
-	stats := u.userService.Update(ctx, &dtoInput)
-	return &emptypb.Empty{}, stats.Error
+  stats := u.userService.Update(ctx, &dtoInput)
+  if stats.IsError() {
+    return nil, stats.ToGRPCError()
+  }
+  return &emptypb.Empty{}, nil
 }
 
 func (u *UserHandler) UpdateVerified(ctx context.Context, request *proto.UpdateUserVerifiedRequest) (*emptypb.Empty, error) {
-	id := types.IdFromString(request.Id)
-	// TODO: Get user id from access token claims from ctx
+  id, err := types.IdFromString(request.Id)
+  // TODO: Get user id from access token claims from ctx
+  if errors.Is(err, types.ErrMalformedUUID) {
+    return nil, sharedErr.GrpcFieldErrors(&errdetails.BadRequest_FieldViolation{
+      Field:       "id",
+      Description: err.Error(),
+    })
+  }
 
-	err := id.Validate()
-	if err != nil {
-		return nil, err
-	}
-
-	stats := u.userService.UpdateVerified(ctx, id)
-	return &emptypb.Empty{}, stats.Error
+  stats := u.userService.UpdateVerified(ctx, id)
+  if stats.IsError() {
+    return nil, stats.ToGRPCError()
+  }
+  return &emptypb.Empty{}, nil
 }
 
 func (u *UserHandler) UpdatePassword(ctx context.Context, request *proto.UpdateUserPasswordRequest) (*emptypb.Empty, error) {
-	dtoInput := mapper.ToDTOUserUpdatePasswordInput(request)
-	// TODO: Get user id from access token claims from ctx
+  dtoInput := mapper.ToDTOUserUpdatePasswordInput(request)
+  // TODO: Get user id from access token claims from ctx
 
-	err := util.GetValidator().Struct(&dtoInput)
-	if err != nil {
-		return nil, err
-	}
+  err := util.ValidateStruct(ctx, &dtoInput)
+  if err != nil {
+    return nil, err
+  }
 
-	stats := u.userService.UpdatePassword(ctx, &dtoInput)
-	return &emptypb.Empty{}, stats.Error
+  stats := u.userService.UpdatePassword(ctx, &dtoInput)
+  if stats.IsError() {
+    return nil, stats.ToGRPCError()
+  }
+  return &emptypb.Empty{}, nil
 }
 
 func (u *UserHandler) ResetPassword(ctx context.Context, request *proto.ResetUserPasswordRequest) (*emptypb.Empty, error) {
-	dtoInput := mapper.ToDTOUserResetPasswordInput(request)
+  dtoInput := mapper.ToDTOUserResetPasswordInput(request)
 
-	err := util.GetValidator().StructCtx(ctx, &dtoInput)
-	if err != nil {
-		return nil, err
-	}
+  err := util.ValidateStruct(ctx, &dtoInput)
+  if err != nil {
+    return nil, err
+  }
 
-	stats := u.userService.ResetPassword(ctx, &dtoInput)
-	return &emptypb.Empty{}, stats.Error
+  stats := u.userService.ResetPassword(ctx, &dtoInput)
+  if stats.IsError() {
+    return nil, stats.ToGRPCError()
+  }
+  return &emptypb.Empty{}, nil
 }
 
-func (u *UserHandler) FindUserByIds(request *proto.FindUsersByIdsRequest, server proto.UserService_FindUserByIdsServer) error {
-	ids, err := util.CastSliceErr(request.Ids, func(from *string) (types.Id, error) {
-		id := types.IdFromString(*from)
-		return id, id.Validate()
-	})
-	if err != nil {
-		return err
-	}
+func (u *UserHandler) FindUserByIds(ctx context.Context, request *proto.FindUsersByIdsRequest) (*proto.FindUserByIdsResponse, error) {
+  ids, ierr := util.CastSliceErrs(request.Ids, func(from *string) (types.Id, error) {
+    return types.IdFromString(*from)
+  })
 
-	users, stats := u.userService.FindByIds(server.Context(), ids)
-	if stats.IsError() {
-		return stats.Error
-	}
+  if ierr != nil {
+    return nil, sharedErr.GrpcFieldIndexedErrors("ids", ierr)
+  }
 
-	for _, val := range users {
-		response := mapper.ToProtoUserResponse(&val)
-		if err := server.Send(&response); err != nil {
-			return err
-		}
-	}
-	return nil
+  users, stats := u.userService.FindByIds(ctx, ids)
+  return &proto.FindUserByIdsResponse{
+    Users: util.CastSlice(users, mapper.ToProtoUser),
+  }, stats.ToGRPCError()
 }
 
-func (u *UserHandler) FindUserByEmail(request *proto.FindUsersByEmailRequest, server proto.UserService_FindUserByEmailServer) error {
-	emails, err := util.CastSliceErr(request.Emails, func(from *string) (types.Email, error) {
-		email := types.EmailFromString(*from)
-		return email, email.Validate()
-	})
-	if err != nil {
-		return err
-	}
+func (u *UserHandler) FindUserByEmails(ctx context.Context, request *proto.FindUserByEmailsRequest) (*proto.FindUserByEmailsResponse, error) {
+  emails, ierr := util.CastSliceErrs(request.Emails, func(from *string) (types.Email, error) {
+    return types.EmailFromString(*from)
+  })
 
-	users, stats := u.userService.FindByEmails(server.Context(), emails)
-	if stats.IsError() {
-		return stats.Error
-	}
+  if ierr != nil {
+    return nil, sharedErr.GrpcFieldIndexedErrors("emails", ierr)
+  }
 
-	for _, user := range users {
-		response := mapper.ToProtoUserResponse(&user)
-		if err := server.Send(&response); err != nil {
-			return err
-		}
-	}
-
-	return nil
+  users, stats := u.userService.FindByEmails(ctx, emails)
+  return &proto.FindUserByEmailsResponse{
+    Users: util.CastSlice(users, mapper.ToProtoUser),
+  }, stats.ToGRPCError()
 }
 
 func (u *UserHandler) BannedUser(ctx context.Context, request *proto.BannedUserRequest) (*emptypb.Empty, error) {
-	// TODO: Get user id from access token claims from ctx
-	dtoInput := mapper.ToDTOUserBannedInput(request)
+  // TODO: Get user id from access token claims from ctx
+  dtoInput := mapper.ToDTOUserBannedInput(request)
 
-	err := util.GetValidator().StructCtx(ctx, &dtoInput)
-	if err != nil {
-		return nil, err
-	}
+  err := util.ValidateStruct(ctx, &dtoInput)
+  if err != nil {
+    return nil, err
+  }
 
-	stats := u.userService.BannedUser(ctx, &dtoInput)
-	if stats.IsError() {
-		return nil, stats.Error
-	}
-
-	return &emptypb.Empty{}, nil
+  stats := u.userService.BannedUser(ctx, &dtoInput)
+  if stats.IsError() {
+    return nil, stats.ToGRPCError()
+  }
+  return &emptypb.Empty{}, nil
 }
 
 func (u *UserHandler) DeleteUser(ctx context.Context, request *proto.DeleteUserRequest) (*emptypb.Empty, error) {
-	// TODO: Get user id from access token claims from ctx
-	id := types.IdFromString(request.Id)
-	if err := id.Validate(); err != nil {
-		return nil, err
-	}
+  // TODO: Get user id from access token claims from ctx
+  id, err := types.IdFromString(request.Ids)
+  if err != nil {
+    if errors.Is(err, types.ErrMalformedUUID) {
+      return nil, sharedErr.GrpcFieldErrors(&errdetails.BadRequest_FieldViolation{
+        Field:       "id",
+        Description: err.Error(),
+      })
+    }
+    return nil, err
+  }
 
-	stats := u.userService.DeleteById(ctx, id)
-	if stats.IsError() {
-		return nil, stats.Error
-	}
+  stats := u.userService.DeleteById(ctx, id)
+  if stats.IsError() {
+    return nil, stats.ToGRPCError()
+  }
+  return &emptypb.Empty{}, nil
+}
 
-	return &emptypb.Empty{}, nil
+func (u *UserHandler) Validate(ctx context.Context, request *proto.ValidateUserRequest) (*proto.ValidateUserResponse, error) {
+  // TODO: Implement it
+  return nil, nil
 }
