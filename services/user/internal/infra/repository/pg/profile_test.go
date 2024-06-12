@@ -166,7 +166,7 @@ func Test_profileRepository_Patch(t *testing.T) {
     {
       name: "Normal",
       args: args{
-        ctx: nil,
+        ctx: context.Background(),
         profile: &entity.Profile{
           Id:        Profiles[0].Id,
           FirstName: "arcorium",
@@ -178,7 +178,7 @@ func Test_profileRepository_Patch(t *testing.T) {
     {
       name: "Profile Not Found",
       args: args{
-        ctx: nil,
+        ctx: context.Background(),
         profile: &entity.Profile{
           Id:        Users[PROFILE_SIZE].Id,
           FirstName: "arcorium",
@@ -247,7 +247,7 @@ func Test_profileRepository_Update(t *testing.T) {
       args: args{
         ctx: context.Background(),
         profile: &entity.Profile{
-          Id:        Users[1].Id,
+          Id:        Users[PROFILE_SIZE].Id,
           FirstName: "arcorium",
           LastName:  "liz",
           Bio:       Profiles[0].Bio,
@@ -278,8 +278,8 @@ func Test_profileRepository_Update(t *testing.T) {
       profiles, err := p.FindByIds(tt.args.ctx, []types.Id{tt.args.profile.Id}...)
       require.NoError(t, err)
 
-      if !reflect.DeepEqual(profiles, *tt.args.profile) {
-        t.Errorf("Update() got = %v, want %v", profiles, *tt.args.profile)
+      if !reflect.DeepEqual(profiles[0], *tt.args.profile) {
+        t.Errorf("Update() got = %v, want %v", profiles[0], *tt.args.profile)
       }
     })
   }

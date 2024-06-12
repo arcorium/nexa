@@ -13,12 +13,13 @@ import (
   "testing"
 )
 
-func ignoreUserTimeFields(t *testing.T, got []entity.User, want []entity.User) {
+func ignoreUserFields(t *testing.T, got []entity.User, want []entity.User) {
   // Ignore time fields
   require.Len(t, got, len(want))
 
   for i := 0; i < len(want); i += 1 {
     got[i].BannedUntil = want[i].BannedUntil
+    got[i].Password = want[i].Password // Password can have different hash even when the plain is the same
   }
 }
 
@@ -39,7 +40,7 @@ func Test_userRepository_Create(t *testing.T) {
         user: &entity.User{
           Id:         types.Id(uuid.New()),
           Username:   util.RandomString(15),
-          Email:      wrapper.DropError(types.EmailFromString(util.RandomString(12))),
+          Email:      wrapper.DropError(types.EmailFromString("something@gmail.com")),
           Password:   wrapper.DropError(types.PasswordFromString(util.RandomString(12))),
           IsVerified: false,
           IsDeleted:  false,
@@ -92,6 +93,21 @@ func Test_userRepository_Create(t *testing.T) {
       },
       wantErr: true,
     },
+    {
+      name: "Null Id",
+      args: args{
+        ctx: context.Background(),
+        user: &entity.User{
+          Id:         types.NullId(),
+          Username:   util.RandomString(15),
+          Email:      wrapper.DropError(types.EmailFromString(util.RandomString(12))),
+          Password:   wrapper.DropError(types.PasswordFromString(util.RandomString(12))),
+          IsVerified: false,
+          IsDeleted:  false,
+        },
+      },
+      wantErr: true,
+    },
   }
   for _, tt := range tests {
     t.Run(tt.name, func(t *testing.T) {
@@ -122,7 +138,7 @@ func Test_userRepository_Delete(t *testing.T) {
     {
       name: "Normal",
       args: args{
-        ctx: nil,
+        ctx: context.Background(),
         id:  Users[0].Id,
       },
       wantErr: false,
@@ -130,8 +146,16 @@ func Test_userRepository_Delete(t *testing.T) {
     {
       name: "User not found",
       args: args{
-        ctx: nil,
-        id:  types.Id(wrapper.DropError(uuid.NewUUID())),
+        ctx: context.Background(),
+        id:  wrapper.DropError(types.NewId()),
+      },
+      wantErr: true,
+    },
+    {
+      name: "Null id",
+      args: args{
+        ctx: context.Background(),
+        id:  types.NullId(),
       },
       wantErr: true,
     },
@@ -187,8 +211,8 @@ func Test_userRepository_FindAllUsers(t *testing.T) {
       },
       want: repo.PaginatedResult[entity.User]{
         Data:    Users,
-        Total:   2,
-        Element: 2,
+        Total:   USER_SIZE,
+        Element: USER_SIZE,
       },
       wantErr: false,
     },
@@ -202,9 +226,9 @@ func Test_userRepository_FindAllUsers(t *testing.T) {
         },
       },
       want: repo.PaginatedResult[entity.User]{
-        Data:    Users[1:],
-        Total:   2,
-        Element: 1,
+        Data:    Users[1:3],
+        Total:   USER_SIZE,
+        Element: 2,
       },
       wantErr: false,
     },
@@ -214,12 +238,28 @@ func Test_userRepository_FindAllUsers(t *testing.T) {
         ctx: context.Background(),
         query: repo.QueryParameter{
           Offset: 2,
+          Limit:  5,
+        },
+      },
+      want: repo.PaginatedResult[entity.User]{
+        Data:    Users[2:],
+        Total:   USER_SIZE,
+        Element: 3,
+      },
+      wantErr: false,
+    },
+    {
+      name: "Outside users offset",
+      args: args{
+        ctx: context.Background(),
+        query: repo.QueryParameter{
+          Offset: 5,
           Limit:  1,
         },
       },
       want: repo.PaginatedResult[entity.User]{
         Data:    nil,
-        Total:   2,
+        Total:   USER_SIZE,
         Element: 0,
       },
       wantErr: true,
@@ -241,10 +281,10 @@ func Test_userRepository_FindAllUsers(t *testing.T) {
         return
       }
 
-      ignoreUserTimeFields(t, got.Data, tt.want.Data)
+      ignoreUserFields(t, got.Data, tt.want.Data)
 
       if !reflect.DeepEqual(got, tt.want) {
-        t.Errorf("FindAllUsers() got = %v, want %v", got, tt.want)
+        t.Errorf("FindAllUsers() \ngot = %v\nwant %v", got, tt.want)
       }
     })
   }
@@ -281,7 +321,7 @@ func Test_userRepository_FindByEmails(t *testing.T) {
           Users[1].Email,
         },
       },
-      want:    Users,
+      want:    Users[0:2],
       wantErr: false,
     },
     {
@@ -289,7 +329,7 @@ func Test_userRepository_FindByEmails(t *testing.T) {
       args: args{
         ctx: context.Background(),
         emails: []types.Email{
-          wrapper.DropError(types.EmailFromString(util.RandomString(12))),
+          wrapper.DropError(types.EmailFromString(util.RandomString(12) + "@gmail.com")),
         },
       },
       want:    nil,
@@ -311,7 +351,7 @@ func Test_userRepository_FindByEmails(t *testing.T) {
         return
       }
 
-      ignoreUserTimeFields(t, got, tt.want)
+      ignoreUserFields(t, got, tt.want)
 
       if !reflect.DeepEqual(got, tt.want) {
         t.Errorf("FindByEmails() got = %v, want %v", got, tt.want)
@@ -351,7 +391,7 @@ func Test_userRepository_FindByIds(t *testing.T) {
           Users[1].Id,
         },
       },
-      want:    Users,
+      want:    Users[:2],
       wantErr: false,
     },
     {
@@ -381,7 +421,7 @@ func Test_userRepository_FindByIds(t *testing.T) {
         return
       }
 
-      ignoreUserTimeFields(t, got, tt.want)
+      ignoreUserFields(t, got, tt.want)
 
       if !reflect.DeepEqual(got, tt.want) {
         t.Errorf("FindByIds() got = %v, want %v", got, tt.want)
@@ -407,7 +447,7 @@ func Test_userRepository_Patch(t *testing.T) {
         user: &entity.User{
           Id:       Users[0].Id,
           Username: "arcorium",
-          Email:    wrapper.DropError(types.EmailFromString("arcorium@gmail.com")),
+          Email:    wrapper.DropError(types.EmailFromString("something@gmail.com")),
         },
       },
       wantErr: false,
@@ -417,7 +457,18 @@ func Test_userRepository_Patch(t *testing.T) {
       args: args{
         ctx: context.Background(),
         user: &entity.User{
-          Id:       wrapper.DropError(types.IdFromString(uuid.NewString())),
+          Id:       wrapper.DropError(types.NewId()),
+          Username: "arcorium",
+        },
+      },
+      wantErr: true,
+    },
+    {
+      name: "Bad Id",
+      args: args{
+        ctx: context.Background(),
+        user: &entity.User{
+          Id:       types.NullId(),
           Username: "arcorium",
         },
       },
@@ -443,12 +494,14 @@ func Test_userRepository_Patch(t *testing.T) {
         return
       }
 
-      users, err := u.FindByIds(tt.args.ctx, []types.Id{tt.args.user.Id}...)
+      users, err := u.FindByIds(tt.args.ctx, tt.args.user.Id)
       require.NoError(t, err)
-      if users[0].Email == tt.args.user.Email && users[0].Username == tt.args.user.Username {
-        return
+
+      ignoreUserFields(t, users, []entity.User{*tt.args.user})
+
+      if !reflect.DeepEqual(users[0], *tt.args.user) {
+        t.Errorf("Patch() \ngot = %v, \nwant = %v", users[0], tt.args.user)
       }
-      t.Errorf("Patch() fields are not updated, want: %v, got: %v", tt.args.user, &users[0])
     })
   }
 }
@@ -480,13 +533,15 @@ func Test_userRepository_Update(t *testing.T) {
       wantErr: false,
     },
     {
-      name: "Some field is empty",
+      name: "Non-Important field is empty",
       args: args{
         ctx: context.Background(),
         user: &entity.User{
-          Id:          Users[0].Id,
-          Password:    Users[0].Password,
-          IsVerified:  Users[0].IsVerified,
+          Id:       Users[0].Id,
+          Username: "arcorium",
+          Email:    "arcorium@gmail.com",
+          Password: Users[0].Password,
+          //IsVerified:  Users[0].IsVerified,
           IsDeleted:   Users[0].IsDeleted,
           BannedUntil: Users[0].BannedUntil,
         },
@@ -494,11 +549,27 @@ func Test_userRepository_Update(t *testing.T) {
       wantErr: false,
     },
     {
+      name: "Important field is empty",
+      args: args{
+        ctx: context.Background(),
+        user: &entity.User{
+          Id: Users[0].Id,
+          //Username: "arcorium",
+          //Email:    "arcorium@gmail.com",
+          Password:    Users[0].Password,
+          IsVerified:  Users[0].IsVerified,
+          IsDeleted:   Users[0].IsDeleted,
+          BannedUntil: Users[0].BannedUntil,
+        },
+      },
+      wantErr: true,
+    },
+    {
       name: "User not found",
       args: args{
         ctx: context.Background(),
         user: &entity.User{
-          Id:          wrapper.DropError(types.IdFromString(uuid.NewString())),
+          Id:          wrapper.DropError(types.NewId()),
           Username:    "arcorium",
           Email:       "arcorium@gmail.com",
           Password:    Users[0].Password,
@@ -532,6 +603,8 @@ func Test_userRepository_Update(t *testing.T) {
 
       users, err := u.FindByIds(tt.args.ctx, []types.Id{tt.args.user.Id}...)
       require.NoError(t, err)
+
+      ignoreUserFields(t, users, []entity.User{*tt.args.user})
 
       if !reflect.DeepEqual(users[0], *tt.args.user) {
         t.Errorf("FindByIds() got = %v, want %v", users[0], *tt.args.user)

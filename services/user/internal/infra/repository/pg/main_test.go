@@ -92,8 +92,8 @@ func newRandomUserWithId(id types.Id) entity.User {
   user := entity.User{
     Id:         id,
     Username:   util.RandomString(15),
-    Email:      types.Email(util.RandomString(12)),
-    Password:   wrapper.Some(types.PasswordFromString(util.RandomString(12))).Data,
+    Email:      wrapper.DropError(types.EmailFromString(util.RandomString(12) + "@gmail.com")),
+    Password:   wrapper.DropError(types.PasswordFromString(util.RandomString(12))),
     IsVerified: util.RandomBool(),
     IsDeleted:  util.RandomBool(),
   }

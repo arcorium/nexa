@@ -26,7 +26,7 @@ func NewServer(dbConfig *database.Config, serverConfig *config.ServerConfig) (*S
     serverConfig: serverConfig,
   }
 
-  err := svr.Init()
+  err := svr.init()
   return svr, err
 }
 
@@ -69,7 +69,7 @@ func (s *Server) grpcServerSetup() {
   s.grpcServer = grpc.NewServer()
 }
 
-func (s *Server) Init() error {
+func (s *Server) init() error {
   s.validationSetup()
   s.grpcServerSetup()
 

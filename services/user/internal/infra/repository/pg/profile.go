@@ -57,6 +57,7 @@ func (p profileRepository) Update(ctx context.Context, profile *entity.Profile) 
 
   res, err := p.db.NewUpdate().
     Model(&dbModel).
+    WherePK().
     ExcludeColumn("user_id").
     Exec(ctx)
 
@@ -70,6 +71,7 @@ func (p profileRepository) Patch(ctx context.Context, profile *entity.Profile) e
 
   res, err := p.db.NewUpdate().
     Model(&dbModel).
+    WherePK().
     OmitZero().
     ExcludeColumn("user_id").
     Exec(ctx)

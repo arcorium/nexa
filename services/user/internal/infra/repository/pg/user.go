@@ -40,7 +40,8 @@ func (u userRepository) Update(ctx context.Context, user *entity.User) error {
 
   res, err := u.db.NewUpdate().
     Model(&dbModel).
-    ExcludeColumn("id").
+    WherePK().
+    ExcludeColumn("id", "created_at", "deleted_at").
     Exec(ctx)
 
   return repo.CheckResult(res, err)
@@ -54,6 +55,7 @@ func (u userRepository) Patch(ctx context.Context, user *entity.User) error {
   res, err := u.db.NewUpdate().
     Model(&dbModel).
     OmitZero().
+    WherePK().
     ExcludeColumn("id").
     Exec(ctx)
 
@@ -61,10 +63,14 @@ func (u userRepository) Patch(ctx context.Context, user *entity.User) error {
 }
 
 func (u userRepository) FindByIds(ctx context.Context, userIds ...types.Id) ([]entity.User, error) {
+  uuids := util.CastSlice2(userIds, func(from types.Id) string {
+    return from.Underlying().String()
+  })
+
   var dbModel []model.User
   err := u.db.NewSelect().
     Model(&dbModel).
-    Where("user_id IN (?)", bun.In(userIds)).
+    Where("id IN (?)", bun.In(uuids)).
     Scan(ctx)
 
   result := repo.CheckSliceResult(dbModel, err)
@@ -115,6 +121,8 @@ func (u userRepository) Delete(ctx context.Context, ids ...types.Id) error {
   res, err := u.db.NewUpdate().
     Model(&users).
     WherePK().
+    Column("updated_at", "deleted_at").
+    Bulk().
     Exec(ctx)
 
   return repo.CheckResult(res, err)
