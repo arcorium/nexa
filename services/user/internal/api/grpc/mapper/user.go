@@ -53,6 +53,6 @@ func ToProtoUser(responseDTO *dto.UserResponseDTO) *proto.User {
     Username:   responseDTO.Username,
     Email:      responseDTO.Email,
     IsVerified: responseDTO.IsVerified,
-    Profile:    ToProtoProfile(&responseDTO.Profile),
+    Profile:    ToProtoProfile(responseDTO.Profile),
   }
 }

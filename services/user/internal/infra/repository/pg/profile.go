@@ -3,9 +3,11 @@ package pg
 import (
   "context"
   "github.com/uptrace/bun"
+  "go.opentelemetry.io/otel/trace"
   "nexa/services/user/internal/domain/entity"
   "nexa/services/user/internal/domain/repository"
   "nexa/services/user/internal/infra/model"
+  util2 "nexa/services/user/util"
   "nexa/shared/types"
   "nexa/shared/util"
   "nexa/shared/util/repo"
@@ -13,14 +15,22 @@ import (
 )
 
 func NewProfile(db bun.IDB) repository.IProfile {
-  return &profileRepository{db: db}
+  return &profileRepository{
+    db:     db,
+    tracer: util2.GetTracer(),
+  }
 }
 
 type profileRepository struct {
   db bun.IDB
+
+  tracer trace.Tracer
 }
 
 func (p profileRepository) Create(ctx context.Context, profile *entity.Profile) error {
+  ctx, span := p.tracer.Start(ctx, "ProfileRepository.Create")
+  defer span.End()
+
   dbModel := model.FromProfileDomain(profile)
 
   res, err := p.db.NewInsert().
@@ -28,10 +38,13 @@ func (p profileRepository) Create(ctx context.Context, profile *entity.Profile) 
     Returning("NULL").
     Exec(ctx)
 
-  return repo.CheckResult(res, err)
+  return repo.CheckResultWithSpan(res, err, span)
 }
 
 func (p profileRepository) FindByIds(ctx context.Context, userIds ...types.Id) ([]entity.Profile, error) {
+  ctx, span := p.tracer.Start(ctx, "ProfileRepository.FindByIds")
+  defer span.End()
+
   var dbModel []model.Profile
 
   ids := util.CastSlice(userIds, func(from *types.Id) string {
@@ -43,7 +56,7 @@ func (p profileRepository) FindByIds(ctx context.Context, userIds ...types.Id) (
     Where("user_id IN (?)", bun.In(ids)).
     Scan(ctx)
 
-  result := repo.CheckSliceResult(dbModel, err)
+  result := repo.CheckSliceResultWithSpan(dbModel, err, span)
   profiles := util.CastSlice(result.Data, func(from *model.Profile) entity.Profile {
     return from.ToDomain()
   })
@@ -51,6 +64,9 @@ func (p profileRepository) FindByIds(ctx context.Context, userIds ...types.Id) (
 }
 
 func (p profileRepository) Update(ctx context.Context, profile *entity.Profile) error {
+  ctx, span := p.tracer.Start(ctx, "ProfileRepository.Update")
+  defer span.End()
+
   dbModel := model.FromProfileDomain(profile, func(domain *entity.Profile, profile *model.Profile) {
     profile.UpdatedAt = time.Now()
   })
@@ -61,10 +77,13 @@ func (p profileRepository) Update(ctx context.Context, profile *entity.Profile) 
     ExcludeColumn("user_id").
     Exec(ctx)
 
-  return repo.CheckResult(res, err)
+  return repo.CheckResultWithSpan(res, err, span)
 }
 
 func (p profileRepository) Patch(ctx context.Context, profile *entity.Profile) error {
+  ctx, span := p.tracer.Start(ctx, "ProfileRepository.Patch")
+  defer span.End()
+
   dbModel := model.FromProfileDomain(profile, func(domain *entity.Profile, profile *model.Profile) {
     profile.UpdatedAt = time.Now()
   })
@@ -76,5 +95,5 @@ func (p profileRepository) Patch(ctx context.Context, profile *entity.Profile) e
     ExcludeColumn("user_id").
     Exec(ctx)
 
-  return repo.CheckResult(res, err)
+  return repo.CheckResultWithSpan(res, err, span)
 }

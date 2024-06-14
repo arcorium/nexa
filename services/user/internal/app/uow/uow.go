@@ -64,7 +64,7 @@ func (u *UserUOW) DoTx(ctx context.Context, f uow.UOWBlock[UserStorage]) error {
 }
 
 func (u *UserUOW) Repositories() UserStorage {
-  if u.cache == nil {
+  if u.cache != nil {
     return *u.cache
   }
   user := pg.NewUser(u.db)

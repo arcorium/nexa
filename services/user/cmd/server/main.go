@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-  err := env.LoadEnvs()
+  err := env.LoadEnvs("dev.env")
   if err != nil {
     log.Fatalln(err)
   }
