@@ -1,12 +1,12 @@
 package util
 
 import (
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/trace"
-	"nexa/services/file_storage/constant"
+  "go.opentelemetry.io/otel"
+  "go.opentelemetry.io/otel/trace"
+  "nexa/services/file_storage/constant"
 )
 
 func GetTracer(options ...trace.TracerOption) trace.Tracer {
-	t := otel.GetTracerProvider()
-	return t.Tracer(constant.TRACER_NAME, options...)
+  t := otel.GetTracerProvider()
+  return t.Tracer(constant.TRACER_NAME, options...)
 }

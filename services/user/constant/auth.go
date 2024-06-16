@@ -9,5 +9,5 @@ const USER_RESOURCE = "users"
 
 // Actions
 const (
-	BANNED_ACTION = "banned"
+  BANNED_ACTION = "banned"
 )

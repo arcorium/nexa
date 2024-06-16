@@ -1,21 +1,21 @@
 package entity
 
 import (
-	"nexa/shared/types"
-	"time"
+  "nexa/shared/types"
+  "time"
 )
 
 type FileMetadata struct {
-	Id       types.Id
-	Name     string
-	Type     string
-	Size     uint64
-	IsPublic bool
+  Id       types.Id
+  Name     string
+  Type     string
+  Size     uint64
+  IsPublic bool
 
-	Provider     StorageProvider
-	ProviderPath string // File path on provider (relative)
-	FullPath     string
+  Provider     StorageProvider
+  ProviderPath string // File path on provider (relative)
+  FullPath     string
 
-	CreatedAt    time.Time
-	LastModified time.Time
+  CreatedAt    time.Time
+  LastModified time.Time
 }
