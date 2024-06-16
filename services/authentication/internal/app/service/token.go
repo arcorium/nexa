@@ -2,13 +2,13 @@ package service
 
 import (
 	"context"
-	"nexa/services/authentication/internal/app/config"
-	appUtil "nexa/services/authentication/internal/app/util"
+	"nexa/services/authentication/config"
 	"nexa/services/authentication/internal/domain/dto"
 	"nexa/services/authentication/internal/domain/mapper"
 	"nexa/services/authentication/internal/domain/repository"
 	"nexa/services/authentication/internal/domain/service"
 	"nexa/services/authentication/shared/errors"
+	appUtil "nexa/services/authentication/util"
 	sharedDto "nexa/shared/dto"
 	"nexa/shared/status"
 	"nexa/shared/types"

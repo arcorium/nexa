@@ -7,9 +7,10 @@ import (
 	"github.com/uptrace/bun/dialect/pgdialect"
 	"github.com/uptrace/bun/driver/pgdriver"
 	"github.com/uptrace/bun/extra/bundebug"
+	"nexa/shared/config"
 )
 
-func OpenPostgres(config *Config, log bool) (*bun.DB, error) {
+func OpenPostgres(config *config.Database, log bool) (*bun.DB, error) {
 	sqlDb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(config.DSN()), pgdriver.WithTimeout(config.Timeout)))
 	// Test connection
 	if err := sqlDb.Ping(); err != nil {

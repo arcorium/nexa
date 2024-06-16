@@ -4,7 +4,7 @@ import (
 	"github.com/uptrace/bun"
 	"google.golang.org/grpc"
 	"log"
-	"nexa/services/authentication/internal/app/config"
+	"nexa/services/authentication/config"
 	"nexa/shared/database"
 	"nexa/shared/util"
 	"nexa/shared/wrapper"

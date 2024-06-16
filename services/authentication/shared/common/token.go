@@ -2,7 +2,7 @@ package common
 
 import (
 	"github.com/golang-jwt/jwt/v5"
-	"nexa/services/authentication/internal/app/constant"
+	"nexa/services/authentication/constant"
 	"nexa/shared/status"
 	"nexa/shared/types"
 	"time"

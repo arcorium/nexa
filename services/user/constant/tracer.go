@@ -1,3 +1,3 @@
 package constant
 
-const TracerName = "nexa-user"
+const TRACER_NAME = "nexa-user"

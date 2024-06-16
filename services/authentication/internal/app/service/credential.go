@@ -3,8 +3,7 @@ package service
 import (
 	"context"
 	"github.com/golang-jwt/jwt/v5"
-	"nexa/services/authentication/internal/app/config"
-	appUtil "nexa/services/authentication/internal/app/util"
+	"nexa/services/authentication/config"
 	"nexa/services/authentication/internal/domain/dto"
 	"nexa/services/authentication/internal/domain/external"
 	"nexa/services/authentication/internal/domain/mapper"
@@ -13,6 +12,7 @@ import (
 	"nexa/services/authentication/shared/common"
 	"nexa/services/authentication/shared/domain/entity"
 	"nexa/services/authentication/shared/errors"
+	appUtil "nexa/services/authentication/util"
 	"nexa/shared/optional"
 	"nexa/shared/status"
 	"nexa/shared/types"

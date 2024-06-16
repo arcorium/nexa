@@ -3,6 +3,7 @@ package nexa.proto.generated.user.v1;
 option go_package = "nexa/proto/generated/golang/user/v1";
 
 import "google/protobuf/empty.proto";
+import "google/api/http.proto";
 
 service ProfileService {
   rpc Find(FindProfileRequest) returns (FindProfileResponse);
