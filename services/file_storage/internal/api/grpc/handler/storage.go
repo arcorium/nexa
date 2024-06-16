@@ -4,7 +4,7 @@ import (
 	"context"
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
-	emptypb "google.golang.org/protobuf/types/known/emptypb"
+	"google.golang.org/protobuf/types/known/emptypb"
 	"io"
 	protoV1 "nexa/proto/generated/golang/file_storage/v1"
 	"nexa/services/file_storage/internal/api/grpc/mapper"

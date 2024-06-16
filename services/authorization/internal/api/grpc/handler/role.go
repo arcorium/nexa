@@ -3,7 +3,7 @@ package handler
 import (
 	"context"
 	"google.golang.org/grpc"
-	emptypb "google.golang.org/protobuf/types/known/emptypb"
+	"google.golang.org/protobuf/types/known/emptypb"
 	"nexa/services/authorization/internal/api/grpc/mapper"
 	"nexa/services/authorization/internal/domain/service"
 	"nexa/services/authorization/shared/proto"
