@@ -22,7 +22,7 @@ func MapProfileUpdateDTO(input *dto.ProfileUpdateDTO) entity.Profile {
   }
 
   if input.FirstName.HasValue() {
-    profile.FirstName = input.FirstName.Value2()
+    profile.FirstName = input.FirstName.RawValue()
   }
 
   wrapper.SetOnNonNull(&profile.LastName, input.LastName)

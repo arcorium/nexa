@@ -4,8 +4,8 @@ option go_package = "nexa/proto/generated/golang/user/v1";
 
 import "google/protobuf/duration.proto";
 import "google/protobuf/empty.proto";
-
 import "user/v1/profile.proto";
+import "common/paged.proto";
 
 service UserService {
   rpc Create(CreateUserRequest) returns (google.protobuf.Empty);
@@ -13,6 +13,7 @@ service UserService {
   rpc UpdateVerified(UpdateUserVerifiedRequest) returns (google.protobuf.Empty);
   rpc UpdatePassword(UpdateUserPasswordRequest) returns (google.protobuf.Empty);
   rpc ResetPassword(ResetUserPasswordRequest) returns (google.protobuf.Empty);
+  rpc Find(common.PagedElementInput) returns(FindUsersResponse);
   rpc FindUserByIds(FindUsersByIdsRequest) returns (FindUserByIdsResponse);
   rpc FindUserByEmails(FindUserByEmailsRequest) returns (FindUserByEmailsResponse);
   rpc BannedUser(BannedUserRequest) returns (google.protobuf.Empty);
@@ -64,6 +65,11 @@ message UpdateUserPasswordRequest {
 
 message UpdateUserVerifiedRequest {
   string id = 1;
+}
+
+message FindUsersResponse {
+  common.PagedElementOutput details = 1;
+  repeated User users = 2;
 }
 
 message FindUsersByIdsRequest {

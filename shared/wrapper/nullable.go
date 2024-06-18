@@ -13,7 +13,7 @@ func NewNullable[T any](data *T) Nullable[T] {
 type INullable[T any] interface {
   HasValue() bool
   Value() *T
-  Value2() T
+  RawValue() T
 }
 
 // Nullable *T wrapper, to be used for optional JSON, it works like sql.Null
@@ -52,13 +52,13 @@ func (n Nullable[T]) Value() *T {
 
 func (n Nullable[T]) ValueOr(val T) T {
   if n.HasValue() {
-    return n.Value2()
+    return n.RawValue()
   }
   return val
 }
 
 // Value2 Works like Value, but it will copy except for data type that has pointer as underlying, for example string, slice, map
-func (n Nullable[T]) Value2() T {
+func (n Nullable[T]) RawValue() T {
   return *n.Value()
 }
 
@@ -105,7 +105,7 @@ func RegisterDefaultNullableValidations(validate *validator.Validate) {
 // SetOnNonNull set value on dest if only the nullable object has value
 func SetOnNonNull[T any, U INullable[T]](dest *T, nullable U) {
   if nullable.HasValue() {
-    *dest = nullable.Value2()
+    *dest = nullable.RawValue()
   }
 }
 
@@ -113,13 +113,13 @@ func SetOnNonNull[T any, U INullable[T]](dest *T, nullable U) {
 // castFunc will be used to do casting from nullable type to destination type
 func SetOnNonNullCasted[T, V any, U INullable[V]](dest *T, nullable U, castFunc func(V) T) {
   if nullable.HasValue() {
-    *dest = castFunc(nullable.Value2())
+    *dest = castFunc(nullable.RawValue())
   }
 }
 
 func SetOnNonNullCastedErr[T, V any, U INullable[V]](dest *T, nullable U, castFunc func(V) (T, error)) {
   if nullable.HasValue() {
-    tmp, err := castFunc(nullable.Value2())
+    tmp, err := castFunc(nullable.RawValue())
     if err != nil {
       return
     }

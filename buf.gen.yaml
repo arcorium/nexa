@@ -1,0 +1,15 @@
+version: v2
+managed:
+  enabled: true
+  override:
+    - file_option: go_package_prefix
+      value: nexa/proto/gen/go
+plugins:
+  - local: protoc-gen-go
+    out: proto/gen/go
+    opt: paths=source_relative
+  - local: protoc-gen-go-grpc
+    out: proto/gen/go
+    opt: paths=source_relative
+inputs:
+  - directory: proto

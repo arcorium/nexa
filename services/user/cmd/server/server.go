@@ -141,7 +141,7 @@ func (s *Server) grpcServerSetup() error {
   // Exporter
   s.exporter, err = otlptracegrpc.New(context.Background(),
     otlptracegrpc.WithInsecure(),
-    otlptracegrpc.WithEndpoint(s.serverConfig.GrpcExporterAddress),
+    otlptracegrpc.WithEndpoint(s.serverConfig.OTLPGRPCCollectorAddress),
   )
   if err != nil {
     return err

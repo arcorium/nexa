@@ -1,0 +1,89 @@
+syntax = "proto3";
+package nexa.proto.generated.mailer.v1;
+option go_package = "nexa/proto/gen/go/mailer/v1";
+
+import "google/protobuf/empty.proto";
+import "common/paged.proto";
+import "mailer/v1/tag.proto";
+
+service MailerService {
+  rpc Find(common.PagedElementInput) returns(FindResponse);
+  rpc FindByIds(FindMailByIdsRequest) returns(FindMailByIdsResponse);
+  rpc FindByTag(FindMailByTagRequest) returns(FindMailByTagResponse);
+  rpc Send(SendMailRequest) returns (SendMailResponse);
+  rpc SendToUser(SendMailToUserRequest) returns (SendMailToUserResponse);
+  rpc Update(UpdateMailRequest) returns(google.protobuf.Empty);
+  rpc Remove(RemoveMailRequest) returns(google.protobuf.Empty);
+}
+
+message Mail {
+  string id = 1;
+  string subject = 2;
+  string recipient = 3;
+  string sender = 4;
+  string status = 5;
+  repeated Tag tags = 6;
+}
+
+enum BodyType {
+  BODY_TYPE_HTML = 0;
+  BODY_TYPE_PLAIN = 1;
+};
+
+message FileAttachment {
+  string filename = 1;
+  bytes data = 2;
+}
+
+message SendMailRequest {
+  repeated string recipients = 1;
+  string subject = 2;
+  BodyType body_type = 3;
+  repeated FileAttachment attachments = 4;
+}
+
+message SendMailResponse {
+  string mail_id = 1;
+}
+
+message SendMailToUserRequest {
+  repeated string user_ids = 1;
+  string subject = 2;
+  BodyType body_type = 3;
+  repeated FileAttachment attachments = 4;
+}
+
+message SendMailToUserResponse {
+  string mail_id = 1;
+}
+
+message FindResponse {
+  common.PagedElementOutput details = 1;
+  repeated Mail mail = 2;
+}
+
+message FindMailByIdsRequest {
+  repeated string mail_ids = 1;
+}
+
+message FindMailByIdsResponse {
+  repeated Mail mail = 1;
+}
+
+message FindMailByTagRequest {
+  string tag_id = 1;
+}
+
+message FindMailByTagResponse {
+  repeated Mail mail = 1;
+}
+
+message UpdateMailRequest {
+  string mail_id = 1;
+  repeated string added_tag_ids = 2;
+  repeated string removed_tag_ids = 3;
+}
+
+message RemoveMailRequest {
+  string mail_id = 1;
+}

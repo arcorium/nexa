@@ -18,7 +18,7 @@ OUTDIR=$PROTODIR/generated/golang
 
 for entry in "$PROTODIR/$1"/*
 do
-#  echo "$enty"
+  echo "$enty"
  protoc --proto_path=$PROTODIR \
    --go_out=$OUTDIR --go_opt=paths=source_relative\
    --go-grpc_out=$OUTDIR --go-grpc_opt=paths=source_relative\

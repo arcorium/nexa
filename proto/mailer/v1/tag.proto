@@ -1,0 +1,61 @@
+syntax = "proto3";
+package nexa.proto.generated.mailer.v1;
+option go_package = "nexa/proto/gen/go/mailer/v1";
+
+import "google/protobuf/empty.proto";
+import "common/paged.proto";
+
+service TagService {
+  rpc Find(common.PagedElementInput) returns (FindTagResponse);
+  rpc FindByIds(FindTagByIdsRequest) returns(FindTagByIdsResponse);
+  rpc FindByName(FindTagByNameRequest) returns(FindTagByNameResponse);
+  rpc Create(CreateTagRequest) returns(CreateTagResponse);
+  rpc Update(UpdateTagRequest) returns(google.protobuf.Empty);
+  rpc Remove(RemoveTagRequest) returns(google.protobuf.Empty);
+}
+
+message Tag {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+}
+
+message FindTagResponse {
+  common.PagedElementOutput details = 1;
+  repeated Tag tags = 2;
+}
+
+message FindTagByIdsRequest {
+  repeated string tag_ids = 1;
+}
+
+message FindTagByIdsResponse {
+  repeated Tag tags = 1;
+}
+
+message FindTagByNameRequest {
+  string name = 1;
+}
+
+message FindTagByNameResponse {
+  Tag tag = 1;
+}
+
+message CreateTagRequest {
+  string name = 1;
+  optional string description = 2;
+}
+
+message CreateTagResponse {
+  string tag_id = 1;
+}
+
+message UpdateTagRequest {
+  string tag_id = 1;
+  optional string name = 2;
+  optional string description = 3;
+}
+
+message RemoveTagRequest {
+  string tag_id = 1;
+}

@@ -2,7 +2,7 @@ syntax = "proto3";
 package nexa.proto.generated.authorization.v1;
 option go_package = "nexa/proto/generated/golang/authorization/v1";
 
-import "arc/paged.proto";
+import "common/paged.proto";
 
 message PermissionResponse {
   string resourceId = 1;
@@ -28,7 +28,7 @@ message PermissionFindRequest {
 }
 
 message PermissionFindAllResponse {
-  arc.PagedElementOutput details = 1;
+  common.PagedElementOutput details = 1;
   repeated PermissionResponse permissions = 2;
 }
 

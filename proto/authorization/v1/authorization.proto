@@ -4,7 +4,7 @@ package nexa.proto.generated.authorization.v1;
 option go_package = "nexa/proto/generated/golang/authorization/v1";
 
 import "google/protobuf/empty.proto";
-import "arc/paged.proto";
+import "common/paged.proto";
 
 import "authorization/v1/action.proto";
 import "authorization/v1/permission.proto";

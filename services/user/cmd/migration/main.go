@@ -2,6 +2,7 @@ package main
 
 import (
   "log"
+  "nexa/services/user/config"
   "nexa/services/user/internal/infra/repository/model"
   sharedConf "nexa/shared/config"
   "nexa/shared/database"
@@ -9,7 +10,12 @@ import (
 )
 
 func main() {
-  if err := env.LoadEnvs("dev.env"); err != nil {
+  envName := ".env"
+  if config.IsDebug() {
+    envName = "dev.env"
+  }
+
+  if err := env.LoadEnvs(envName); err != nil {
     log.Println(err)
   }
 

@@ -3,6 +3,7 @@ package types
 import (
   "errors"
   "github.com/google/uuid"
+  "nexa/shared/wrapper"
 )
 
 func IdFromString(id string) (Id, error) {
@@ -16,6 +17,11 @@ func IdFromString(id string) (Id, error) {
 func NewId() (Id, error) {
   uid, err := uuid.NewRandom()
   return Id(uid), err
+}
+
+func NewId2() Id {
+  return wrapper.DropError(NewId()) // TODO: Panic on error?
+  //return wrapper.PanicDropError(NewId())
 }
 
 func NullId() Id { return Id(uuid.UUID{}) }

@@ -3,7 +3,6 @@ package nexa.proto.generated.user.v1;
 option go_package = "nexa/proto/generated/golang/file_storage/v1";
 
 import "google/protobuf/empty.proto";
-import "google/api/http.proto";
 import "google/protobuf/timestamp.proto";
 
 service FileStorageService {

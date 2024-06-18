@@ -21,3 +21,6 @@ create.service:
 	mkdir services\$(service)\shared\proto
 	mkdir services\$(service)\test
 	go work use ./services/$(service)
+
+gen.go:
+	buf generate

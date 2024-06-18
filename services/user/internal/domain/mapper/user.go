@@ -52,7 +52,7 @@ func MapUserUpdateDTO(input *dto.UserUpdateDTO) (entity.User, status.Object) {
 
   wrapper.SetOnNonNull(&user.Username, input.Username)
   if input.Email.HasValue() {
-    email, err := types.EmailFromString(input.Email.Value2())
+    email, err := types.EmailFromString(input.Email.RawValue())
     if err != nil {
       return entity.User{}, status.ErrBadRequest(err)
     }

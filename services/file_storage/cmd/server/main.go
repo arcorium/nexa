@@ -8,7 +8,12 @@ import (
 )
 
 func main() {
-  err := env.LoadEnvs("dev.env")
+  envName := ".env"
+  if config.IsDebug() {
+    envName = "dev.env"
+  }
+
+  err := env.LoadEnvs(envName)
   if err != nil {
     log.Fatalln(err)
   }

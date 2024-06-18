@@ -3,7 +3,7 @@ syntax = "proto3";
 package nexa.proto.generated.authorization.v1;
 option go_package = "nexa/proto/generated/golang/authorization/v1";
 
-import "arc/paged.proto";
+import "common/paged.proto";
 
 message ActionCreateRequest {
   string name = 1;
