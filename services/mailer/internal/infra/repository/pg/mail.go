@@ -38,7 +38,7 @@ func (m *mailRepository) FindAll(ctx context.Context, query repo.QueryParameter)
     ScanAndCount(ctx)
 
   result := repo.CheckPaginationResultWithSpan(models, count, err, span)
-  users := sharedUtil.CastSlice(result.Data, func(from *model.Mail) domain.Mail {
+  users := sharedUtil.CastSliceP(result.Data, func(from *model.Mail) domain.Mail {
     return from.ToDomain()
   })
   return repo.NewPaginatedResult(users, uint64(count)), result.Err
@@ -48,7 +48,7 @@ func (m *mailRepository) FindByIds(ctx context.Context, ids ...types.Id) ([]doma
   ctx, span := m.tracer.Start(ctx, "MailRepository.FindByIds")
   defer span.End()
 
-  mailIds := sharedUtil.CastSlice2(ids, func(from types.Id) string {
+  mailIds := sharedUtil.CastSlice(ids, func(from types.Id) string {
     return from.Underlying().String()
   })
 
@@ -60,7 +60,7 @@ func (m *mailRepository) FindByIds(ctx context.Context, ids ...types.Id) ([]doma
     Scan(ctx)
 
   res := repo.CheckSliceResultWithSpan(models, err, span)
-  result := sharedUtil.CastSlice(res.Data, func(from *model.Mail) domain.Mail {
+  result := sharedUtil.CastSliceP(res.Data, func(from *model.Mail) domain.Mail {
     return from.ToDomain()
   })
   return result, res.Err
@@ -79,17 +79,19 @@ func (m *mailRepository) FindByTag(ctx context.Context, tag types.Id) ([]domain.
     Scan(ctx)
 
   res := repo.CheckSliceResultWithSpan(models, err, span)
-  result := sharedUtil.CastSlice(res.Data, func(from *model.Mail) domain.Mail {
+  result := sharedUtil.CastSliceP(res.Data, func(from *model.Mail) domain.Mail {
     return from.ToDomain()
   })
   return result, res.Err
 }
 
-func (m *mailRepository) Create(ctx context.Context, mail *domain.Mail) error {
+func (m *mailRepository) Create(ctx context.Context, mails ...domain.Mail) error {
   ctx, span := m.tracer.Start(ctx, "MailRepository.Create")
   defer span.End()
 
-  models := model.FromMailDomain(mail, func(domain *domain.Mail, mail *model.Mail) {
+  models := sharedUtil.CastSliceP(mails, func(mail *domain.Mail) model.Mail {
+    return model.FromMailDomain(mail, func(domain *domain.Mail, mail *model.Mail) {
+    })
   })
 
   res, err := m.db.NewInsert().
@@ -100,11 +102,11 @@ func (m *mailRepository) Create(ctx context.Context, mail *domain.Mail) error {
   return repo.CheckResultWithSpan(res, err, span)
 }
 
-func (m *mailRepository) AppendTag(ctx context.Context, mailId types.Id, tagIds []types.Id) error {
-  ctx, span := m.tracer.Start(ctx, "MailRepository.AppendTag")
+func (m *mailRepository) AppendTags(ctx context.Context, mailId types.Id, tagIds []types.Id) error {
+  ctx, span := m.tracer.Start(ctx, "MailRepository.AppendTags")
   defer span.End()
 
-  models := sharedUtil.CastSlice2(tagIds, func(tagId types.Id) model.MailTag {
+  models := sharedUtil.CastSlice(tagIds, func(tagId types.Id) model.MailTag {
     return model.MailTag{
       MailId: mailId.Underlying().String(),
       TagId:  tagId.Underlying().String(),
@@ -119,11 +121,11 @@ func (m *mailRepository) AppendTag(ctx context.Context, mailId types.Id, tagIds 
   return repo.CheckResultWithSpan(res, err, span)
 }
 
-func (m *mailRepository) RemoveTag(ctx context.Context, mailId types.Id, tagIds []types.Id) error {
-  ctx, span := m.tracer.Start(ctx, "MailRepository.RemoveTag")
+func (m *mailRepository) RemoveTags(ctx context.Context, mailId types.Id, tagIds []types.Id) error {
+  ctx, span := m.tracer.Start(ctx, "MailRepository.RemoveTags")
   defer span.End()
 
-  ids := sharedUtil.CastSlice2(tagIds, func(tagId types.Id) string {
+  ids := sharedUtil.CastSlice(tagIds, func(tagId types.Id) string {
     return tagId.Underlying().String()
   })
 
@@ -160,6 +162,20 @@ func (m *mailRepository) Remove(ctx context.Context, id types.Id) error {
   res, err := m.db.NewDelete().
     Model(sharedUtil.Nil[model.Mail]()).
     Where("id = ?", id.Underlying().String()).
+    Exec(ctx)
+
+  return repo.CheckResultWithSpan(res, err, span)
+}
+
+func (m *mailRepository) AppendMultipleTags(ctx context.Context, mailTags ...types.Pair[types.Id, []types.Id]) error {
+  ctx, span := m.tracer.Start(ctx, "MailRepository.AppendMultipleTags")
+  defer span.End()
+
+  models := model.FromPairs(mailTags...)
+
+  res, err := m.db.NewInsert().
+    Model(&models).
+    Returning("NULL").
     Exec(ctx)
 
   return repo.CheckResultWithSpan(res, err, span)

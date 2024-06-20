@@ -3,6 +3,7 @@ package mail
 import (
   "context"
   "crypto/tls"
+  "github.com/rs/zerolog/log"
   "go.opentelemetry.io/otel/trace"
   "gopkg.in/gomail.v2"
   "io"
@@ -11,17 +12,24 @@ import (
   "nexa/services/mailer/internal/domain/external"
   "nexa/services/mailer/internal/domain/repository"
   "nexa/services/mailer/util"
+  "sync"
+  "sync/atomic"
 )
 
-func NewSMTP(mailRepo repository.IMail, config *SMTPConfig) external.IMail {
-  mail := &SMTPMailer{
+func NewSMTP(mailRepo repository.IMail, config *SMTPConfig) (external.IMail, error) {
+  dialer := gomail.NewDialer(config.Host, int(config.Port), config.Username, config.Password)
+  sendCloser, err := dialer.Dial()
+  if err != nil {
+    return nil, err
+  }
+
+  return &SMTPMailer{
     mailRepo: mailRepo,
     config:   *config,
     tracer:   util.GetTracer(),
-    dialer:   gomail.NewDialer(config.Host, int(config.Port), config.Username, config.Password),
-  }
-
-  return mail
+    dialer:   dialer,
+    sender:   sendCloser,
+  }, nil
 }
 
 type SMTPConfig struct {
@@ -36,48 +44,65 @@ type SMTPMailer struct {
   mailRepo repository.IMail
   config   SMTPConfig
   dialer   *gomail.Dialer
+  sender   gomail.SendCloser // FIX: Make pool?
   tracer   trace.Tracer
 }
 
-func (s *SMTPMailer) Send(ctx context.Context, mail *domain.Mail, attachments []dto.FileAttached) error {
+func (s *SMTPMailer) Send(ctx context.Context, attachments []dto.FileAttachment, mails ...domain.Mail) error {
   ctx, span := s.tracer.Start(ctx, "SMTPMailer.Send")
   defer span.End()
 
-  message := gomail.NewMessage(func(m *gomail.Message) {
-    m.SetHeader("From", mail.Sender.Underlying())
-    m.SetHeader("To", mail.Recipient.Underlying())
-    m.SetHeader("Subject", mail.Subject)
-    m.SetBody(mail.BodyType.String(), mail.Body)
+  count := &atomic.Int64{}
+  count.Store(int64(len(mails)))
 
-    for _, attachment := range attachments {
-      m.Attach(attachment.Filename, gomail.SetCopyFunc(CopyFunc(attachment)))
-    }
-  })
+  wg := sync.WaitGroup{}
+  for _, mail := range mails {
+    // Send each email async
+    wg.Add(1)
+    go func() {
+      message := gomail.NewMessage(func(m *gomail.Message) {
+        m.SetHeader("From", mail.Sender.Underlying())
+        m.SetHeader("To", mail.Recipient.Underlying())
+        m.SetHeader("Subject", mail.Subject)
+        m.SetBody(mail.BodyType.String(), mail.Body)
 
-  // Sending asynchronously
-  go func() {
-    err := s.dialer.DialAndSend(message)
+        for _, attachment := range attachments {
+          m.Attach(attachment.Filename, gomail.SetCopyFunc(CopyFunc(attachment)))
+        }
+      })
 
-    // Update status
-    status := domain.StatusDelivered
-    if err != nil {
-      status = domain.StatusFailed
-    }
+      log.Printf("Done!")
+      wg.Done() // stop waiting until there
+      err := gomail.Send(s.sender, message)
 
-    mail := domain.Mail{
-      Id:     mail.Id,
-      Status: status,
-    }
+      // Update status
+      status := domain.StatusDelivered
+      if err != nil {
+        status = domain.StatusFailed
+      }
 
-    err = s.mailRepo.Patch(context.Background(), &mail)
-  }()
+      mails := domain.Mail{
+        Id:     mail.Id,
+        Status: status,
+      }
+
+      // NOTE: use context.Background, because the parameter context could be already cancelled when this code will be executed
+      err = s.mailRepo.Patch(context.Background(), &mails)
+    }()
+  }
+
+  wg.Wait()
 
   return nil
 }
 
-func CopyFunc(file dto.FileAttached) func(io.Writer) error {
+func (s *SMTPMailer) Close(context.Context) error {
+  return s.sender.Close()
+}
+
+func CopyFunc(file dto.FileAttachment) func(io.Writer) error {
   return func(writer io.Writer) error {
-    _, err := writer.Write(file.Bytes)
+    _, err := writer.Write(file.Data)
     return err
   }
 }

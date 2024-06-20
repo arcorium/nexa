@@ -21,13 +21,12 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	MailerService_Find_FullMethodName       = "/nexa.proto.generated.mailer.v1.MailerService/Find"
-	MailerService_FindByIds_FullMethodName  = "/nexa.proto.generated.mailer.v1.MailerService/FindByIds"
-	MailerService_FindByTag_FullMethodName  = "/nexa.proto.generated.mailer.v1.MailerService/FindByTag"
-	MailerService_Send_FullMethodName       = "/nexa.proto.generated.mailer.v1.MailerService/Send"
-	MailerService_SendToUser_FullMethodName = "/nexa.proto.generated.mailer.v1.MailerService/SendToUser"
-	MailerService_Update_FullMethodName     = "/nexa.proto.generated.mailer.v1.MailerService/Update"
-	MailerService_Remove_FullMethodName     = "/nexa.proto.generated.mailer.v1.MailerService/Remove"
+	MailerService_Find_FullMethodName      = "/nexa.proto.generated.mailer.v1.MailerService/Find"
+	MailerService_FindByIds_FullMethodName = "/nexa.proto.generated.mailer.v1.MailerService/FindByIds"
+	MailerService_FindByTag_FullMethodName = "/nexa.proto.generated.mailer.v1.MailerService/FindByTag"
+	MailerService_Send_FullMethodName      = "/nexa.proto.generated.mailer.v1.MailerService/Send"
+	MailerService_Update_FullMethodName    = "/nexa.proto.generated.mailer.v1.MailerService/Update"
+	MailerService_Remove_FullMethodName    = "/nexa.proto.generated.mailer.v1.MailerService/Remove"
 )
 
 // MailerServiceClient is the client API for MailerService service.
@@ -38,7 +37,8 @@ type MailerServiceClient interface {
 	FindByIds(ctx context.Context, in *FindMailByIdsRequest, opts ...grpc.CallOption) (*FindMailByIdsResponse, error)
 	FindByTag(ctx context.Context, in *FindMailByTagRequest, opts ...grpc.CallOption) (*FindMailByTagResponse, error)
 	Send(ctx context.Context, in *SendMailRequest, opts ...grpc.CallOption) (*SendMailResponse, error)
-	SendToUser(ctx context.Context, in *SendMailToUserRequest, opts ...grpc.CallOption) (*SendMailToUserResponse, error)
+	// rpc SendToUser(SendMailToUserRequest) returns (SendMailToUserResponse);
+	// rpc Broadcast(BroadcastRequest) returns (google.protobuf.Empty);
 	Update(ctx context.Context, in *UpdateMailRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	Remove(ctx context.Context, in *RemoveMailRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
@@ -87,15 +87,6 @@ func (c *mailerServiceClient) Send(ctx context.Context, in *SendMailRequest, opt
 	return out, nil
 }
 
-func (c *mailerServiceClient) SendToUser(ctx context.Context, in *SendMailToUserRequest, opts ...grpc.CallOption) (*SendMailToUserResponse, error) {
-	out := new(SendMailToUserResponse)
-	err := c.cc.Invoke(ctx, MailerService_SendToUser_FullMethodName, in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *mailerServiceClient) Update(ctx context.Context, in *UpdateMailRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, MailerService_Update_FullMethodName, in, out, opts...)
@@ -122,7 +113,8 @@ type MailerServiceServer interface {
 	FindByIds(context.Context, *FindMailByIdsRequest) (*FindMailByIdsResponse, error)
 	FindByTag(context.Context, *FindMailByTagRequest) (*FindMailByTagResponse, error)
 	Send(context.Context, *SendMailRequest) (*SendMailResponse, error)
-	SendToUser(context.Context, *SendMailToUserRequest) (*SendMailToUserResponse, error)
+	// rpc SendToUser(SendMailToUserRequest) returns (SendMailToUserResponse);
+	// rpc Broadcast(BroadcastRequest) returns (google.protobuf.Empty);
 	Update(context.Context, *UpdateMailRequest) (*emptypb.Empty, error)
 	Remove(context.Context, *RemoveMailRequest) (*emptypb.Empty, error)
 	mustEmbedUnimplementedMailerServiceServer()
@@ -143,9 +135,6 @@ func (UnimplementedMailerServiceServer) FindByTag(context.Context, *FindMailByTa
 }
 func (UnimplementedMailerServiceServer) Send(context.Context, *SendMailRequest) (*SendMailResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Send not implemented")
-}
-func (UnimplementedMailerServiceServer) SendToUser(context.Context, *SendMailToUserRequest) (*SendMailToUserResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SendToUser not implemented")
 }
 func (UnimplementedMailerServiceServer) Update(context.Context, *UpdateMailRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
@@ -238,24 +227,6 @@ func _MailerService_Send_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
-func _MailerService_SendToUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SendMailToUserRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(MailerServiceServer).SendToUser(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: MailerService_SendToUser_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MailerServiceServer).SendToUser(ctx, req.(*SendMailToUserRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _MailerService_Update_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(UpdateMailRequest)
 	if err := dec(in); err != nil {
@@ -314,10 +285,6 @@ var MailerService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Send",
 			Handler:    _MailerService_Send_Handler,
-		},
-		{
-			MethodName: "SendToUser",
-			Handler:    _MailerService_SendToUser_Handler,
 		},
 		{
 			MethodName: "Update",

@@ -38,7 +38,7 @@ func (t *tagService) Find(ctx context.Context, elementDTO *sharedDto.PagedElemen
     return nil, status.FromRepository(err, status.NullCode)
   }
 
-  tags := sharedUtil.CastSlice(result.Data, func(tag *domain.Tag) dto.TagResponseDTO {
+  tags := sharedUtil.CastSliceP(result.Data, func(tag *domain.Tag) dto.TagResponseDTO {
     return mapper.ToResponseDTO(tag)
   })
 
@@ -56,7 +56,7 @@ func (t *tagService) FindByIds(ctx context.Context, ids ...types.Id) ([]dto.TagR
     return nil, status.FromRepository(err, status.NullCode)
   }
 
-  tags := sharedUtil.CastSlice(result, func(tag *domain.Tag) dto.TagResponseDTO {
+  tags := sharedUtil.CastSliceP(result, func(tag *domain.Tag) dto.TagResponseDTO {
     return mapper.ToResponseDTO(tag)
   })
 

@@ -2,7 +2,7 @@ package util
 
 import "nexa/shared/errors"
 
-func CastSlice[From, To any](slice []From, f func(*From) To) []To {
+func CastSliceP[From, To any](slice []From, f func(*From) To) []To {
   if slice == nil || len(slice) == 0 {
     return nil
   }
@@ -14,7 +14,7 @@ func CastSlice[From, To any](slice []From, f func(*From) To) []To {
   return result
 }
 
-func CastSlice2[From, To any](slice []From, f func(From) To) []To {
+func CastSlice[From, To any](slice []From, f func(From) To) []To {
   if slice == nil || len(slice) == 0 {
     return nil
   }
@@ -26,7 +26,7 @@ func CastSlice2[From, To any](slice []From, f func(From) To) []To {
   return result
 }
 
-func CastSliceErr[From, To any](slice []From, f func(*From) (To, error)) ([]To, error) {
+func CastSliceErrP[From, To any](slice []From, f func(*From) (To, error)) ([]To, error) {
   if slice == nil || len(slice) == 0 {
     return nil, errors.ErrEmptySlice
   }
@@ -42,10 +42,10 @@ func CastSliceErr[From, To any](slice []From, f func(*From) (To, error)) ([]To, 
   return result, nil
 }
 
-// CastSliceErrs cast slice with skipping error. when the function return error it will not stop like what CastSliceErr do.
+// CastSliceErrsP cast slice with skipping error. when the function return error it will not stop like what CastSliceErrP do.
 // instead, it will skip the element and continue to process next element. element that error when processed will be returned as the
 // id along with the error object
-func CastSliceErrs[From, To any](slice []From, f func(*From) (To, error)) ([]To, []errors.IndexedError) {
+func CastSliceErrsP[From, To any](slice []From, f func(*From) (To, error)) ([]To, []errors.IndexedError) {
   if slice == nil || len(slice) == 0 {
     return nil, []errors.IndexedError{{Index: -1, Err: errors.ErrEmptySlice}}
   }
@@ -64,8 +64,8 @@ func CastSliceErrs[From, To any](slice []From, f func(*From) (To, error)) ([]To,
   return result, errs
 }
 
-// CastSliceErrs2 works like CastSliceErrs, but it takes non-pointer
-func CastSliceErrs2[From, To any](slice []From, f func(From) (To, error)) ([]To, []errors.IndexedError) {
+// CastSliceErrs works like CastSliceErrsP, but it takes non-pointer
+func CastSliceErrs[From, To any](slice []From, f func(From) (To, error)) ([]To, []errors.IndexedError) {
   if slice == nil || len(slice) == 0 {
     return nil, []errors.IndexedError{{Index: -1, Err: errors.ErrEmptySlice}}
   }

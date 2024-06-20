@@ -18,7 +18,7 @@ import (
   sharedUtil "nexa/shared/util"
 )
 
-func NewTagHandler(tag service.ITag) TagHandler {
+func NewTag(tag service.ITag) TagHandler {
   return TagHandler{
     tagService: tag,
   }
@@ -54,7 +54,7 @@ func (t *TagHandler) Find(ctx context.Context, input *common.PagedElementInput) 
       TotalElements: result.TotalElements,
       TotalPages:    result.TotalPages,
     },
-    Tags: sharedUtil.CastSlice(result.Data, mapper.ToProtoTag),
+    Tags: sharedUtil.CastSliceP(result.Data, mapper.ToProtoTag),
   }
 
   return resp, nil
@@ -63,14 +63,14 @@ func (t *TagHandler) Find(ctx context.Context, input *common.PagedElementInput) 
 func (t *TagHandler) FindByIds(ctx context.Context, request *mailerv1.FindTagByIdsRequest) (*mailerv1.FindTagByIdsResponse, error) {
   span := trace.SpanFromContext(ctx)
 
-  ids, ierr := sharedUtil.CastSliceErrs2(request.TagIds, types.IdFromString)
+  ids, ierr := sharedUtil.CastSliceErrs(request.TagIds, types.IdFromString)
   if ierr != nil {
-    errs := sharedUtil.CastSlice2(ierr, func(from sharedErr.IndexedError) error {
+    errs := sharedUtil.CastSlice(ierr, func(from sharedErr.IndexedError) error {
       return from.Err
     })
     err := errors.Join(errs...)
     spanUtil.RecordError(err, span)
-    return nil, sharedErr.GrpcFieldIndexedErrors("ids", ierr)
+    return nil, sharedErr.GrpcFieldIndexedErrors("tag_ids", ierr)
   }
 
   tags, stat := t.tagService.FindByIds(ctx, ids...)
@@ -80,7 +80,7 @@ func (t *TagHandler) FindByIds(ctx context.Context, request *mailerv1.FindTagByI
   }
 
   resp := &mailerv1.FindTagByIdsResponse{
-    Tags: sharedUtil.CastSlice(tags, mapper.ToProtoTag),
+    Tags: sharedUtil.CastSliceP(tags, mapper.ToProtoTag),
   }
 
   return resp, nil

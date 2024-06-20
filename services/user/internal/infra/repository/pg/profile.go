@@ -47,7 +47,7 @@ func (p profileRepository) FindByIds(ctx context.Context, userIds ...types.Id) (
 
   var dbModel []model.Profile
 
-  ids := util.CastSlice(userIds, func(from *types.Id) string {
+  ids := util.CastSliceP(userIds, func(from *types.Id) string {
     return from.Underlying().String()
   })
 
@@ -57,7 +57,7 @@ func (p profileRepository) FindByIds(ctx context.Context, userIds ...types.Id) (
     Scan(ctx)
 
   result := repo.CheckSliceResultWithSpan(dbModel, err, span)
-  profiles := util.CastSlice(result.Data, func(from *model.Profile) entity.Profile {
+  profiles := util.CastSliceP(result.Data, func(from *model.Profile) entity.Profile {
     return from.ToDomain()
   })
   return profiles, result.Err

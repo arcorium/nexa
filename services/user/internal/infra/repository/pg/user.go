@@ -82,7 +82,7 @@ func (u userRepository) FindByIds(ctx context.Context, userIds ...types.Id) ([]e
   ctx, span := u.tracer.Start(ctx, "UserRepository.FindByIds")
   defer span.End()
 
-  uuids := sharedUtil.CastSlice2(userIds, func(from types.Id) string {
+  uuids := sharedUtil.CastSlice(userIds, func(from types.Id) string {
     return from.Underlying().String()
   })
 
@@ -93,7 +93,7 @@ func (u userRepository) FindByIds(ctx context.Context, userIds ...types.Id) ([]e
     Scan(ctx)
 
   result := repo.CheckSliceResultWithSpan(dbModel, err, span)
-  users := sharedUtil.CastSlice(dbModel, func(from *model.User) entity.User {
+  users := sharedUtil.CastSliceP(dbModel, func(from *model.User) entity.User {
     return from.ToDomain()
   })
   return users, result.Err
@@ -110,7 +110,7 @@ func (u userRepository) FindByEmails(ctx context.Context, emails ...types.Email)
     Scan(ctx)
 
   result := repo.CheckSliceResultWithSpan(dbModel, err, span)
-  users := sharedUtil.CastSlice(dbModel, func(from *model.User) entity.User {
+  users := sharedUtil.CastSliceP(dbModel, func(from *model.User) entity.User {
     return from.ToDomain()
   })
   return users, result.Err
@@ -128,7 +128,7 @@ func (u userRepository) FindAllUsers(ctx context.Context, query repo.QueryParame
     ScanAndCount(ctx)
 
   result := repo.CheckPaginationResultWithSpan(dbModel, count, err, span)
-  users := sharedUtil.CastSlice(dbModel, func(from *model.User) entity.User {
+  users := sharedUtil.CastSliceP(dbModel, func(from *model.User) entity.User {
     return from.ToDomain()
   })
   return repo.NewPaginatedResult(users, uint64(count)), result.Err
@@ -138,7 +138,7 @@ func (u userRepository) Delete(ctx context.Context, ids ...types.Id) error {
   ctx, span := u.tracer.Start(ctx, "UserRepository.Delete")
   defer span.End()
 
-  users := sharedUtil.CastSlice(ids, func(from *types.Id) model.User {
+  users := sharedUtil.CastSliceP(ids, func(from *types.Id) model.User {
     return model.User{
       Id:        from.Underlying().String(),
       DeletedAt: time.Now(),

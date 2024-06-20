@@ -31,7 +31,7 @@ func (f metadataRepository) FindByIds(ctx context.Context, ids ...types.Id) ([]d
   ctx, span := f.tracer.Start(ctx, "FileRepository.FindByIds")
   defer span.End()
 
-  uuids := sharedUtil.CastSlice2(ids, func(from types.Id) string {
+  uuids := sharedUtil.CastSlice(ids, func(from types.Id) string {
     return from.Underlying().String()
   })
 
@@ -43,7 +43,7 @@ func (f metadataRepository) FindByIds(ctx context.Context, ids ...types.Id) ([]d
     Scan(ctx)
 
   res := repo.CheckSliceResultWithSpan(models, err, span)
-  result := sharedUtil.CastSlice(res.Data, func(from *model.FileMetadata) domain.FileMetadata {
+  result := sharedUtil.CastSliceP(res.Data, func(from *model.FileMetadata) domain.FileMetadata {
     return from.ToDomain()
   })
 
@@ -62,7 +62,7 @@ func (f metadataRepository) FindByNames(ctx context.Context, names ...string) ([
     Scan(ctx)
 
   res := repo.CheckSliceResultWithSpan(models, err, span)
-  result := sharedUtil.CastSlice(res.Data, func(from *model.FileMetadata) domain.FileMetadata {
+  result := sharedUtil.CastSliceP(res.Data, func(from *model.FileMetadata) domain.FileMetadata {
     return from.ToDomain()
   })
 

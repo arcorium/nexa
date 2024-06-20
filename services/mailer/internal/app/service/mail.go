@@ -44,7 +44,7 @@ func (m *mailService) Find(ctx context.Context, pagedDTO *sharedDto.PagedElement
     return nil, status.FromRepository(err, status.NullCode)
   }
 
-  mails := sharedUtil.CastSlice(result.Data, func(mail *domain.Mail) dto.MailResponseDTO {
+  mails := sharedUtil.CastSliceP(result.Data, func(mail *domain.Mail) dto.MailResponseDTO {
     return mapper.ToMailResponseDTO(mail)
   })
 
@@ -63,7 +63,7 @@ func (m *mailService) FindByIds(ctx context.Context, mailIds ...types.Id) ([]dto
     return nil, status.FromRepository(err, status.NullCode)
   }
 
-  mailResponses := sharedUtil.CastSlice(mails, func(mail *domain.Mail) dto.MailResponseDTO {
+  mailResponses := sharedUtil.CastSliceP(mails, func(mail *domain.Mail) dto.MailResponseDTO {
     return mapper.ToMailResponseDTO(mail)
   })
 
@@ -81,61 +81,61 @@ func (m *mailService) FindByTag(ctx context.Context, tagId types.Id) ([]dto.Mail
     return nil, status.FromRepository(err, status.NullCode)
   }
 
-  mailResponses := sharedUtil.CastSlice(mails, func(mail *domain.Mail) dto.MailResponseDTO {
+  mailResponses := sharedUtil.CastSliceP(mails, func(mail *domain.Mail) dto.MailResponseDTO {
     return mapper.ToMailResponseDTO(mail)
   })
 
   return mailResponses, status.Success()
 }
 
-func (m *mailService) Send(ctx context.Context, mailDTO *dto.SendMailDTO) (types.Id, status.Object) {
+func (m *mailService) Send(ctx context.Context, mailDTO *dto.SendMailDTO) ([]types.Id, status.Object) {
   ctx, span := m.tracer.Start(ctx, "MailService.Send")
   defer span.End()
 
-  mail := mapper.MapSendMailDTO(mailDTO)
+  mails := mapper.MapSendMailDTO(mailDTO)
 
-  repos := m.mailUow.Repositories()
-
-  // Send mail
-  err := m.mailExt.Send(ctx, &mail)
-  if err != nil {
-    spanUtil.RecordError(err, span)
-    return types.NullId(), status.New(status.EXTERNAL_SERVICE_ERROR, err)
-  }
   // Save metadata
-  err = m.mailUow.DoTx(ctx, func(ctx context.Context, storage uow.MailStorage) error {
+  err := m.mailUow.DoTx(ctx, func(ctx context.Context, storage uow.MailStorage) error {
     ctx, txSpan := m.tracer.Start(ctx, "UOW.Send")
     defer txSpan.End()
 
-    err := repos.Mail().Create(ctx, &mail)
+    err := storage.Mail().Create(ctx, mails...)
     if err != nil {
       spanUtil.RecordError(err, txSpan)
       return err
     }
 
-    if len(mail.Tags) == 0 {
-      return nil
+    var tags []types.Pair[types.Id, []types.Id]
+
+    for _, mail := range mails {
+      result := types.NewPair(mail.Id, sharedUtil.CastSliceP(mail.Tags, func(from *domain.Tag) types.Id {
+        return from.Id
+      }))
+
+      tags = append(tags, result)
     }
 
-    // Append tags
-    ids := sharedUtil.CastSlice(mail.Tags, func(from *domain.Tag) types.Id {
-      return from.Id
-    })
-
-    err = repos.Mail().AppendTag(ctx, mail.Id, ids)
-    if err != nil {
-      spanUtil.RecordError(err, txSpan)
-      return err
-    }
-    return nil
+    err = storage.Mail().AppendMultipleTags(ctx, tags...)
+    return err
   })
 
   if err != nil {
     spanUtil.RecordError(err, span)
-    return types.NullId(), status.New(status.EXTERNAL_SERVICE_ERROR, err)
+    return nil, status.FromRepository(err, status.NullCode)
   }
 
-  return mail.Id, status.Created()
+  // Send mail
+  err = m.mailExt.Send(ctx, mailDTO.Attachments, mails...)
+  if err != nil {
+    spanUtil.RecordError(err, span)
+    return nil, status.New(status.EXTERNAL_SERVICE_ERROR, err)
+  }
+
+  mailIds := sharedUtil.CastSliceP(mails, func(from *domain.Mail) types.Id {
+    return from.Id
+  })
+
+  return mailIds, status.Created()
 }
 
 func (m *mailService) Update(ctx context.Context, mailDTO *dto.UpdateMailDTO) status.Object {
@@ -144,11 +144,11 @@ func (m *mailService) Update(ctx context.Context, mailDTO *dto.UpdateMailDTO) st
 
   mailId := wrapper.DropError(types.IdFromString(mailDTO.Id))
 
-  addedTagIds := sharedUtil.CastSlice2(mailDTO.AddedTagIds, func(from string) types.Id {
+  addedTagIds := sharedUtil.CastSlice(mailDTO.AddedTagIds, func(from string) types.Id {
     return wrapper.DropError(types.IdFromString(from))
   })
 
-  removedTagIds := sharedUtil.CastSlice2(mailDTO.RemovedTagIds, func(from string) types.Id {
+  removedTagIds := sharedUtil.CastSlice(mailDTO.RemovedTagIds, func(from string) types.Id {
     return wrapper.DropError(types.IdFromString(from))
   })
 
@@ -158,7 +158,7 @@ func (m *mailService) Update(ctx context.Context, mailDTO *dto.UpdateMailDTO) st
 
     // Append Tags
     if len(addedTagIds) > 0 {
-      err := storage.Mail().AppendTag(ctx, mailId, addedTagIds)
+      err := storage.Mail().AppendTags(ctx, mailId, addedTagIds)
       if err != nil {
         spanUtil.RecordError(err, span)
         return err
@@ -167,7 +167,7 @@ func (m *mailService) Update(ctx context.Context, mailDTO *dto.UpdateMailDTO) st
 
     // Remove Tags
     if len(removedTagIds) > 0 {
-      err := storage.Mail().RemoveTag(ctx, mailId, removedTagIds)
+      err := storage.Mail().RemoveTags(ctx, mailId, removedTagIds)
       if err != nil {
         spanUtil.RecordError(err, span)
         return err

@@ -130,12 +130,12 @@ func (u *UserHandler) ResetPassword(ctx context.Context, request *proto.ResetUse
 
 func (u *UserHandler) FindUserByIds(ctx context.Context, request *proto.FindUsersByIdsRequest) (*proto.FindUserByIdsResponse, error) {
   span := trace.SpanFromContext(ctx)
-  ids, ierr := sharedUtil.CastSliceErrs(request.Ids, func(from *string) (types.Id, error) {
+  ids, ierr := sharedUtil.CastSliceErrsP(request.Ids, func(from *string) (types.Id, error) {
     return types.IdFromString(*from)
   })
 
   if ierr != nil {
-    errs := sharedUtil.CastSlice2(ierr, func(from sharedErr.IndexedError) error {
+    errs := sharedUtil.CastSlice(ierr, func(from sharedErr.IndexedError) error {
       return from.Err
     })
     err := errors.Join(errs...)
@@ -145,18 +145,18 @@ func (u *UserHandler) FindUserByIds(ctx context.Context, request *proto.FindUser
 
   users, stats := u.userService.FindByIds(ctx, ids)
   return &proto.FindUserByIdsResponse{
-    Users: sharedUtil.CastSlice(users, mapper.ToProtoUser),
+    Users: sharedUtil.CastSliceP(users, mapper.ToProtoUser),
   }, stats.ToGRPCErrorWithSpan(span)
 }
 
 func (u *UserHandler) FindUserByEmails(ctx context.Context, request *proto.FindUserByEmailsRequest) (*proto.FindUserByEmailsResponse, error) {
   span := trace.SpanFromContext(ctx)
-  emails, ierr := sharedUtil.CastSliceErrs(request.Emails, func(from *string) (types.Email, error) {
+  emails, ierr := sharedUtil.CastSliceErrsP(request.Emails, func(from *string) (types.Email, error) {
     return types.EmailFromString(*from)
   })
 
   if ierr != nil {
-    errs := sharedUtil.CastSlice2(ierr, func(from sharedErr.IndexedError) error {
+    errs := sharedUtil.CastSlice(ierr, func(from sharedErr.IndexedError) error {
       return from.Err
     })
     err := errors.Join(errs...)
@@ -166,7 +166,7 @@ func (u *UserHandler) FindUserByEmails(ctx context.Context, request *proto.FindU
 
   users, stats := u.userService.FindByEmails(ctx, emails)
   return &proto.FindUserByEmailsResponse{
-    Users: sharedUtil.CastSlice(users, mapper.ToProtoUser),
+    Users: sharedUtil.CastSliceP(users, mapper.ToProtoUser),
   }, stats.ToGRPCErrorWithSpan(span)
 }
 

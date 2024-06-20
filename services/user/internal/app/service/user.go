@@ -153,7 +153,7 @@ func (u userService) FindByEmails(ctx context.Context, emails []types.Email) ([]
     spanUtil.RecordError(err, span)
     return nil, status.FromRepository(err, status.NullCode)
   }
-  responses := sharedUtil.CastSlice(users, mapper.ToUserResponse)
+  responses := sharedUtil.CastSliceP(users, mapper.ToUserResponse)
   return responses, status.Success()
 }
 
@@ -167,7 +167,7 @@ func (u userService) FindByIds(ctx context.Context, ids []types.Id) ([]dto.UserR
     spanUtil.RecordError(err, span)
     return nil, status.FromRepository(err, status.NullCode)
   }
-  responses := sharedUtil.CastSlice(users, mapper.ToUserResponse)
+  responses := sharedUtil.CastSliceP(users, mapper.ToUserResponse)
   return responses, status.Success()
 }
 

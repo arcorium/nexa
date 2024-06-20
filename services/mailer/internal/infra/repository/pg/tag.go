@@ -39,7 +39,7 @@ func (t *tagRepository) FindAll(ctx context.Context, query repo.QueryParameter) 
     ScanAndCount(ctx)
 
   result := repo.CheckPaginationResultWithSpan(models, count, err, span)
-  users := sharedUtil.CastSlice(result.Data, func(from *model.Tag) domain.Tag {
+  users := sharedUtil.CastSliceP(result.Data, func(from *model.Tag) domain.Tag {
     return from.ToDomain()
   })
   return repo.NewPaginatedResult(users, uint64(count)), result.Err
@@ -49,7 +49,7 @@ func (t *tagRepository) FindByIds(ctx context.Context, ids ...types.Id) ([]domai
   ctx, span := t.tracer.Start(ctx, "TagRepository.FindByIds")
   defer span.End()
 
-  tagIds := sharedUtil.CastSlice2(ids, func(from types.Id) string {
+  tagIds := sharedUtil.CastSlice(ids, func(from types.Id) string {
     return from.Underlying().String()
   })
 
@@ -60,7 +60,7 @@ func (t *tagRepository) FindByIds(ctx context.Context, ids ...types.Id) ([]domai
     Scan(ctx)
 
   res := repo.CheckSliceResultWithSpan(models, err, span)
-  result := sharedUtil.CastSlice(res.Data, func(from *model.Tag) domain.Tag {
+  result := sharedUtil.CastSliceP(res.Data, func(from *model.Tag) domain.Tag {
     return from.ToDomain()
   })
 

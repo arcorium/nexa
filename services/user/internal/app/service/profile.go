@@ -39,7 +39,7 @@ func (p profileService) Find(ctx context.Context, userIds []types.Id) ([]dto.Pro
     spanUtil.RecordError(err, span)
     return nil, status.FromRepository(err, status.NullCode)
   }
-  return util.CastSlice(profiles, mapper.ToProfileResponse), status.Success()
+  return util.CastSliceP(profiles, mapper.ToProfileResponse), status.Success()
 }
 
 func (p profileService) Update(ctx context.Context, input *dto.ProfileUpdateDTO) status.Object {

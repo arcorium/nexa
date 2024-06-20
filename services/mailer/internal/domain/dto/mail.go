@@ -5,20 +5,19 @@ import (
   "time"
 )
 
-type FileAttached struct {
-  Filename string
-  Bytes    []byte
+type FileAttachment struct {
+  Filename string `json:"filename" validate:"required"`
+  Data     []byte `json:"data" validate:"required"`
 }
 
 type SendMailDTO struct {
-  Subject   string `json:"subject" validate:"required"`
-  Recipient string `json:"recipient" validate:"required,email"`
-  Sender    wrapper.Nullable[string]
-  BodyType  uint8    `json:"body_type" validate:"required"`
-  Body      string   `json:"body"`
-  TagIds    []string `json:"tag_ids"`
-
-  Attachments []FileAttached
+  Subject     string                   `json:"subject" validate:"required"`
+  Recipients  []string                 `json:"recipient" validate:"required,dive,email"`
+  Sender      wrapper.Nullable[string] `json:"sender"`
+  BodyType    uint8                    `json:"body_type" validate:"required"`
+  Body        string                   `json:"body"`
+  TagIds      []string                 `json:"tag_ids" validate:"dive,uuid4"`
+  Attachments []FileAttachment         `json:"attachments"`
 }
 
 type UpdateMailDTO struct {

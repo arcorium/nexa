@@ -111,13 +111,13 @@ func newRandomProfile(userId types.Id) entity.Profile {
 }
 
 func seed() error {
-  profileModels := util.CastSlice(Profiles, func(from *entity.Profile) model2.Profile {
+  profileModels := util.CastSliceP(Profiles, func(from *entity.Profile) model2.Profile {
     return model2.FromProfileDomain(from, func(profile *entity.Profile, db *model2.Profile) {
       db.UpdatedAt = time.Now()
     })
   })
 
-  userModels := util.CastSlice(Users, func(from *entity.User) model2.User {
+  userModels := util.CastSliceP(Users, func(from *entity.User) model2.User {
     return model2.FromUserDomain(from, func(domain *entity.User, user *model2.User) {
       user.CreatedAt = time.Now()
       user.UpdatedAt = time.Now()

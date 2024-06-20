@@ -36,12 +36,12 @@ func (p *ProfileHandler) Register(server *grpc.Server) {
 func (p *ProfileHandler) Find(ctx context.Context, request *proto.FindProfileRequest) (*proto.FindProfileResponse, error) {
   span := trace.SpanFromContext(ctx)
 
-  ids, ierr := util.CastSliceErrs(request.UserIds, func(from *string) (types.Id, error) {
+  ids, ierr := util.CastSliceErrsP(request.UserIds, func(from *string) (types.Id, error) {
     return types.IdFromString(*from)
   })
 
   if ierr != nil {
-    errs := util.CastSlice2(ierr, func(from sharedErr.IndexedError) error {
+    errs := util.CastSlice(ierr, func(from sharedErr.IndexedError) error {
       return from.Err
     })
     err := errors.Join(errs...)
@@ -51,7 +51,7 @@ func (p *ProfileHandler) Find(ctx context.Context, request *proto.FindProfileReq
 
   profiles, stats := p.profileService.Find(ctx, ids)
   response := &proto.FindProfileResponse{
-    Profiles: util.CastSlice(profiles, mapper.ToProtoProfile),
+    Profiles: util.CastSliceP(profiles, mapper.ToProtoProfile),
   }
 
   return response, stats.ToGRPCErrorWithSpan(span)

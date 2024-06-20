@@ -11,7 +11,8 @@ service MailerService {
   rpc FindByIds(FindMailByIdsRequest) returns(FindMailByIdsResponse);
   rpc FindByTag(FindMailByTagRequest) returns(FindMailByTagResponse);
   rpc Send(SendMailRequest) returns (SendMailResponse);
-  rpc SendToUser(SendMailToUserRequest) returns (SendMailToUserResponse);
+//  rpc SendToUser(SendMailToUserRequest) returns (SendMailToUserResponse);
+//  rpc Broadcast(BroadcastRequest) returns (google.protobuf.Empty);
   rpc Update(UpdateMailRequest) returns(google.protobuf.Empty);
   rpc Remove(RemoveMailRequest) returns(google.protobuf.Empty);
 }
@@ -37,20 +38,26 @@ message FileAttachment {
 
 message SendMailRequest {
   repeated string recipients = 1;
-  string subject = 2;
-  BodyType body_type = 3;
-  repeated FileAttachment attachments = 4;
+  optional string sender = 2;
+  string subject = 3;
+  BodyType body_type = 4;
+  string body = 5;
+  repeated string tag_ids = 6;
+  repeated FileAttachment attachments = 7;
 }
 
 message SendMailResponse {
-  string mail_id = 1;
+  repeated string mail_ids = 1;
 }
 
 message SendMailToUserRequest {
   repeated string user_ids = 1;
-  string subject = 2;
-  BodyType body_type = 3;
-  repeated FileAttachment attachments = 4;
+  optional string sender = 2;
+  string subject = 3;
+  BodyType body_type = 4;
+  string body = 5;
+  repeated string tag_ids = 6;
+  repeated FileAttachment attachments = 7;
 }
 
 message SendMailToUserResponse {
@@ -59,7 +66,7 @@ message SendMailToUserResponse {
 
 message FindResponse {
   common.PagedElementOutput details = 1;
-  repeated Mail mail = 2;
+  repeated Mail mails = 2;
 }
 
 message FindMailByIdsRequest {
@@ -67,7 +74,7 @@ message FindMailByIdsRequest {
 }
 
 message FindMailByIdsResponse {
-  repeated Mail mail = 1;
+  repeated Mail mails = 1;
 }
 
 message FindMailByTagRequest {
@@ -75,7 +82,7 @@ message FindMailByTagRequest {
 }
 
 message FindMailByTagResponse {
-  repeated Mail mail = 1;
+  repeated Mail mails = 1;
 }
 
 message UpdateMailRequest {

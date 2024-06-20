@@ -26,6 +26,7 @@ import (
   "net/http"
   "nexa/services/mailer/config"
   "nexa/services/mailer/constant"
+  "nexa/services/mailer/internal/api/grpc/handler"
   "nexa/services/mailer/internal/app/service"
   "nexa/services/mailer/internal/app/uow/pg"
   "nexa/services/mailer/internal/infra/external/mail"
@@ -195,6 +196,12 @@ func (s *Server) setup() error {
 
   mailService := service.NewMail(uow, mailer)
   tagService := service.NewTag(tagRepo)
+
+  mailHandler := handler.NewMail(mailService)
+  mailHandler.Register(s.grpcServer)
+
+  tagHandler := handler.NewTag(tagService)
+  tagHandler.Register(s.grpcServer)
 
   return nil
 }

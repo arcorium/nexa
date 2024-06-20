@@ -14,7 +14,7 @@ import (
 type MailMapOption = repo.DataAccessModelMapOption[*domain.Mail, *Mail]
 
 func FromMailDomain(domain *domain.Mail, opts ...MailMapOption) Mail {
-  obj := Mail{
+  mail := Mail{
     Id:        domain.Id.Underlying().String(),
     Subject:   domain.Subject,
     Recipient: domain.Recipient.Underlying(),
@@ -22,9 +22,9 @@ func FromMailDomain(domain *domain.Mail, opts ...MailMapOption) Mail {
     Status:    domain.Status.Underlying(),
   }
 
-  variadic.New(opts...).DoAll(repo.MapOptionFunc(domain, &obj))
+  variadic.New(opts...).DoAll(repo.MapOptionFunc(domain, &mail))
 
-  return obj
+  return mail
 }
 
 type Mail struct {
@@ -44,7 +44,7 @@ type Mail struct {
 }
 
 func (p *Mail) ToDomain() domain.Mail {
-  tags := util.CastSlice(p.Tags, func(from *Tag) domain.Tag {
+  tags := util.CastSliceP(p.Tags, func(from *Tag) domain.Tag {
     return from.ToDomain()
   })
 
