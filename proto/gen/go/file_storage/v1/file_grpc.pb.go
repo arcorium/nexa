@@ -4,7 +4,7 @@
 // - protoc             (unknown)
 // source: file_storage/v1/file.proto
 
-package userv1
+package storagev1
 
 import (
 	context "context"
@@ -20,11 +20,11 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	FileStorageService_Find_FullMethodName           = "/nexa.proto.generated.user.v1.FileStorageService/Find"
-	FileStorageService_FindMetadata_FullMethodName   = "/nexa.proto.generated.user.v1.FileStorageService/FindMetadata"
-	FileStorageService_Store_FullMethodName          = "/nexa.proto.generated.user.v1.FileStorageService/Store"
-	FileStorageService_UpdateMetadata_FullMethodName = "/nexa.proto.generated.user.v1.FileStorageService/UpdateMetadata"
-	FileStorageService_Delete_FullMethodName         = "/nexa.proto.generated.user.v1.FileStorageService/Delete"
+	FileStorageService_Find_FullMethodName           = "/nexa.proto.generated.storage.v1.FileStorageService/Find"
+	FileStorageService_FindMetadata_FullMethodName   = "/nexa.proto.generated.storage.v1.FileStorageService/FindMetadata"
+	FileStorageService_Store_FullMethodName          = "/nexa.proto.generated.storage.v1.FileStorageService/Store"
+	FileStorageService_UpdateMetadata_FullMethodName = "/nexa.proto.generated.storage.v1.FileStorageService/UpdateMetadata"
+	FileStorageService_Delete_FullMethodName         = "/nexa.proto.generated.storage.v1.FileStorageService/Delete"
 )
 
 // FileStorageServiceClient is the client API for FileStorageService service.
@@ -288,7 +288,7 @@ func _FileStorageService_Delete_Handler(srv interface{}, ctx context.Context, de
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var FileStorageService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "nexa.proto.generated.user.v1.FileStorageService",
+	ServiceName: "nexa.proto.generated.storage.v1.FileStorageService",
 	HandlerType: (*FileStorageServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

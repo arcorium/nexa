@@ -129,7 +129,7 @@ func (f fileStorage) UpdateMetadata(ctx context.Context, input *dto.UpdateFileMe
     return status.ErrInternal(err)
   }
 
-  err = f.metadataRepo.Patch(ctx, &obj)
+  err = f.metadataRepo.Update(ctx, &obj)
   if err != nil {
     return status.FromRepository(err, status.NullCode)
   }

@@ -1,6 +1,6 @@
 module nexa/services/user
 
-go 1.22.1
+go 1.22.4
 
 require (
 	github.com/caarlos0/env/v10 v10.0.0 // indirect
@@ -26,10 +26,17 @@ require (
 	go.opentelemetry.io/otel/sdk/metric v1.27.0
 	go.opentelemetry.io/otel/trace v1.27.0
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240617180043-68d350f18fd4
+)
+
+require (
+	nexa/proto/gen/go v0.0.0
 	nexa/shared v0.0.0
 )
 
-replace nexa/shared => ../../shared/
+replace (
+	nexa/proto/gen/go => ../../proto/gen/go
+	nexa/shared => ../../shared/
+)
 
 require (
 	github.com/beorn7/perks v1.0.1 // indirect

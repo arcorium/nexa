@@ -5,23 +5,21 @@ import (
   "github.com/golang-jwt/jwt/v5"
   "nexa/services/authentication/config"
   "nexa/services/authentication/internal/domain/dto"
+  "nexa/services/authentication/internal/domain/entity"
   "nexa/services/authentication/internal/domain/external"
-  "nexa/services/authentication/internal/domain/mapper"
   "nexa/services/authentication/internal/domain/repository"
   "nexa/services/authentication/internal/domain/service"
   "nexa/services/authentication/shared/common"
-  "nexa/services/authentication/shared/domain/entity"
-  "nexa/services/authentication/shared/errors"
   appUtil "nexa/services/authentication/util"
+  "nexa/services/authentication/util/errors"
   "nexa/shared/optional"
   "nexa/shared/status"
   "nexa/shared/types"
-  "nexa/shared/util"
   "nexa/shared/variadic"
   "time"
 )
 
-func NewCredential(credential repository.ICredential, userExt external.IUserClient, serverConfig *config.ServerConfig) service.ICredential {
+func NewCredential(credential repository.ICredential, userExt external.IUserClient, serverConfig *config.Server) service.ICredential {
   return &credentialService{
     repo:    credential,
     userExt: userExt,
@@ -33,7 +31,7 @@ type credentialService struct {
   repo    repository.ICredential
   userExt external.IUserClient
 
-  cfg *config.ServerConfig
+  cfg *config.Server
 }
 
 func (c *credentialService) Login(ctx context.Context, dto *dto.LoginDTO) (string, status.Object) {
@@ -116,14 +114,18 @@ func (c *credentialService) RefreshToken(ctx context.Context, dto *dto.RefreshTo
   return newAccessToken, status.Success()
 }
 
-func (c *credentialService) GetCurrentCredentials(ctx context.Context) ([]dto.CredentialResponseDTO, status.Object) {
-  claims := appUtil.GetUserClaims(ctx)
-  credentials, err := c.repo.FindByUserId(ctx, claims.UserId)
-  if err != nil {
-    return nil, status.FromRepository(err, status.NullCode)
-  }
-  responses := util.CastSlice(credentials, mapper.ToCredentialResponseDTO)
-  return responses, status.Success()
+//func (c *credentialService) GetCurrentCredentials(ctx context.Context) ([]dto.CredentialResponseDTO, status.Object) {
+//  claims := appUtil.GetUserClaims(ctx)
+//  credentials, err := c.repo.FindByUserId(ctx, claims.UserId)
+//  if err != nil {
+//    return nil, status.FromRepository(err, status.NullCode)
+//  }
+//  responses := util.CastSlice(credentials, mapper.ToCredentialResponseDTO)
+//  return responses, status.Success()
+//}
+
+func (c *credentialService) GetCredentials(ctx context.Context, userId types.Id) ([]dto.CredentialResponseDTO, status.Object) {
+  c.repo.FindByUserId()
 }
 
 func (c *credentialService) Logout(ctx context.Context, credIds ...types.Id) status.Object {
@@ -144,7 +146,7 @@ func (c *credentialService) Logout(ctx context.Context, credIds ...types.Id) sta
   return status.Success()
 }
 
-func (c *credentialService) LogoutAll(ctx context.Context) status.Object {
+func (c *credentialService) LogoutAll(ctx context.Context, userId types.Id) status.Object {
   // Logout current
   claims := appUtil.GetUserClaims(ctx)
   err := c.repo.DeleteByUserId(ctx, claims.UserId)

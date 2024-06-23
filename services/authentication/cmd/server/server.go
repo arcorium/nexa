@@ -5,21 +5,26 @@ import (
   "google.golang.org/grpc"
   "log"
   "nexa/services/authentication/config"
-  "nexa/shared/database"
   "nexa/shared/util"
   "nexa/shared/wrapper"
   "reflect"
   "sync"
 )
 
-func NewServer(config *database.Config, serverConfig *config.ServerConfig) (*Server, error) {
-  svr := &Server{}
+func NewServer(config *config.Database, serverConfig *config.Server) (*Server, error) {
+  svr := &Server{
+    dbConfig:     nil,
+    serverConfig: nil,
+    db:           nil,
+    server:       nil,
+    wg:           sync.WaitGroup{},
+  }
   return svr, svr.Init()
 }
 
 type Server struct {
-  dbConfig     *database.Config
-  serverConfig *config.ServerConfig
+  dbConfig     *config.Database
+  serverConfig *config.Server
   db           *bun.DB
 
   server *grpc.Server

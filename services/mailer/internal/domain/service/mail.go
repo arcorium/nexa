@@ -15,4 +15,5 @@ type IMail interface {
   Send(ctx context.Context, mailDTO *dto.SendMailDTO) ([]types.Id, status.Object)
   Update(ctx context.Context, mailDTO *dto.UpdateMailDTO) status.Object
   Remove(ctx context.Context, mailId types.Id) status.Object
+  HasWork() bool
 }

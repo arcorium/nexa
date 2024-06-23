@@ -3,6 +3,7 @@ package service
 import (
   "context"
   "go.opentelemetry.io/otel/trace"
+  "log"
   "nexa/services/mailer/internal/app/uow"
   "nexa/services/mailer/internal/domain/dto"
   domain "nexa/services/mailer/internal/domain/entity"
@@ -17,6 +18,7 @@ import (
   sharedUOW "nexa/shared/uow"
   sharedUtil "nexa/shared/util"
   "nexa/shared/wrapper"
+  "sync/atomic"
 )
 
 func NewMail(work sharedUOW.IUnitOfWork[uow.MailStorage], mailExt external.IMail) service.IMail {
@@ -31,6 +33,8 @@ type mailService struct {
   mailExt external.IMail
   mailUow sharedUOW.IUnitOfWork[uow.MailStorage]
   tracer  trace.Tracer
+
+  workCount atomic.Int64
 }
 
 func (m *mailService) Find(ctx context.Context, pagedDTO *sharedDto.PagedElementDTO) (*sharedDto.PagedElementResult[dto.MailResponseDTO], status.Object) {
@@ -124,12 +128,32 @@ func (m *mailService) Send(ctx context.Context, mailDTO *dto.SendMailDTO) ([]typ
     return nil, status.FromRepository(err, status.NullCode)
   }
 
-  // Send mail
-  err = m.mailExt.Send(ctx, mailDTO.Attachments, mails...)
-  if err != nil {
-    spanUtil.RecordError(err, span)
-    return nil, status.New(status.EXTERNAL_SERVICE_ERROR, err)
-  }
+  // Send mails
+  go func() {
+    ctx := context.Background()
+    defer m.workCount.Add(int64(len(mails) * -1))
+
+    for _, mail := range mails {
+      m.workCount.Add(1)
+
+      err = m.mailExt.Send(ctx, &mail, mailDTO.Attachments)
+      stat := domain.StatusDelivered
+      if err != nil {
+        stat = domain.StatusFailed
+      }
+      repos := m.mailUow.Repositories()
+
+      newMail := domain.Mail{
+        Id:     mail.Id,
+        Status: stat,
+      }
+
+      err = repos.Mail().Patch(ctx, &newMail)
+      if err != nil {
+        log.Println("Error set mail status:", err)
+      }
+    }
+  }()
 
   mailIds := sharedUtil.CastSliceP(mails, func(from *domain.Mail) types.Id {
     return from.Id
@@ -197,4 +221,8 @@ func (m *mailService) Remove(ctx context.Context, mailId types.Id) status.Object
   }
 
   return status.Deleted()
+}
+
+func (m *mailService) HasWork() bool {
+  return m.workCount.Load() <= 0
 }

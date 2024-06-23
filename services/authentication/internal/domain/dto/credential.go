@@ -1,8 +1,7 @@
 package dto
 
 import (
-  "nexa/services/authentication/shared/domain/entity"
-  "nexa/services/authentication/shared/domain/valueobject"
+  entity2 "nexa/services/authentication/internal/domain/entity"
   "nexa/shared/types"
   "nexa/shared/wrapper"
 )
@@ -12,12 +11,12 @@ type LoginDTO struct {
   Password string `validate:"required"`
 }
 
-func (d *LoginDTO) ToEntity(userId, accessTokenId, refreshTokenId types.Id, deviceName string, refreshToken string) entity.Credential {
-  return entity.Credential{
+func (d *LoginDTO) ToEntity(userId, accessTokenId, refreshTokenId types.Id, deviceName string, refreshToken string) entity2.Credential {
+  return entity2.Credential{
     Id:            refreshTokenId,
     UserId:        userId,
     AccessTokenId: accessTokenId,
-    Device:        valueobject.Device{Name: deviceName},
+    Device:        entity2.Device{Name: deviceName},
     RefreshToken:  refreshToken,
   }
 }

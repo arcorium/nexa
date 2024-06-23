@@ -29,6 +29,7 @@ import (
   "nexa/services/mailer/internal/api/grpc/handler"
   "nexa/services/mailer/internal/app/service"
   "nexa/services/mailer/internal/app/uow/pg"
+  domainService "nexa/services/mailer/internal/domain/service"
   "nexa/services/mailer/internal/infra/external/mail"
   "nexa/services/mailer/internal/infra/repository/model"
   sharedConf "nexa/shared/config"
@@ -40,6 +41,7 @@ import (
   "os/signal"
   "sync"
   "syscall"
+  "time"
 )
 
 func NewServer(dbConfig *sharedConf.Database, serverConfig *config.Server) (*Server, error) {
@@ -62,6 +64,8 @@ type Server struct {
   logger         *zap.Logger
   exporter       sdktrace.SpanExporter
   tracerProvider *sdktrace.TracerProvider
+
+  mailService domainService.IMail
 
   wg sync.WaitGroup
 }
@@ -184,20 +188,23 @@ func (s *Server) setup() error {
 
   uow := pg.NewMailUOW(s.db)
   repos := uow.Repositories()
-  mailRepo := repos.Mail()
   tagRepo := repos.Tag()
 
-  mailer := mail.NewSMTP(mailRepo, &mail.SMTPConfig{
+  mailer, err := mail.NewSMTP(&mail.SMTPConfig{
     Host:     s.serverConfig.SMTPHost,
     Port:     s.serverConfig.SMTPPort,
     Username: s.serverConfig.SMTPUsername,
     Password: s.serverConfig.SMTPPassword,
   })
 
-  mailService := service.NewMail(uow, mailer)
+  if err != nil {
+    return err
+  }
+
+  s.mailService = service.NewMail(uow, mailer)
   tagService := service.NewTag(tagRepo)
 
-  mailHandler := handler.NewMail(mailService)
+  mailHandler := handler.NewMail(s.mailService)
   mailHandler.Register(s.grpcServer)
 
   tagHandler := handler.NewTag(tagService)
@@ -210,6 +217,15 @@ func (s *Server) shutdown() {
   s.grpcServer.GracefulStop()
   s.metricServer.Shutdown(context.Background())
   s.wg.Wait()
+
+  // Wait until all mailService works done
+  for {
+    if s.mailService.HasWork() {
+      time.Sleep(100)
+      continue
+    }
+    break
+  }
 
   // GRPC thingies
   s.exporter.Shutdown(context.Background())

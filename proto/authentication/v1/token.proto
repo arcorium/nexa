@@ -1,0 +1,63 @@
+syntax = "proto3";
+package nexa.proto.generated.authentication.v1;
+option go_package = "nexa/proto/gen/go/authentication/v1";
+
+import "google/protobuf/empty.proto";
+import "common/paged.proto";
+
+service TokenService {
+  rpc Request(RequestInput) returns (RequestOutput);
+  rpc Verify(VerifyInput) returns (google.protobuf.Empty);
+  rpc AddUsage(AddUsageInput) returns (AddUsageOutput);
+  rpc RemoveUsage(RemoveUsageInput) returns (google.protobuf.Empty);
+  rpc UpdateUsage(UpdateUsageInput) returns (google.protobuf.Empty);
+  rpc FindUsage(FindUsageInput) returns (TokenUsageResponse);
+  rpc FindAllUsages(common.PagedElementInput) returns (FindAllUsagesOutput);
+}
+
+message TokenUsageResponse {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+}
+
+message RequestInput {
+  string usageId = 2;
+}
+
+message RequestOutput {
+  string token = 1;
+}
+
+message VerifyInput {
+  string token = 2;
+  string usageId = 3;
+}
+
+message AddUsageInput {
+  string name = 1;
+  optional string description = 2;
+}
+
+message AddUsageOutput {
+  string id = 1;
+}
+
+message RemoveUsageInput {
+  string id = 1;
+}
+
+message UpdateUsageInput {
+  string id = 1;
+  optional string name = 2;
+  optional string description = 3;
+}
+
+message FindUsageInput {
+  string id = 1;
+}
+
+message FindAllUsagesOutput {
+  common.PagedElementOutput details = 1;
+  repeated TokenUsageResponse usages = 2;
+}

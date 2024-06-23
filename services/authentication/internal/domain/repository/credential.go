@@ -2,7 +2,7 @@ package repository
 
 import (
   "context"
-  "nexa/services/authentication/shared/domain/entity"
+  "nexa/services/authentication/internal/domain/entity"
   "nexa/shared/types"
   "nexa/shared/util/repo"
 )

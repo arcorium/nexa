@@ -8,7 +8,7 @@ import (
 
 type IMail interface {
   // Send send single email into single recipient
-  Send(ctx context.Context, attachments []dto.FileAttachment, mail ...domain.Mail) error
+  Send(ctx context.Context, mail *domain.Mail, attachments []dto.FileAttachment) error
   // Close close the connection
   Close(context.Context) error
 }

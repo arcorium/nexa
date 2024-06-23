@@ -32,7 +32,7 @@ type Profile struct {
   UserId    string `bun:",type:uuid,pk"` // Profile is unique per user
   FirstName string `bun:",notnull"`
   LastName  string `bun:",nullzero"`
-  PhotoURL  string `bun:",nullzero"`
+  PhotoURL  string `bun:",nullzero"` // TODO: Change into uuid
   Bio       string `bun:",nullzero"`
 
   UpdatedAt time.Time `bun:",nullzero"`

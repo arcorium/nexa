@@ -85,8 +85,8 @@ func (f metadataRepository) Create(ctx context.Context, metadata *domain.FileMet
   return repo.CheckResultWithSpan(res, err, span)
 }
 
-func (f metadataRepository) Patch(ctx context.Context, metadata *domain.FileMetadata) error {
-  ctx, span := f.tracer.Start(ctx, "FileRepository.Patch")
+func (f metadataRepository) Update(ctx context.Context, metadata *domain.FileMetadata) error {
+  ctx, span := f.tracer.Start(ctx, "FileRepository.Update")
   defer span.End()
 
   models := model.FromFileDomain(metadata, func(domain *domain.FileMetadata, metadata *model.FileMetadata) {

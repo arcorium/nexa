@@ -6,9 +6,9 @@ import (
   userUow "nexa/services/user/internal/app/uow"
   "nexa/services/user/internal/domain/dto"
   "nexa/services/user/internal/domain/entity"
+  "nexa/services/user/internal/domain/external"
   "nexa/services/user/internal/domain/mapper"
   "nexa/services/user/internal/domain/service"
-  "nexa/services/user/util"
   spanUtil "nexa/shared/span"
   "nexa/shared/status"
   "nexa/shared/types"
@@ -16,17 +16,20 @@ import (
   sharedUtil "nexa/shared/util"
 )
 
-func NewUser(work uow.IUnitOfWork[userUow.UserStorage]) service.IUser {
+func NewUser(mailClient external.IMailerClient, work uow.IUnitOfWork[userUow.UserStorage], tracer trace.Tracer) service.IUser {
   return &userService{
-    unit:   work,
-    tracer: util.GetTracer(),
+    unit:       work,
+    mailClient: mailClient,
+    tracer:     tracer,
   }
 }
 
 type userService struct {
-  unit uow.IUnitOfWork[userUow.UserStorage]
-
+  unit   uow.IUnitOfWork[userUow.UserStorage]
   tracer trace.Tracer
+
+  mailClient external.IMailerClient
+  authClient external.IAuthenticationClient
 }
 
 func (u userService) Create(ctx context.Context, input *dto.UserCreateDTO) status.Object {
@@ -48,11 +51,30 @@ func (u userService) Create(ctx context.Context, input *dto.UserCreateDTO) statu
     err = storage.Profile().Create(ctx, &profile)
     return err
   })
-
   if err != nil {
     spanUtil.RecordError(err, span)
     return status.FromRepository(err, status.NullCode)
   }
+
+  // Create verification token
+  tokenGenerationDTO := dto.NewEmailVerificationToken()
+  token, err := u.authClient.GenerateToken(ctx, &tokenGenerationDTO)
+  if err != nil {
+    spanUtil.RecordError(err, span)
+    return status.ErrExternal(err)
+  }
+
+  // Send email verification
+  mailDTO := dto.SendEmailVerificationDTO{
+    Recipient: user.Email.Underlying(),
+    Token:     token.Token,
+  }
+  err = u.mailClient.SendEmailVerification(ctx, &mailDTO)
+  if err != nil {
+    spanUtil.RecordError(err, span)
+    return status.ErrExternal(err)
+  }
+
   return status.Created()
 }
 

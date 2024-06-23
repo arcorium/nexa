@@ -7,8 +7,8 @@ import (
   "nexa/services/authentication/internal/domain/mapper"
   "nexa/services/authentication/internal/domain/repository"
   "nexa/services/authentication/internal/domain/service"
-  "nexa/services/authentication/shared/errors"
   appUtil "nexa/services/authentication/util"
+  "nexa/services/authentication/util/errors"
   sharedDto "nexa/shared/dto"
   "nexa/shared/status"
   "nexa/shared/types"
@@ -23,7 +23,7 @@ type tokenService struct {
   tokenRepo repository.IToken
   usageRepo repository.ITokenUsage
 
-  cfg *config.ServerConfig
+  cfg *config.Server
 }
 
 func (t *tokenService) Request(ctx context.Context, dt *dto.TokenRequestDTO) (dto.TokenRequestResponseDTO, status.Object) {

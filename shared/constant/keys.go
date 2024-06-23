@@ -1,5 +1,14 @@
 package constant
 
-const USER_ID_KEY = "user_id"
-const USER_ROLES_KEY = "user_roles"
-const USER_ACCESS_ID_KEY = "access_id"
+// Metadata
+const (
+  TOKEN_METADATA_KEY              = "authorization"
+  TOKEN_SCHEME_METADATA_KEY       = "scheme"
+  JWT_SECRET_METADATA_KEY         = "secret"
+  JWT_SIGNING_METHOD_METADATA_KEY = "signing"
+)
+
+// Context
+const (
+  CLAIMS_CONTEXT_KEY = "user-claims"
+)

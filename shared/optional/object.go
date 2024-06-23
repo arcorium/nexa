@@ -37,10 +37,6 @@ func (o Object[T]) ValueOrElse(f func() T) T {
   return f()
 }
 
-var (
-  NullString = Null[string]()
-)
-
 func Null[T any]() Object[T] {
   return Object[T]{}
 }

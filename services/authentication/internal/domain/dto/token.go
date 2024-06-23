@@ -1,7 +1,7 @@
 package dto
 
 import (
-  "nexa/services/authentication/shared/domain/entity"
+  entity2 "nexa/services/authentication/internal/domain/entity"
   "nexa/shared/types"
   "nexa/shared/util"
   "time"
@@ -11,11 +11,11 @@ type TokenRequestDTO struct {
   UsageId string `validate:"required,uuid4"`
 }
 
-func (r *TokenRequestDTO) ToEntity(userId types.Id) entity.Token {
-  return entity.Token{
+func (r *TokenRequestDTO) ToEntity(userId types.Id) entity2.Token {
+  return entity2.Token{
     Token:  util.RandomString(64),
     UserId: userId,
-    Usage: entity.TokenUsage{
+    Usage: entity2.TokenUsage{
       Id: types.IdFromString(r.UsageId),
     },
     ExpiredAt: time.Now(),

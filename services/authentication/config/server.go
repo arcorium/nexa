@@ -6,7 +6,7 @@ import (
   "time"
 )
 
-type ServerConfig struct {
+type Server struct {
   server.Config
   TokenExpiration    time.Duration
   JWTTokenExpiration time.Duration
@@ -18,18 +18,18 @@ type ServerConfig struct {
   signingMethod jwt.SigningMethod
 }
 
-func (s *ServerConfig) SigningMethod() jwt.SigningMethod {
+func (s *Server) SigningMethod() jwt.SigningMethod {
   if s.signingMethod == nil {
     s.signingMethod = jwt.GetSigningMethod(s.JWTSigningMethod)
   }
   return s.signingMethod
 }
 
-func (s *ServerConfig) SecretKey() []byte {
+func (s *Server) SecretKey() []byte {
   return []byte(s.JWTSecretKey)
 }
 
-func (s *ServerConfig) KeyFunc() jwt.Keyfunc {
+func (s *Server) KeyFunc() jwt.Keyfunc {
   return func(token *jwt.Token) (interface{}, error) {
     return s.SecretKey(), nil
   }

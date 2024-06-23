@@ -5,6 +5,7 @@ go 1.22.1
 require (
 	github.com/caarlos0/env/v10 v10.0.0
 	github.com/go-playground/validator/v10 v10.19.0
+	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/google/uuid v1.6.0
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.1.0
 	github.com/joho/godotenv v1.5.1

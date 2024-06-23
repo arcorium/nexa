@@ -2,7 +2,7 @@ package mapper
 
 import (
   "nexa/services/authentication/internal/domain/dto"
-  "nexa/services/authentication/shared/domain/entity"
+  "nexa/services/authentication/internal/domain/entity"
 )
 
 func ToTokenUsageResponse(usage *entity.TokenUsage) dto.TokenUsageResponseDTO {
