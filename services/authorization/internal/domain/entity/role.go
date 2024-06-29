@@ -1,7 +1,9 @@
 package entity
 
 import (
+  sharedJwt "nexa/shared/jwt"
   "nexa/shared/types"
+  sharedUtil "nexa/shared/util"
 )
 
 type Role struct {
@@ -12,7 +14,12 @@ type Role struct {
   Permissions []Permission
 }
 
-func (r *Role) HasPermissions(permissions ...Permission) bool {
-  // TODO: Implement
-  return false
+func (r *Role) ToJWT() sharedJwt.Role {
+  return sharedJwt.Role{
+    Id:   r.Id.String(),
+    Role: r.Name,
+    Permissions: sharedUtil.CastSliceP(r.Permissions, func(perm *Permission) string {
+      return perm.Code
+    }),
+  }
 }

@@ -1,22 +1,27 @@
 package dto
 
 import (
-  entity2 "nexa/services/authorization/internal/domain/entity"
+  "nexa/services/authorization/internal/domain/entity"
   "nexa/shared/types"
   "nexa/shared/util"
+  "time"
 )
 
 type PermissionCreateDTO struct {
-  ResourceId string `validate:"required,uuid4"`
-  ActionId   string `validate:"required,uuid4"`
+  Code string `validate:"required"`
 }
 
-func (p *PermissionCreateDTO) ToDomain() entity2.Permission {
-  return entity2.Permission{
-    Id:       types.NewId(),
-    Resource: entity2.Resource{Id: types.IdFromString(p.ResourceId)},
-    Action:   entity2.Action{Id: types.IdFromString(p.ActionId)},
+func (p *PermissionCreateDTO) ToDomain() (entity.Permission, error) {
+  err := util.ValidateStruct(p)
+  if err != nil {
+    return entity.Permission{}, err
   }
+
+  return entity.Permission{
+    Id:        types.NewId2(),
+    Code:      p.Code,
+    CreatedAt: time.Now(),
+  }, nil
 }
 
 type InternalCheckUserPermissionDTO struct {
@@ -24,10 +29,10 @@ type InternalCheckUserPermissionDTO struct {
   Action   string `validate:"required"`
 }
 
-func (i *InternalCheckUserPermissionDTO) ToDomain() entity2.Permission {
-  return entity2.Permission{
-    Resource: entity2.Resource{Name: i.Resource},
-    Action:   entity2.Action{Name: i.Action},
+func (i *InternalCheckUserPermissionDTO) ToDomain() entity.Permission {
+  return entity.Permission{
+    Resource: entity.Resource{Name: i.Resource},
+    Action:   entity.Action{Name: i.Action},
   }
 }
 
@@ -36,8 +41,14 @@ type CheckUserPermissionDTO struct {
   Permissions []InternalCheckUserPermissionDTO `validate:"required"`
 }
 
-func (c *CheckUserPermissionDTO) ToDomain() []entity2.Permission {
-  return util.CastSlice(c.Permissions, func(from *InternalCheckUserPermissionDTO) entity2.Permission {
+func (c *CheckUserPermissionDTO) ToDomain() []entity.Permission {
+  return util.CastSlice(c.Permissions, func(from *InternalCheckUserPermissionDTO) entity.Permission {
     return from.ToDomain()
   })
+}
+
+type PermissionResponseDTO struct {
+  Id        string
+  Code      string
+  CreatedAt time.Time
 }

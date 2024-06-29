@@ -2,7 +2,7 @@ package logger
 
 import "nexa/shared/wrapper"
 
-var Default = wrapper.PanicDropError(NewZapLogger(true))
+var Default = wrapper.Must(NewZapLogger(true))
 
 func SetGlobal(logger Logger) {
   Default = logger

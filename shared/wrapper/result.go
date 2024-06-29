@@ -28,7 +28,7 @@ func DropError[T any](val T, err error) T {
   return Some(val, err).Data
 }
 
-func PanicDropError[T any](val T, err error) T {
+func Must[T any](val T, err error) T {
   res := Some(val, err)
   if res.IsError() {
     panic(err)

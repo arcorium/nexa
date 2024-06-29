@@ -7,12 +7,18 @@ import (
   sharedConst "nexa/shared/constant"
 )
 
+type Role struct {
+  Id          string   `json:"id"`
+  Role        string   `json:"role"`
+  Permissions []string `json:"perms"`
+}
+
 type UserClaims struct {
   jwt.RegisteredClaims
-  UserId      string   `json:"user_id"`
-  Name        string   `json:"name"`
-  Roles       []string `json:"roles"`
-  Permissions []string `json:"perms"`
+  RefreshTokenId string `json:"rtid"`
+  UserId         string `json:"uid"`
+  Username       string `json:"username"`
+  Roles          []Role `json:"roles"`
 }
 
 func GetClaimsFromCtx(ctx context.Context) (*UserClaims, error) {

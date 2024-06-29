@@ -1,24 +1,32 @@
 package dto
 
 import (
-  entity2 "nexa/services/authentication/internal/domain/entity"
+  domain "nexa/services/authentication/internal/domain/entity"
   "nexa/shared/types"
   "nexa/shared/wrapper"
+  "time"
 )
 
 type LoginDTO struct {
-  Email    string `validate:"required,email"`
-  Password string `validate:"required"`
+  Email      string `json:"email" validate:"required,email"`
+  Password   string `json:"password" validate:"required"`
+  DeviceName string `json:"device_name" validate:"required"`
 }
 
-func (d *LoginDTO) ToEntity(userId, accessTokenId, refreshTokenId types.Id, deviceName string, refreshToken string) entity2.Credential {
-  return entity2.Credential{
-    Id:            refreshTokenId,
+func (d *LoginDTO) ToDomain(userId, accessTokenId types.Id, refreshToken *domain.JWTToken, expiryTime time.Duration) domain.Credential {
+  return domain.Credential{
+    Id:            refreshToken.Id,
     UserId:        userId,
     AccessTokenId: accessTokenId,
-    Device:        entity2.Device{Name: deviceName},
-    RefreshToken:  refreshToken,
+    Device:        domain.Device{Name: d.DeviceName},
+    RefreshToken:  refreshToken.Token,
+    ExpiresAt:     time.Now().UTC().Add(expiryTime),
   }
+}
+
+type LoginResponseDTO struct {
+  TokenType string `json:"token_type"`
+  Token     string `json:"token"`
 }
 
 type RegisterDTO struct {
@@ -31,10 +39,28 @@ type RegisterDTO struct {
 }
 
 type RefreshTokenDTO struct {
-  AccessToken string `validate:"required"`
+  TokenType   string `json:"token_type" validate:"required"`
+  AccessToken string `json:"access_token" validate:"required"`
+}
+
+func (r *RefreshTokenDTO) ToDomain(refreshTokenId, accessTokenId types.Id) domain.Credential {
+  return domain.Credential{
+    Id:            refreshTokenId,
+    AccessTokenId: accessTokenId,
+  }
+}
+
+type RefreshTokenResponseDTO struct {
+  TokenType   string `json:"token_type"`
+  AccessToken string `json:"token"`
 }
 
 type CredentialResponseDTO struct {
-  Id     string
-  Device string
+  Id     string `json:"id"`
+  Device string `json:"device"`
+}
+
+type LogoutDTO struct {
+  UserId        string   `validate:"required,uuid4"`
+  CredentialIds []string `validate:"required,dive,uuid4"`
 }

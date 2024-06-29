@@ -1,22 +1,22 @@
 syntax = "proto3";
+
 package nexa.proto.generated.authorization.v1;
 option go_package = "nexa/proto/generated/golang/authorization/v1";
 
+import "google/protobuf/empty.proto";
 import "common/paged.proto";
+import "authorization/v1/message.proto";
 
-message PermissionResponse {
-  string resourceId = 1;
-  string resourceName = 2;
-  string resourceDescription = 3;
-  string actionId = 4;
-  string actionName = 5;
-  string actionDescription = 6;
-  string code = 7;
+service PermissionService {
+  rpc Create(PermissionCreateRequest) returns (PermissionCreateResponse);
+  rpc Find(PermissionFindRequest) returns (FindPermissionResponse);
+  rpc FindByRoles(FindPermissionByRolesRequest) returns (FindPermissionByRolesResponse);
+  rpc FindAll(common.PagedElementInput) returns (PermissionFindAllResponse);
+  rpc Delete(PermissionDeleteRequest) returns (google.protobuf.Empty);
 }
 
 message PermissionCreateRequest {
-  string resourceId = 1;
-  string actionId = 2;
+  string code = 1;
 }
 
 message PermissionCreateResponse {
@@ -24,24 +24,26 @@ message PermissionCreateResponse {
 }
 
 message PermissionFindRequest {
-  string id = 1;
+  repeated string perm_ids = 1;
+}
+
+message FindPermissionResponse {
+  repeated Permission permission = 1;
 }
 
 message PermissionFindAllResponse {
   common.PagedElementOutput details = 1;
-  repeated PermissionResponse permissions = 2;
+  repeated Permission permissions = 2;
 }
 
 message PermissionDeleteRequest {
   string id = 1;
 }
 
-message InternalCheckUserRequest {
-  string resourceName = 1;
-  string actionName = 2;
+message FindPermissionByRolesRequest {
+
 }
 
-message CheckUserRequest {
-  string userId = 1;
-  repeated InternalCheckUserRequest permissions = 2;
+message FindPermissionByRolesResponse {
+
 }

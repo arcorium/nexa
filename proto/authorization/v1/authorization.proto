@@ -6,38 +6,13 @@ option go_package = "nexa/proto/generated/golang/authorization/v1";
 import "google/protobuf/empty.proto";
 import "common/paged.proto";
 
-import "authorization/v1/action.proto";
-import "authorization/v1/permission.proto";
-import "authorization/v1/resource.proto";
 import "authorization/v1/role.proto";
 
-service Authorization {
-  // Action
-  rpc CreateAction(ActionCreateRequest) returns (ActionCreateResponse);
-  rpc UpdateAction(ActionUpdateRequest) returns (google.protobuf.Empty);
-  rpc DeleteAction(ActionDeleteRequest) returns (google.protobuf.Empty);
-  rpc FindAction(ActionFindRequest) returns (ActionResponse);
-  rpc FindAllAction(common.PagedElementInput) returns (ActionFindAllResponse);
-
-  // Role
-  rpc CreateRole(RoleCreateRequest) returns (RoleCreateResponse);
-  rpc UpdateRole(RoleUpdateRequest) returns (google.protobuf.Empty);
-  rpc DeleteRole(RoleDeleteRequest) returns (google.protobuf.Empty);
-  rpc FindRole(RoleFindRequest) returns (RoleFindResponse);
-  rpc FindByUserIdRole(RoleFindByUserIdRequest) returns (RoleFindByUserIdResponse);
-  rpc FindAllRole(common.PagedElementInput) returns (RoleFindAllResponse);
-
-  // Resource
-  rpc CreateResource(ResourceCreateRequest) returns (ResourceCreateResponse);
-  rpc UpdateResource(ResourceUpdateRequest) returns (google.protobuf.Empty);
-  rpc DeleteResource(ResourceDeleteRequest) returns (google.protobuf.Empty);
-  rpc FindResource(ResourceFindRequest) returns (ResourceResponse);
-  rpc FindAllResource(common.PagedElementInput) returns (ResourceFindAllResponse);
-
-  // Permission
-  rpc CreatePermission(PermissionCreateRequest) returns (PermissionCreateResponse);
-  rpc FindPermission(PermissionFindRequest) returns (PermissionResponse);
-  rpc FindAllPermission(common.PagedElementInput) returns (PermissionFindAllResponse);
-  rpc DeletePermission(PermissionDeleteRequest) returns (google.protobuf.Empty);
+service AuthorizationService {
   rpc CheckUserPermission(CheckUserRequest) returns (google.protobuf.Empty);
+}
+
+message CheckUserRequest {
+  string user_id = 1;
+  repeated string expected_permissions = 2;
 }

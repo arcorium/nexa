@@ -3,14 +3,48 @@ syntax = "proto3";
 package nexa.proto.generated.authorization.v1;
 option go_package = "nexa/proto/generated/golang/authorization/v1";
 
+import "google/protobuf/empty.proto";
 import "common/paged.proto";
+import "authorization/v1/message.proto";
 
 service RoleService {
+  rpc Create(RoleCreateRequest) returns (RoleCreateResponse);
+  rpc Update(RoleUpdateRequest) returns (google.protobuf.Empty);
+  rpc Delete(RoleDeleteRequest) returns (google.protobuf.Empty);
+  rpc GetUser(GetUserRolesRequest) returns (GetUserRolesResponse);
+  rpc Find(RoleFindRequest) returns (RoleFindResponse);
+  rpc FindAll(common.PagedElementInput) returns (RoleFindAllResponse);
+
+  rpc AddUser(AddUserRolesRequest) returns (google.protobuf.Empty);
+  rpc RemoveUser(RemoveUserRolesRequest) returns (google.protobuf.Empty);
+
+  rpc AppendPermissions(RoleAppendPermissionsRequest) returns (google.protobuf.Empty);
+  rpc RemovePermissions(RoleRemovePermissionsRequest) returns (google.protobuf.Empty);
+}
+
+message GetUserRolesRequest {
+  string user_id = 1;
+  bool include_permission = 2;  // either need the permissions also transmitted or not
+}
+
+message GetUserRolesResponse {
+  repeated RolePermission role_permissions = 1;
+}
+
+message AddUserRolesRequest {
+  string user_id = 1;
+  repeated string role_ids = 2;
+}
+
+message RemoveUserRolesRequest {
+  string user_id = 1;
+  repeated string role_ids = 2;
 }
 
 message RoleCreateRequest {
   string name = 1;
   optional string description = 2;
+  repeated string permission_ids = 3;
 }
 
 message RoleCreateResponse {
@@ -28,34 +62,19 @@ message RoleDeleteRequest {
 }
 
 message RoleFindRequest {
-  repeated string ids = 1;
+  repeated string role_ids = 1;
 }
 
 message RoleFindResponse {
-  repeated RoleResponse roles = 1;
+  repeated Role roles = 1;
 }
-
-message RoleFindByUserIdRequest {
-  string userId = 1;
-}
-
-message RoleFindByUserIdResponse {
-  repeated RoleResponse roles = 1;
-}
-
 
 message RoleFindAllResponse {
   common.PagedElementOutput details = 1;
-  repeated RoleResponse roles = 2;
+  repeated Role roles = 2;
 }
 
-message RoleResponse {
-  string id = 1;
-  string name = 2;
-  string description = 3;
-}
-
-message RoleAddPermissionsRequest {
+message RoleAppendPermissionsRequest {
   string role_id = 1;
   repeated string permission_ids = 2;
 }
@@ -63,14 +82,4 @@ message RoleAddPermissionsRequest {
 message RoleRemovePermissionsRequest {
   string role_id = 1;
   repeated string permission_ids = 2;
-}
-
-message RoleAddUserRequest {
-  string user_id = 1;
-  repeated string role_ids = 2;
-}
-
-message RoleRemoveUserRequest {
-  string user_id = 1;
-  repeated string role_ids = 2;
 }

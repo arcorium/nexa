@@ -5,7 +5,8 @@ import (
   "google.golang.org/grpc"
   "log"
   "nexa/services/authentication/config"
-  "nexa/shared/util"
+  "nexa/services/authentication/util"
+  sharedUtil "nexa/shared/util"
   "nexa/shared/wrapper"
   "reflect"
   "sync"
@@ -33,7 +34,9 @@ type Server struct {
 }
 
 func (s *Server) validationSetup() {
-  wrapper.RegisterDefaultNullableValidations(util.GetValidator())
+  validator := sharedUtil.GetValidator()
+  wrapper.RegisterDefaultNullableValidations(validator)
+  util.RegisterValidationTags(validator)
 }
 
 func (s *Server) grpcServerSetup() {

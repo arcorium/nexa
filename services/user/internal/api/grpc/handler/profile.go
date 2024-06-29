@@ -63,7 +63,7 @@ func (p *ProfileHandler) Update(ctx context.Context, request *proto.UpdateProfil
 
   dtoInput := mapper.ToProfileUpdateDTO(request)
 
-  err := util.ValidateStruct(ctx, &dtoInput)
+  err := util.ValidateStructCtx(ctx, &dtoInput)
   if err != nil {
     spanUtil.RecordError(err, span)
     return nil, err

@@ -3,6 +3,7 @@ package model
 import (
   domain "nexa/services/authentication/internal/domain/entity"
   "nexa/shared/types"
+  "nexa/shared/util"
   "nexa/shared/util/repo"
   "nexa/shared/variadic"
   "nexa/shared/wrapper"
@@ -12,12 +13,14 @@ import (
 type CredentialMapOption = repo.DataAccessModelMapOption[*domain.Credential, *Credential]
 
 func FromCredentialModel(domain *domain.Credential, opts ...CredentialMapOption) Credential {
+
   cred := Credential{
-    Id:           domain.Id.Underlying().String(),
-    UserId:       domain.UserId.Underlying().String(),
-    Device:       domain.Device.Name,
-    RefreshToken: domain.RefreshToken,
-    ExpiresAt:    domain.ExpiresAt,
+    Id:            util.ReturnOnEqual(domain.Id.Underlying().String(), types.NullIdStr, ""),
+    UserId:        util.ReturnOnEqual(domain.UserId.Underlying().String(), types.NullIdStr, ""),
+    AccessTokenId: util.ReturnOnEqual(domain.AccessTokenId.Underlying().String(), types.NullIdStr, ""),
+    Device:        domain.Device.Name,
+    RefreshToken:  domain.RefreshToken,
+    ExpiresAt:     domain.ExpiresAt,
   }
 
   variadic.New(opts...).
@@ -37,11 +40,7 @@ type Credential struct {
 
 // OmitZero used for data patching
 func (c *Credential) OmitZero() map[string]any {
-  var result map[string]any
-
-  if c.UserId != "" {
-    result["user_id"] = c.UserId
-  }
+  result := make(map[string]any)
 
   if c.AccessTokenId != "" {
     result["access_token_id"] = c.AccessTokenId

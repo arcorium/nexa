@@ -7,6 +7,15 @@ func Ternary[T any](cond bool, trueVal, falseVal T) T {
   return falseVal
 }
 
+// ReturnOnEqual Simple ternary that will return retVal parameter if only expected is equal to comparator parameter,
+// it will return the expected parameter otherwise
+func ReturnOnEqual[T comparable](expected, comparator, retVal T) T {
+  if expected == comparator {
+    return retVal
+  }
+  return expected
+}
+
 func TernaryF[T any](cond bool, trueFunc func() T, falseFunc func() T) T {
   if cond {
     return trueFunc()

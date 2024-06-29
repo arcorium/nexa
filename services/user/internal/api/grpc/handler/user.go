@@ -39,7 +39,7 @@ func (u *UserHandler) Create(ctx context.Context, request *proto.CreateUserReque
   span := trace.SpanFromContext(ctx)
   dtoInput := mapper.ToDTOCreateInput(request)
 
-  err := sharedUtil.ValidateStruct(ctx, &dtoInput)
+  err := sharedUtil.ValidateStructCtx(ctx, &dtoInput)
   if err != nil {
     spanUtil.RecordError(err, span)
     return nil, err
@@ -58,7 +58,7 @@ func (u *UserHandler) Update(ctx context.Context, request *proto.UpdateUserReque
   dtoInput := mapper.ToDTOUserUpdateInput(request)
   // TODO: Get user id from access token claims from ctx
 
-  err := sharedUtil.ValidateStruct(ctx, &dtoInput)
+  err := sharedUtil.ValidateStructCtx(ctx, &dtoInput)
   if err != nil {
     spanUtil.RecordError(err, span)
     return nil, err
@@ -96,7 +96,7 @@ func (u *UserHandler) UpdatePassword(ctx context.Context, request *proto.UpdateU
   dtoInput := mapper.ToDTOUserUpdatePasswordInput(request)
   // TODO: Get user id from access token claims from ctx
 
-  err := sharedUtil.ValidateStruct(ctx, &dtoInput)
+  err := sharedUtil.ValidateStructCtx(ctx, &dtoInput)
   if err != nil {
     spanUtil.RecordError(err, span)
     return nil, err
@@ -114,7 +114,7 @@ func (u *UserHandler) ResetPassword(ctx context.Context, request *proto.ResetUse
   span := trace.SpanFromContext(ctx)
   dtoInput := mapper.ToDTOUserResetPasswordInput(request)
 
-  err := sharedUtil.ValidateStruct(ctx, &dtoInput)
+  err := sharedUtil.ValidateStructCtx(ctx, &dtoInput)
   if err != nil {
     spanUtil.RecordError(err, span)
     return nil, err
@@ -175,7 +175,7 @@ func (u *UserHandler) BannedUser(ctx context.Context, request *proto.BannedUserR
   span := trace.SpanFromContext(ctx)
   dtoInput := mapper.ToDTOUserBannedInput(request)
 
-  err := sharedUtil.ValidateStruct(ctx, &dtoInput)
+  err := sharedUtil.ValidateStructCtx(ctx, &dtoInput)
   if err != nil {
     spanUtil.RecordError(err, span)
     return nil, err

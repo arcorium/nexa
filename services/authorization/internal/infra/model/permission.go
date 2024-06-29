@@ -2,20 +2,19 @@ package model
 
 import (
   "github.com/uptrace/bun"
-  entity2 "nexa/services/authorization/internal/domain/entity"
+  "nexa/services/authorization/internal/domain/entity"
   "nexa/shared/types"
   "nexa/shared/util/repo"
   "nexa/shared/variadic"
   "time"
 )
 
-type PermissionMapOption = repo.DataAccessModelMapOption[*entity2.Permission, *Permission]
+type PermissionMapOption = repo.DataAccessModelMapOption[*entity.Permission, *Permission]
 
-func FromPermissionDomain(domain *entity2.Permission, opts ...PermissionMapOption) Permission {
+func FromPermissionDomain(domain *entity.Permission, opts ...PermissionMapOption) Permission {
   permission := Permission{
-    Id:         domain.Id.Underlying().String(),
-    ResourceId: domain.Resource.Id.Underlying().String(),
-    ActionId:   domain.Action.Id.Underlying().String(),
+    Id:   domain.Id.Underlying().String(),
+    Code: domain.Code,
   }
 
   variadic.New(opts...).
@@ -27,28 +26,21 @@ func FromPermissionDomain(domain *entity2.Permission, opts ...PermissionMapOptio
 type Permission struct {
   bun.BaseModel `bun:"permissions"`
 
-  Id         string `bun:",nullzero,type:uuid,pk"`
-  ResourceId string `bun:",nullzero,type:uuid,unique:resource_action_idx"`
-  ActionId   string `bun:",nullzero,type:uuid,unique:resource_action_idx"`
+  Id   string `bun:",nullzero,type:uuid,pk"`
+  Code string `bun:",nullzero,notnull,unique"`
 
   CreatedAt time.Time `bun:",nullzero,notnull"`
-
-  Resource *Resource `bun:"rel:belongs-to,join=resource_id=id,on_delete:CASCADE"`
-  Action   *Action   `bun:"rel:belongs-to,join=action_id=id,on_delete:CASCADE"`
 }
 
-func (p *Permission) ToDomain() entity2.Permission {
-  return entity2.Permission{
-    Id: types.IdFromString(p.Id),
-    Resource: entity2.Resource{
-      Id:          types.IdFromString(p.ResourceId),
-      Name:        p.Resource.Name,
-      Description: p.Resource.Description,
-    },
-    Action: entity2.Action{
-      Id:          types.IdFromString(p.ActionId),
-      Name:        p.Action.Name,
-      Description: p.Action.Description,
-    },
+func (p *Permission) ToDomain() (entity.Permission, error) {
+  permId, err := types.IdFromString(p.Id)
+  if err != nil {
+    return entity.Permission{}, err
   }
+
+  return entity.Permission{
+    Id:        permId,
+    Code:      p.Code,
+    CreatedAt: p.CreatedAt,
+  }, nil
 }

@@ -2,7 +2,7 @@ package model
 
 import (
   "github.com/uptrace/bun"
-  entity2 "nexa/services/authorization/internal/domain/entity"
+  "nexa/services/authorization/internal/domain/entity"
   "nexa/shared/types"
   "nexa/shared/util"
   "nexa/shared/util/repo"
@@ -10,9 +10,9 @@ import (
   "time"
 )
 
-type RoleMapOption = repo.DataAccessModelMapOption[*entity2.Role, *Role]
+type RoleMapOption = repo.DataAccessModelMapOption[*entity.Role, *Role]
 
-func FromRoleDomain(domain *entity2.Role, opts ...RoleMapOption) Role {
+func FromRoleDomain(domain *entity.Role, opts ...RoleMapOption) Role {
   role := Role{
     Id:          domain.Id.Underlying().String(),
     Name:        domain.Name,
@@ -38,13 +38,23 @@ type Role struct {
   Permissions []Permission `bun:"m2m:role_permissions,join:Role=Permission"`
 }
 
-func (r *Role) ToDomain() entity2.Role {
-  return entity2.Role{
-    Id:          types.IdFromString(r.Id),
+func (r *Role) ToDomain() (entity.Role, error) {
+  roleId, err := types.IdFromString(r.Id)
+  if err != nil {
+    return entity.Role{}, err
+  }
+
+  perms, err := util.CastSliceErrsP(r.Permissions, func(from *Permission) (entity.Permission, error) {
+    return from.ToDomain()
+  })
+  if err != nil {
+    return entity.Role{}, err
+  }
+
+  return entity.Role{
+    Id:          roleId,
     Name:        r.Name,
     Description: r.Description,
-    Permissions: util.CastSlice(r.Permissions, func(from *Permission) entity2.Permission {
-      return from.ToDomain()
-    }),
-  }
+    Permissions: perms,
+  }, nil
 }

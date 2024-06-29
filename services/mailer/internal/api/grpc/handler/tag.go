@@ -106,7 +106,7 @@ func (t *TagHandler) Create(ctx context.Context, request *mailerv1.CreateTagRequ
   span := trace.SpanFromContext(ctx)
 
   dto := mapper.ToCreateTagDTO(request)
-  err := sharedUtil.ValidateStruct(ctx, &dto)
+  err := sharedUtil.ValidateStructCtx(ctx, &dto)
   if err != nil {
     spanUtil.RecordError(err, span)
     return nil, err
@@ -129,7 +129,7 @@ func (t *TagHandler) Update(ctx context.Context, request *mailerv1.UpdateTagRequ
   span := trace.SpanFromContext(ctx)
 
   dto := mapper.ToUpdateTagDTO(request)
-  err := sharedUtil.ValidateStruct(ctx, &dto)
+  err := sharedUtil.ValidateStructCtx(ctx, &dto)
   if err != nil {
     spanUtil.RecordError(err, span)
     return nil, err

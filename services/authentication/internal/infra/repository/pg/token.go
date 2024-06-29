@@ -3,24 +3,35 @@ package pg
 import (
   "context"
   "github.com/uptrace/bun"
+  "go.opentelemetry.io/otel/trace"
   "nexa/services/authentication/internal/domain/entity"
   "nexa/services/authentication/internal/domain/repository"
   "nexa/services/authentication/internal/infra/repository/model"
+  "nexa/services/authentication/util"
+  spanUtil "nexa/shared/span"
   "nexa/shared/types"
-  "nexa/shared/util"
+  sharedUtil "nexa/shared/util"
   "nexa/shared/util/repo"
   "time"
 )
 
 func NewToken(db bun.IDB) repository.IToken {
-  return &tokenRepository{db: db}
+  return &tokenRepository{
+    db:     db,
+    tracer: util.GetTracer(),
+  }
 }
 
 type tokenRepository struct {
   db bun.IDB
+
+  tracer trace.Tracer
 }
 
 func (t *tokenRepository) Create(ctx context.Context, token *entity.Token) error {
+  ctx, span := t.tracer.Start(ctx, "TokenRepository.Create")
+  defer span.End()
+
   dbModel := model.FromTokenDomain(token, func(domain *entity.Token, token *model.Token) {
     token.CreatedAt = time.Now()
     token.ExpiredAt = domain.ExpiredAt
@@ -30,28 +41,37 @@ func (t *tokenRepository) Create(ctx context.Context, token *entity.Token) error
     Model(&dbModel).
     Exec(ctx)
 
-  return repo.CheckResult(res, err)
+  return repo.CheckResultWithSpan(res, err, span)
 }
 
 func (t *tokenRepository) Delete(ctx context.Context, token string) error {
+  ctx, span := t.tracer.Start(ctx, "TokenRepository.Delete")
+  defer span.End()
+
   res, err := t.db.NewDelete().
-    Model(util.Nil[model.Token]()).
+    Model(types.Nil[model.Token]()).
     Where("token = ?", token).
     Exec(ctx)
 
-  return repo.CheckResult(res, err)
+  return repo.CheckResultWithSpan(res, err, span)
 }
 
 func (t *tokenRepository) DeleteByUserId(ctx context.Context, userId types.Id) error {
+  ctx, span := t.tracer.Start(ctx, "TokenRepository.DeleteByUserId")
+  defer span.End()
+
   res, err := t.db.NewDelete().
-    Model(util.Nil[model.Token]()).
+    Model(types.Nil[model.Token]()).
     Where("user_id = ?", userId.Underlying().String()).
     Exec(ctx)
 
-  return repo.CheckResult(res, err)
+  return repo.CheckResultWithSpan(res, err, span)
 }
 
 func (t *tokenRepository) Find(ctx context.Context, token string) (entity.Token, error) {
+  ctx, span := t.tracer.Start(ctx, "TokenRepository.Find")
+  defer span.End()
+
   var dbModel model.Token
 
   err := t.db.NewSelect().
@@ -59,10 +79,18 @@ func (t *tokenRepository) Find(ctx context.Context, token string) (entity.Token,
     Where("token = ?", token).
     Scan(ctx)
 
-  return dbModel.ToDomain(), err
+  if err != nil {
+    spanUtil.RecordError(err, span)
+    return types.Null[entity.Token](), err
+  }
+
+  return dbModel.ToDomain(), nil
 }
 
 func (t *tokenRepository) FindAll(ctx context.Context, parameter repo.QueryParameter) (repo.PaginatedResult[entity.Token], error) {
+  ctx, span := t.tracer.Start(ctx, "TokenRepository.FindAll")
+  defer span.End()
+
   var dbModels []model.Token
 
   count, err := t.db.NewSelect().
@@ -71,8 +99,8 @@ func (t *tokenRepository) FindAll(ctx context.Context, parameter repo.QueryParam
     Offset(int(parameter.Offset)).
     ScanAndCount(ctx)
 
-  result := repo.CheckPaginationResult(dbModels, count, err)
-  tokens := util.CastSlice(result.Data, func(from *model.Token) entity.Token {
+  result := repo.CheckPaginationResultWithSpan(dbModels, count, err, span)
+  tokens := sharedUtil.CastSliceP(result.Data, func(from *model.Token) entity.Token {
     return from.ToDomain()
   })
 

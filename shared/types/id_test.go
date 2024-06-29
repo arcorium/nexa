@@ -53,7 +53,7 @@ func TestId_Equal(t *testing.T) {
     want bool
   }{
     {
-      name: "Equal",
+      name: "EqWithString",
       i:    wrapper.DropError(IdFromString("ba474c5a-c1bf-43b1-96b6-d0225def9361")),
       args: args{
         uuid: "ba474c5a-c1bf-43b1-96b6-d0225def9361",
@@ -61,7 +61,7 @@ func TestId_Equal(t *testing.T) {
       want: true,
     },
     {
-      name: "Not Equal",
+      name: "Not EqWithString",
       i:    wrapper.DropError(NewId()),
       args: args{
         uuid: "ba474c5a-c1bf-43b1-96b6-d0225def9361",
@@ -71,8 +71,8 @@ func TestId_Equal(t *testing.T) {
   }
   for _, tt := range tests {
     t.Run(tt.name, func(t *testing.T) {
-      if got := tt.i.Equal(tt.args.uuid); got != tt.want {
-        t.Errorf("Equal() = %v, want %v", got, tt.want)
+      if got := tt.i.EqWithString(tt.args.uuid); got != tt.want {
+        t.Errorf("EqWithString() = %v, want %v", got, tt.want)
       }
     })
   }

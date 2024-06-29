@@ -5,6 +5,7 @@ option go_package = "nexa/proto/generated/golang/user/v1";
 import "google/protobuf/duration.proto";
 import "google/protobuf/empty.proto";
 import "user/v1/profile.proto";
+import "authentication/v1/token.proto";
 import "common/paged.proto";
 
 service UserService {
@@ -12,13 +13,42 @@ service UserService {
   rpc Update(UpdateUserRequest) returns (google.protobuf.Empty);
   rpc UpdateVerified(UpdateUserVerifiedRequest) returns (google.protobuf.Empty);
   rpc UpdatePassword(UpdateUserPasswordRequest) returns (google.protobuf.Empty);
-  rpc ResetPassword(ResetUserPasswordRequest) returns (google.protobuf.Empty);
   rpc Find(common.PagedElementInput) returns(FindUsersResponse);
   rpc FindUserByIds(FindUsersByIdsRequest) returns (FindUserByIdsResponse);
   rpc FindUserByEmails(FindUserByEmailsRequest) returns (FindUserByEmailsResponse);
   rpc BannedUser(BannedUserRequest) returns (google.protobuf.Empty);
   rpc DeleteUser(DeleteUserRequest) returns (google.protobuf.Empty);
+
   rpc Validate(ValidateUserRequest) returns (ValidateUserResponse);
+
+  // Handle validating and resetting the password based on the token
+  rpc ResetPassword(ResetUserPasswordRequest) returns (google.protobuf.Empty);
+  // Handle requesting token for reset password
+  rpc ForgotPassword(ForgotUserPasswordRequest) returns (ForgotUserPasswordResponse);
+  // Handle request and validation of email verification
+  rpc VerifyEmail(VerifyUserEmailRequest) returns (VerifyUserEmailResponse);
+}
+
+message User {
+  string id = 1;
+  string username = 2;
+  string email = 3;
+  bool is_verified = 4;
+  Profile profile = 5;
+}
+
+message Token {
+  string token = 1;
+  authentication.v1.TokenUsage usage = 2;
+}
+
+message VerifyUserEmailRequest {
+  string user_id = 1;
+  optional string token = 2;
+}
+
+message VerifyUserEmailResponse {
+  optional authentication.v1.Token token = 1;
 }
 
 message ValidateUserRequest {
@@ -41,14 +71,6 @@ message CreateUserRequest {
   string first_name = 4;
   optional string last_name = 5;
   optional string bio = 6;
-}
-
-message User {
-  string id = 1;
-  string username = 2;
-  string email = 3;
-  bool is_verified = 4;
-  Profile profile = 5;
 }
 
 message UpdateUserRequest {
@@ -93,9 +115,18 @@ message BannedUserRequest {
   google.protobuf.Duration duration = 2;
 }
 
+message ForgotUserPasswordRequest {
+  string user_id = 1;
+}
+
+message ForgotUserPasswordResponse {
+  authentication.v1.Token token = 2;
+}
+
 message ResetUserPasswordRequest {
-  string id = 1;
-  string new_password = 2;
+  string user_id = 1;
+  string token = 2;
+  string new_password = 3;
 }
 
 message FindUserByIdsResponse {

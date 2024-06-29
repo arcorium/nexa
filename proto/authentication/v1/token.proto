@@ -3,61 +3,36 @@ package nexa.proto.generated.authentication.v1;
 option go_package = "nexa/proto/gen/go/authentication/v1";
 
 import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
 import "common/paged.proto";
 
 service TokenService {
-  rpc Request(RequestInput) returns (RequestOutput);
-  rpc Verify(VerifyInput) returns (google.protobuf.Empty);
-  rpc AddUsage(AddUsageInput) returns (AddUsageOutput);
-  rpc RemoveUsage(RemoveUsageInput) returns (google.protobuf.Empty);
-  rpc UpdateUsage(UpdateUsageInput) returns (google.protobuf.Empty);
-  rpc FindUsage(FindUsageInput) returns (TokenUsageResponse);
-  rpc FindAllUsages(common.PagedElementInput) returns (FindAllUsagesOutput);
+  rpc Create(TokenCreateRequest) returns (Token);
+  rpc Verify(TokenVerifyRequest) returns (google.protobuf.Empty);
+//  rpc AddUsage(AddUsageInput) returns (AddUsageOutput);
+//  rpc RemoveUsage(RemoveUsageInput) returns (google.protobuf.Empty);
+//  rpc UpdateUsage(UpdateUsageInput) returns (google.protobuf.Empty);
+//  rpc FindUsage(FindUsageInput) returns (TokenUsageResponse);
+//  rpc FindAllUsages(common.PagedElementInput) returns (FindAllUsagesOutput);
 }
 
-message TokenUsageResponse {
-  string id = 1;
-  string name = 2;
-  string description = 3;
+enum TokenUsage {
+  VERIFICATION = 0;
+  RESET_PASSWORD = 1;
 }
 
-message RequestInput {
-  string usageId = 2;
-}
-
-message RequestOutput {
+message Token {
   string token = 1;
+  TokenUsage usage = 2;
+  google.protobuf.Timestamp expired_at = 3;
 }
 
-message VerifyInput {
-  string token = 2;
-  string usageId = 3;
+message TokenCreateRequest {
+  string user_id = 1;
+  TokenUsage usage = 2;
 }
 
-message AddUsageInput {
-  string name = 1;
-  optional string description = 2;
-}
-
-message AddUsageOutput {
-  string id = 1;
-}
-
-message RemoveUsageInput {
-  string id = 1;
-}
-
-message UpdateUsageInput {
-  string id = 1;
-  optional string name = 2;
-  optional string description = 3;
-}
-
-message FindUsageInput {
-  string id = 1;
-}
-
-message FindAllUsagesOutput {
-  common.PagedElementOutput details = 1;
-  repeated TokenUsageResponse usages = 2;
+message TokenVerifyRequest {
+  string token = 1;
+  TokenUsage usage = 2;
 }

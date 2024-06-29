@@ -21,7 +21,7 @@ func NewId() (Id, error) {
 
 func NewId2() Id {
   return wrapper.DropError(NewId()) // TODO: Panic on error?
-  //return wrapper.PanicDropError(NewId())
+  //return wrapper.Must(NewId())
 }
 
 func NullId() Id { return Id(uuid.UUID{}) }
@@ -32,8 +32,18 @@ func (i Id) Underlying() uuid.UUID {
   return uuid.UUID(i)
 }
 
-func (i Id) Equal(uuid string) bool {
+func (i Id) String() string {
+  return i.Underlying().String()
+}
+
+func (i Id) EqWithString(uuid string) bool {
   return i.Underlying().String() == uuid
 }
 
+func (i Id) Eq(other Id) bool {
+  return i.Underlying().String() == other.Underlying().String()
+}
+
 var ErrMalformedUUID = errors.New("value has malformed format for an UUID")
+
+const NullIdStr = "00000000-0000-0000-0000-000000000000"

@@ -7,8 +7,8 @@ import (
 
 func ToPermissionResponseDTO(permission *entity.Permission) dto.PermissionResponseDTO {
   return dto.PermissionResponseDTO{
-    Resource: ToResourceResponseDTO(&permission.Resource),
-    Action:   ToActionResponseDTO(&permission.Action),
-    Code:     permission.String(),
+    Id:        permission.Id.String(),
+    Code:      permission.Code,
+    CreatedAt: permission.CreatedAt,
   }
 }

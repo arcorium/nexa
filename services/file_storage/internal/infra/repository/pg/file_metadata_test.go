@@ -35,12 +35,6 @@ var dataSeed []domain.FileMetadata
 
 const METADATA_SEED_SIZE = 5
 
-type noopLogger struct{}
-
-func (n noopLogger) Printf(format string, v ...interface{}) {
-
-}
-
 type fileMetadataTestSuite struct {
   suite.Suite
   container *postgres.PostgresContainer
@@ -55,7 +49,6 @@ func (f *fileMetadataTestSuite) SetupSuite() {
     postgres.WithUsername(USERNAME),
     postgres.WithPassword(PASSWORD),
     postgres.WithDatabase(DATABASE),
-    testcontainers.WithLogger(&noopLogger{}),
     testcontainers.WithWaitStrategy(wait.ForLog("database system is ready to accept connections").
       WithOccurrence(2).
       WithStartupTimeout(5*time.Second)),
@@ -72,8 +65,8 @@ func (f *fileMetadataTestSuite) SetupSuite() {
 
   db, err := database.OpenPostgres(&sharedConf.Database{
     Protocol: "postgres",
-    Host:     wrapper.PanicDropError(container.Host(ctx)),
-    Port:     uint16(wrapper.PanicDropError(strconv.Atoi(mapped[0].HostPort))),
+    Host:     wrapper.Must(container.Host(ctx)),
+    Port:     uint16(wrapper.Must(strconv.Atoi(mapped[0].HostPort))),
     Username: USERNAME,
     Password: PASSWORD,
     Name:     DATABASE,
@@ -128,7 +121,7 @@ func (f *fileMetadataTestSuite) Test_metadataRepository_Create() {
       wantErr: true,
     },
     {
-      name: "Duplicate Name",
+      name: "Duplicate Username",
       args: args{
         ctx: ctx,
         metadata: sharedUtil.CopyWithP(dataSeed[0], func(d *domain.FileMetadata) {
@@ -324,7 +317,7 @@ func (f *fileMetadataTestSuite) Test_metadataRepository_FindByNames() {
     wantErr bool
   }{
     {
-      name: "Single Name",
+      name: "Single Username",
       args: args{
         ctx:   ctx,
         names: []string{dataSeed[0].Name},
@@ -342,7 +335,7 @@ func (f *fileMetadataTestSuite) Test_metadataRepository_FindByNames() {
       wantErr: false,
     },
     {
-      name: "Some Name Not Found",
+      name: "Some Username Not Found",
       args: args{
         ctx:   ctx,
         names: []string{gofakeit.Name(), dataSeed[0].Name, dataSeed[1].Name, gofakeit.Name()},
@@ -351,7 +344,7 @@ func (f *fileMetadataTestSuite) Test_metadataRepository_FindByNames() {
       wantErr: false,
     },
     {
-      name: "Name Not Found",
+      name: "Username Not Found",
       args: args{
         ctx:   ctx,
         names: []string{gofakeit.Name()},
@@ -440,7 +433,7 @@ func (f *fileMetadataTestSuite) Test_metadataRepository_Update() {
           IsPublic: !dataSeed[0].IsPublic,
         },
         //metadata: sharedUtil.CopyWithP(dataSeed[0], func(d *domain.FileMetadata) {
-        //  d.Name = "something.jpg"
+        //  d.Username = "something.jpg"
         //  d.IsPublic = !d.IsPublic
         //}),
       },
@@ -459,7 +452,7 @@ func (f *fileMetadataTestSuite) Test_metadataRepository_Update() {
       wantErr: true,
     },
     {
-      name: "Change Name Into Duplicate",
+      name: "Change Username Into Duplicate",
       args: args{
         ctx: ctx,
         metadata: &domain.FileMetadata{

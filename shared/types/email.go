@@ -20,4 +20,8 @@ func (e Email) Underlying() string {
   return string(e)
 }
 
+func (e Email) String() string {
+  return e.Underlying()
+}
+
 var ErrEmailMalformed = errors.New("email malformed")

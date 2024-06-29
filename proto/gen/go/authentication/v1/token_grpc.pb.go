@@ -12,7 +12,6 @@ import (
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
-	common "nexa/proto/gen/go/common"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -21,26 +20,16 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	TokenService_Request_FullMethodName       = "/nexa.proto.generated.authentication.v1.TokenService/Request"
-	TokenService_Verify_FullMethodName        = "/nexa.proto.generated.authentication.v1.TokenService/Verify"
-	TokenService_AddUsage_FullMethodName      = "/nexa.proto.generated.authentication.v1.TokenService/AddUsage"
-	TokenService_RemoveUsage_FullMethodName   = "/nexa.proto.generated.authentication.v1.TokenService/RemoveUsage"
-	TokenService_UpdateUsage_FullMethodName   = "/nexa.proto.generated.authentication.v1.TokenService/UpdateUsage"
-	TokenService_FindUsage_FullMethodName     = "/nexa.proto.generated.authentication.v1.TokenService/FindUsage"
-	TokenService_FindAllUsages_FullMethodName = "/nexa.proto.generated.authentication.v1.TokenService/FindAllUsages"
+	TokenService_Create_FullMethodName = "/nexa.proto.generated.authentication.v1.TokenService/Create"
+	TokenService_Verify_FullMethodName = "/nexa.proto.generated.authentication.v1.TokenService/Verify"
 )
 
 // TokenServiceClient is the client API for TokenService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type TokenServiceClient interface {
-	Request(ctx context.Context, in *RequestInput, opts ...grpc.CallOption) (*RequestOutput, error)
-	Verify(ctx context.Context, in *VerifyInput, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	AddUsage(ctx context.Context, in *AddUsageInput, opts ...grpc.CallOption) (*AddUsageOutput, error)
-	RemoveUsage(ctx context.Context, in *RemoveUsageInput, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	UpdateUsage(ctx context.Context, in *UpdateUsageInput, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	FindUsage(ctx context.Context, in *FindUsageInput, opts ...grpc.CallOption) (*TokenUsageResponse, error)
-	FindAllUsages(ctx context.Context, in *common.PagedElementInput, opts ...grpc.CallOption) (*FindAllUsagesOutput, error)
+	Create(ctx context.Context, in *TokenCreateRequest, opts ...grpc.CallOption) (*Token, error)
+	Verify(ctx context.Context, in *TokenVerifyRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type tokenServiceClient struct {
@@ -51,63 +40,18 @@ func NewTokenServiceClient(cc grpc.ClientConnInterface) TokenServiceClient {
 	return &tokenServiceClient{cc}
 }
 
-func (c *tokenServiceClient) Request(ctx context.Context, in *RequestInput, opts ...grpc.CallOption) (*RequestOutput, error) {
-	out := new(RequestOutput)
-	err := c.cc.Invoke(ctx, TokenService_Request_FullMethodName, in, out, opts...)
+func (c *tokenServiceClient) Create(ctx context.Context, in *TokenCreateRequest, opts ...grpc.CallOption) (*Token, error) {
+	out := new(Token)
+	err := c.cc.Invoke(ctx, TokenService_Create_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *tokenServiceClient) Verify(ctx context.Context, in *VerifyInput, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+func (c *tokenServiceClient) Verify(ctx context.Context, in *TokenVerifyRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, TokenService_Verify_FullMethodName, in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *tokenServiceClient) AddUsage(ctx context.Context, in *AddUsageInput, opts ...grpc.CallOption) (*AddUsageOutput, error) {
-	out := new(AddUsageOutput)
-	err := c.cc.Invoke(ctx, TokenService_AddUsage_FullMethodName, in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *tokenServiceClient) RemoveUsage(ctx context.Context, in *RemoveUsageInput, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, TokenService_RemoveUsage_FullMethodName, in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *tokenServiceClient) UpdateUsage(ctx context.Context, in *UpdateUsageInput, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, TokenService_UpdateUsage_FullMethodName, in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *tokenServiceClient) FindUsage(ctx context.Context, in *FindUsageInput, opts ...grpc.CallOption) (*TokenUsageResponse, error) {
-	out := new(TokenUsageResponse)
-	err := c.cc.Invoke(ctx, TokenService_FindUsage_FullMethodName, in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *tokenServiceClient) FindAllUsages(ctx context.Context, in *common.PagedElementInput, opts ...grpc.CallOption) (*FindAllUsagesOutput, error) {
-	out := new(FindAllUsagesOutput)
-	err := c.cc.Invoke(ctx, TokenService_FindAllUsages_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -118,13 +62,8 @@ func (c *tokenServiceClient) FindAllUsages(ctx context.Context, in *common.Paged
 // All implementations must embed UnimplementedTokenServiceServer
 // for forward compatibility
 type TokenServiceServer interface {
-	Request(context.Context, *RequestInput) (*RequestOutput, error)
-	Verify(context.Context, *VerifyInput) (*emptypb.Empty, error)
-	AddUsage(context.Context, *AddUsageInput) (*AddUsageOutput, error)
-	RemoveUsage(context.Context, *RemoveUsageInput) (*emptypb.Empty, error)
-	UpdateUsage(context.Context, *UpdateUsageInput) (*emptypb.Empty, error)
-	FindUsage(context.Context, *FindUsageInput) (*TokenUsageResponse, error)
-	FindAllUsages(context.Context, *common.PagedElementInput) (*FindAllUsagesOutput, error)
+	Create(context.Context, *TokenCreateRequest) (*Token, error)
+	Verify(context.Context, *TokenVerifyRequest) (*emptypb.Empty, error)
 	mustEmbedUnimplementedTokenServiceServer()
 }
 
@@ -132,26 +71,11 @@ type TokenServiceServer interface {
 type UnimplementedTokenServiceServer struct {
 }
 
-func (UnimplementedTokenServiceServer) Request(context.Context, *RequestInput) (*RequestOutput, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Request not implemented")
+func (UnimplementedTokenServiceServer) Create(context.Context, *TokenCreateRequest) (*Token, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Create not implemented")
 }
-func (UnimplementedTokenServiceServer) Verify(context.Context, *VerifyInput) (*emptypb.Empty, error) {
+func (UnimplementedTokenServiceServer) Verify(context.Context, *TokenVerifyRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Verify not implemented")
-}
-func (UnimplementedTokenServiceServer) AddUsage(context.Context, *AddUsageInput) (*AddUsageOutput, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AddUsage not implemented")
-}
-func (UnimplementedTokenServiceServer) RemoveUsage(context.Context, *RemoveUsageInput) (*emptypb.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method RemoveUsage not implemented")
-}
-func (UnimplementedTokenServiceServer) UpdateUsage(context.Context, *UpdateUsageInput) (*emptypb.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UpdateUsage not implemented")
-}
-func (UnimplementedTokenServiceServer) FindUsage(context.Context, *FindUsageInput) (*TokenUsageResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method FindUsage not implemented")
-}
-func (UnimplementedTokenServiceServer) FindAllUsages(context.Context, *common.PagedElementInput) (*FindAllUsagesOutput, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method FindAllUsages not implemented")
 }
 func (UnimplementedTokenServiceServer) mustEmbedUnimplementedTokenServiceServer() {}
 
@@ -166,26 +90,26 @@ func RegisterTokenServiceServer(s grpc.ServiceRegistrar, srv TokenServiceServer)
 	s.RegisterService(&TokenService_ServiceDesc, srv)
 }
 
-func _TokenService_Request_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RequestInput)
+func _TokenService_Create_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TokenCreateRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(TokenServiceServer).Request(ctx, in)
+		return srv.(TokenServiceServer).Create(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: TokenService_Request_FullMethodName,
+		FullMethod: TokenService_Create_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(TokenServiceServer).Request(ctx, req.(*RequestInput))
+		return srv.(TokenServiceServer).Create(ctx, req.(*TokenCreateRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _TokenService_Verify_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(VerifyInput)
+	in := new(TokenVerifyRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -197,97 +121,7 @@ func _TokenService_Verify_Handler(srv interface{}, ctx context.Context, dec func
 		FullMethod: TokenService_Verify_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(TokenServiceServer).Verify(ctx, req.(*VerifyInput))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _TokenService_AddUsage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AddUsageInput)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(TokenServiceServer).AddUsage(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: TokenService_AddUsage_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(TokenServiceServer).AddUsage(ctx, req.(*AddUsageInput))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _TokenService_RemoveUsage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RemoveUsageInput)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(TokenServiceServer).RemoveUsage(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: TokenService_RemoveUsage_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(TokenServiceServer).RemoveUsage(ctx, req.(*RemoveUsageInput))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _TokenService_UpdateUsage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UpdateUsageInput)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(TokenServiceServer).UpdateUsage(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: TokenService_UpdateUsage_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(TokenServiceServer).UpdateUsage(ctx, req.(*UpdateUsageInput))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _TokenService_FindUsage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(FindUsageInput)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(TokenServiceServer).FindUsage(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: TokenService_FindUsage_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(TokenServiceServer).FindUsage(ctx, req.(*FindUsageInput))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _TokenService_FindAllUsages_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(common.PagedElementInput)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(TokenServiceServer).FindAllUsages(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: TokenService_FindAllUsages_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(TokenServiceServer).FindAllUsages(ctx, req.(*common.PagedElementInput))
+		return srv.(TokenServiceServer).Verify(ctx, req.(*TokenVerifyRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -300,32 +134,12 @@ var TokenService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*TokenServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "Request",
-			Handler:    _TokenService_Request_Handler,
+			MethodName: "Create",
+			Handler:    _TokenService_Create_Handler,
 		},
 		{
 			MethodName: "Verify",
 			Handler:    _TokenService_Verify_Handler,
-		},
-		{
-			MethodName: "AddUsage",
-			Handler:    _TokenService_AddUsage_Handler,
-		},
-		{
-			MethodName: "RemoveUsage",
-			Handler:    _TokenService_RemoveUsage_Handler,
-		},
-		{
-			MethodName: "UpdateUsage",
-			Handler:    _TokenService_UpdateUsage_Handler,
-		},
-		{
-			MethodName: "FindUsage",
-			Handler:    _TokenService_FindUsage_Handler,
-		},
-		{
-			MethodName: "FindAllUsages",
-			Handler:    _TokenService_FindAllUsages_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

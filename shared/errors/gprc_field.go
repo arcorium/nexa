@@ -38,8 +38,8 @@ func GrpcFieldValidationErrors(verr validator.ValidationErrors) error {
   return GrpcFieldErrors(result...)
 }
 
-func GrpcFieldIndexedErrors(field string, ierr []IndexedError) error {
-  if errors.Is(ierr[0].Err, ErrEmptySlice) {
+func GrpcFieldIndexedErrors(field string, ierr IndicesError) error {
+  if errors.Is(ierr.Errs[0], ErrEmptySlice) {
     return GrpcFieldErrors(&errdetails.BadRequest_FieldViolation{
       Field:       field,
       Description: fmt.Sprintf("%s should not be empty", field),
@@ -47,7 +47,7 @@ func GrpcFieldIndexedErrors(field string, ierr []IndexedError) error {
   }
 
   var result []*errdetails.BadRequest_FieldViolation
-  for key, val := range ierr {
+  for key, val := range ierr.Errs {
     result = append(result, &errdetails.BadRequest_FieldViolation{
       Field:       fmt.Sprintf("%s[%d]", field, key),
       Description: val.Err.Error(),

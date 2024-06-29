@@ -51,7 +51,7 @@ func SeedDatabase(db bun.IDB, domains ...domain.FileMetadata) error {
     return err
   }
 
-  if wrapper.PanicDropError(res.RowsAffected()) == 0 {
+  if wrapper.Must(res.RowsAffected()) == 0 {
     return sql.ErrNoRows
   }
 

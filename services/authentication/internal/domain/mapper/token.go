@@ -2,13 +2,13 @@ package mapper
 
 import (
   "nexa/services/authentication/internal/domain/dto"
-  "nexa/services/authentication/internal/domain/entity"
+  domain "nexa/services/authentication/internal/domain/entity"
 )
 
-func ToTokenUsageResponse(usage *entity.TokenUsage) dto.TokenUsageResponseDTO {
-  return dto.TokenUsageResponseDTO{
-    Id:          usage.Id.Underlying().String(),
-    Name:        usage.Name,
-    Description: usage.Description,
+func ToTokenResponseDTO(token *domain.Token) dto.TokenResponseDTO {
+  return dto.TokenResponseDTO{
+    Token:     token.Token,
+    Usage:     token.Usage.Underlying(),
+    ExpiredAt: token.ExpiredAt,
   }
 }

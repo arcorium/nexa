@@ -2,159 +2,147 @@ package handler
 
 import (
   "context"
+  "go.opentelemetry.io/otel/trace"
   "google.golang.org/grpc"
   "google.golang.org/protobuf/types/known/emptypb"
+  authZv1 "nexa/proto/gen/go/authorization/v1"
+  "nexa/proto/gen/go/common"
   "nexa/services/authorization/internal/api/grpc/mapper"
+  "nexa/services/authorization/internal/domain/dto"
   "nexa/services/authorization/internal/domain/service"
-  "nexa/services/authorization/shared/proto"
-  sharedProto "nexa/shared/proto"
-  "nexa/shared/status"
-  "nexa/shared/types"
-  "nexa/shared/util"
+  sharedDto "nexa/shared/dto"
+  spanUtil "nexa/shared/span"
+  sharedUtil "nexa/shared/util"
 )
 
 func NewRole(role service.IRole) RoleHandler {
-  return RoleHandler{svc: role}
+  return RoleHandler{roleSvc: role}
 }
 
 type RoleHandler struct {
-  proto.UnimplementedRoleServiceServer
-  svc service.IRole
+  authZv1.UnimplementedRoleServiceServer
+  roleSvc service.IRole
 }
 
 func (r *RoleHandler) Register(server *grpc.Server) {
-  proto.RegisterRoleServiceServer(server, r)
+  authZv1.RegisterRoleServiceServer(server, r)
 }
 
-func (r *RoleHandler) Create(ctx context.Context, input *proto.RoleCreateInput) (*proto.RoleCreateOutput, error) {
-  createDTO := mapper.ToRoleCreateDTO(input)
-  if stats := util.ValidateStruct(ctx, &createDTO); stats.IsError() {
-    return nil, stats.ToGRPCError()
+func (r *RoleHandler) Create(ctx context.Context, request *authZv1.RoleCreateRequest) (*authZv1.RoleCreateResponse, error) {
+  span := trace.SpanFromContext(ctx)
+
+  dtos := mapper.ToRoleCreateDTO(request)
+  id, stat := r.roleSvc.Create(ctx, &dtos)
+  if stat.IsError() {
+    spanUtil.RecordError(stat.Error, span)
+    return nil, stat.ToGRPCError()
   }
 
-  id, stats := r.svc.Create(ctx, &createDTO)
-  if stats.IsError() {
-    return nil, stats.ToGRPCError()
-  }
-  return &proto.RoleCreateOutput{Id: id.Underlying().String()}, stats.ToGRPCError()
+  return &authZv1.RoleCreateResponse{Id: id}, nil
 }
 
-func (r *RoleHandler) Update(ctx context.Context, input *proto.RoleUpdateInput) (*emptypb.Empty, error) {
-  updateDTO := mapper.ToRoleUpdateDTO(input)
-  if stats := util.ValidateStruct(ctx, &updateDTO); stats.IsError() {
-    return nil, stats.ToGRPCError()
-  }
+func (r *RoleHandler) Update(ctx context.Context, request *authZv1.RoleUpdateRequest) (*emptypb.Empty, error) {
+  span := trace.SpanFromContext(ctx)
 
-  stats := r.svc.Update(ctx, &updateDTO)
-  if stats.IsError() {
-    return nil, stats.ToGRPCError()
-  }
-  return &emptypb.Empty{}, stats.ToGRPCError()
+  dtos := mapper.ToRoleUpdateDTO(request)
+  stat := r.roleSvc.Update(ctx, &dtos)
+  return nil, stat.ToGRPCErrorWithSpan(span)
 }
 
-func (r *RoleHandler) Delete(ctx context.Context, input *proto.RoleDeleteInput) (*emptypb.Empty, error) {
-  id := types.IdFromString(input.Id)
-  if err := id.Validate(); err != nil {
-    stats := status.ErrBadRequest(err)
-    return nil, stats.ToGRPCError()
-  }
+func (r *RoleHandler) Delete(ctx context.Context, request *authZv1.RoleDeleteRequest) (*emptypb.Empty, error) {
+  span := trace.SpanFromContext(ctx)
 
-  stats := r.svc.Delete(ctx, id)
-  if stats.IsError() {
-    return nil, stats.ToGRPCError()
-  }
-  return &emptypb.Empty{}, stats.ToGRPCError()
+  stat := r.roleSvc.Delete(ctx, request.Id)
+  return nil, stat.ToGRPCErrorWithSpan(span)
 }
 
-func (r *RoleHandler) Find(ctx context.Context, input *proto.RoleFindInput) (*proto.RoleFindOutput, error) {
-  ids := util.CastSlice2(input.Ids, types.IdFromString)
-  for _, id := range ids {
-    if err := id.Validate(); err != nil {
-      stats := status.ErrBadRequest(err)
-      return nil, stats.ToGRPCError()
-    }
+func (r *RoleHandler) GetUser(ctx context.Context, request *authZv1.GetUserRolesRequest) (*authZv1.GetUserRolesResponse, error) {
+  span := trace.SpanFromContext(ctx)
+
+  roles, stat := r.roleSvc.FindByUserId(ctx, request.UserId)
+  if stat.IsError() {
+    spanUtil.RecordError(stat.Error, span)
+    return nil, stat.ToGRPCError()
   }
 
-  responseDTOS, stats := r.svc.Find(ctx, ids...)
-  if stats.IsError() {
-    return nil, stats.ToGRPCError()
-  }
+  response := sharedUtil.CastSliceP(roles, func(role *dto.RoleResponseDTO) *authZv1.RolePermission {
+    return mapper.ToProtoRolePermission(role, request.IncludePermission)
+  })
 
-  return &proto.RoleFindOutput{Roles: util.CastSlice(responseDTOS, mapper.ToRoleResponse)}, stats.ToGRPCError()
+  return &authZv1.GetUserRolesResponse{RolePermissions: response}, nil
 }
 
-func (r *RoleHandler) FindByUserId(ctx context.Context, input *proto.RoleFindByUserIdInput) (*proto.RoleFindByUserIdOutput, error) {
-  id := types.IdFromString(input.UserId)
-  if err := id.Validate(); err != nil {
-    stats := status.ErrBadRequest(err)
-    return nil, stats.ToGRPCError()
+func (r *RoleHandler) Find(ctx context.Context, request *authZv1.RoleFindRequest) (*authZv1.RoleFindResponse, error) {
+  span := trace.SpanFromContext(ctx)
+
+  roles, stat := r.roleSvc.Find(ctx, request.RoleIds...)
+  if stat.IsError() {
+    spanUtil.RecordError(stat.Error, span)
+    return nil, stat.ToGRPCError()
   }
 
-  roles, stats := r.svc.FindByUserId(ctx, id)
-  if stats.IsError() {
-    return nil, stats.ToGRPCError()
-  }
-  return &proto.RoleFindByUserIdOutput{Roles: util.CastSlice(roles, mapper.ToRoleResponse)}, stats.ToGRPCError()
+  response := sharedUtil.CastSliceP(roles, mapper.ToRoleResponse)
+  return &authZv1.RoleFindResponse{Roles: response}, nil
 }
 
-func (r *RoleHandler) FindAll(ctx context.Context, input *sharedProto.PagedElementInput) (*proto.RoleFindAllOutput, error) {
-  pagedElementDTO := input.ToDTO()
-  result, stats := r.svc.FindAll(ctx, &pagedElementDTO)
-  if stats.IsError() {
-    return nil, stats.ToGRPCError()
+func (r *RoleHandler) FindAll(ctx context.Context, input *common.PagedElementInput) (*authZv1.RoleFindAllResponse, error) {
+  span := trace.SpanFromContext(ctx)
+
+  pagedDto := sharedDto.PagedElementDTO{
+    Element: input.Element,
+    Page:    input.Page,
   }
 
-  return mapper.ToRoleResponses(&result), stats.ToGRPCError()
+  result, stat := r.roleSvc.FindAll(ctx, &pagedDto)
+  if stat.IsError() {
+    spanUtil.RecordError(stat.Error, span)
+    return nil, stat.ToGRPCError()
+  }
+
+  response := &authZv1.RoleFindAllResponse{
+    Details: &common.PagedElementOutput{
+      Element:       result.Element,
+      Page:          result.Page,
+      TotalElements: result.TotalElements,
+      TotalPages:    result.TotalPages,
+    },
+    Roles: sharedUtil.CastSliceP(result.Data, mapper.ToRoleResponse),
+  }
+  return response, nil
 }
 
-func (r *RoleHandler) AddPermissions(ctx context.Context, input *proto.RoleAddPermissionsInput) (*emptypb.Empty, error) {
-  dto := mapper.ToAddPermissionsDTO(input)
-  if stats := util.ValidateStruct(ctx, &dto); stats.IsError() {
-    return nil, stats.ToGRPCError()
-  }
+func (r *RoleHandler) AddUser(ctx context.Context, request *authZv1.AddUserRolesRequest) (*emptypb.Empty, error) {
+  span := trace.SpanFromContext(ctx)
 
-  stats := r.svc.AddPermissions(ctx, &dto)
-  if stats.IsError() {
-    return nil, stats.ToGRPCError()
-  }
-  return &emptypb.Empty{}, stats.ToGRPCError()
+  dtos := mapper.ToAddUsersDTO(request)
+  stat := r.roleSvc.AddUsers(ctx, &dtos)
+
+  return nil, stat.ToGRPCErrorWithSpan(span)
 }
 
-func (r *RoleHandler) RemovePermissions(ctx context.Context, input *proto.RoleRemovePermissionsInput) (*emptypb.Empty, error) {
-  dto := mapper.ToRemovePermissionsDTO(input)
-  if stats := util.ValidateStruct(ctx, &dto); stats.IsError() {
-    return nil, stats.ToGRPCError()
-  }
+func (r *RoleHandler) RemoveUser(ctx context.Context, request *authZv1.RemoveUserRolesRequest) (*emptypb.Empty, error) {
+  span := trace.SpanFromContext(ctx)
 
-  stats := r.svc.RemovePermissions(ctx, &dto)
-  if stats.IsError() {
-    return nil, stats.ToGRPCError()
-  }
-  return &emptypb.Empty{}, stats.ToGRPCError()
+  dtos := mapper.ToRemoveUsersDTO(request)
+  stat := r.roleSvc.RemoveUsers(ctx, &dtos)
+
+  return nil, stat.ToGRPCErrorWithSpan(span)
 }
 
-func (r *RoleHandler) AddUsers(ctx context.Context, input *proto.RoleAddUserInput) (*emptypb.Empty, error) {
-  dto := mapper.ToAddUsersDTO(input)
-  if stats := util.ValidateStruct(ctx, &dto); stats.IsError() {
-    return nil, stats.ToGRPCError()
-  }
+func (r *RoleHandler) AppendPermissions(ctx context.Context, request *authZv1.RoleAppendPermissionsRequest) (*emptypb.Empty, error) {
+  span := trace.SpanFromContext(ctx)
 
-  stats := r.svc.AddUsers(ctx, &dto)
-  if stats.IsError() {
-    return nil, stats.ToGRPCError()
-  }
-  return &emptypb.Empty{}, stats.ToGRPCError()
+  dtos := mapper.ToAddRolePermissionsDTO(request)
+  stat := r.roleSvc.AddPermissions(ctx, &dtos)
+
+  return nil, stat.ToGRPCErrorWithSpan(span)
 }
 
-func (r *RoleHandler) RemoveUsers(ctx context.Context, input *proto.RoleRemoveUserInput) (*emptypb.Empty, error) {
-  dto := mapper.ToRemoveUsersDTO(input)
-  if stats := util.ValidateStruct(ctx, &dto); stats.IsError() {
-    return nil, stats.ToGRPCError()
-  }
+func (r *RoleHandler) RemovePermissions(ctx context.Context, request *authZv1.RoleRemovePermissionsRequest) (*emptypb.Empty, error) {
+  span := trace.SpanFromContext(ctx)
 
-  stats := r.svc.RemoveUsers(ctx, &dto)
-  if stats.IsError() {
-    return nil, stats.ToGRPCError()
-  }
-  return &emptypb.Empty{}, stats.ToGRPCError()
+  dtos := mapper.ToRemoveRolePermissionsDTO(request)
+  stat := r.roleSvc.RemovePermissions(ctx, &dtos)
+
+  return nil, stat.ToGRPCErrorWithSpan(span)
 }

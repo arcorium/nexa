@@ -1,58 +1,29 @@
 package mapper
 
 import (
+  "google.golang.org/protobuf/types/known/timestamppb"
+  authv1 "nexa/proto/gen/go/authentication/v1"
   "nexa/services/authentication/internal/domain/dto"
-  "nexa/services/authentication/shared/proto"
-  sharedDto "nexa/shared/dto"
-  sharedProto "nexa/shared/proto"
-  "nexa/shared/util"
-  "nexa/shared/wrapper"
 )
 
-func ToTokenRequestDTO(input *proto.RequestInput) dto.TokenRequestDTO {
-  return dto.TokenRequestDTO{
-    UsageId: input.UsageId,
+func ToCreateTokenDTO(input *authv1.TokenCreateRequest) dto.TokenCreateDTO {
+  return dto.TokenCreateDTO{
+    UserId: input.UserId,
+    Usage:  uint8(input.Usage),
   }
 }
 
-func ToTokenVerifyDTO(input *proto.VerifyInput) dto.TokenVerifyDTO {
+func ToTokenVerifyDTO(input *authv1.TokenVerifyRequest) dto.TokenVerifyDTO {
   return dto.TokenVerifyDTO{
-    Token:   input.Token,
-    UsageId: input.UsageId,
+    Token: input.Token,
+    Usage: uint8(input.Usage),
   }
 }
 
-func ToTokenAddUsageDTO(input *proto.AddUsageInput) dto.TokenAddUsageDTO {
-  return dto.TokenAddUsageDTO{
-    Name:        input.Name,
-    Description: wrapper.NewNullable(input.Description),
-  }
-}
-
-func ToTokenUpdateUsageDTO(input *proto.UpdateUsageInput) dto.TokenUpdateUsageDTO {
-  return dto.TokenUpdateUsageDTO{
-    Id:          input.Id,
-    Name:        wrapper.NewNullable(input.Name),
-    Description: wrapper.NewNullable(input.Description),
-  }
-}
-
-func ToTokenUsageResponse(resp *dto.TokenUsageResponseDTO) *proto.TokenUsageResponse {
-  return &proto.TokenUsageResponse{
-    Id:          resp.Id,
-    Name:        resp.Name,
-    Description: resp.Description,
-  }
-}
-
-func ToTokenUsageResponses(result *sharedDto.PagedElementResult[dto.TokenUsageResponseDTO]) *proto.FindAllUsagesOutput {
-  return &proto.FindAllUsagesOutput{
-    Details: &sharedProto.PagedElementOutput{
-      Element:       result.Element,
-      Page:          result.Page,
-      TotalElements: result.TotalElements,
-      TotalPages:    result.TotalPages,
-    },
-    Usages: util.CastSlice(result.Data, ToTokenUsageResponse),
+func ToProtoToken(resp *dto.TokenResponseDTO) *authv1.Token {
+  return &authv1.Token{
+    Token:     resp.Token,
+    Usage:     authv1.TokenUsage(resp.Usage),
+    ExpiredAt: timestamppb.New(resp.ExpiredAt),
   }
 }

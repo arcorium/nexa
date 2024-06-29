@@ -2,90 +2,88 @@ package handler
 
 import (
   "context"
+  "go.opentelemetry.io/otel/trace"
   "google.golang.org/grpc"
   "google.golang.org/protobuf/types/known/emptypb"
+  authZv1 "nexa/proto/gen/go/authorization/v1"
+  common "nexa/proto/gen/go/common"
   "nexa/services/authorization/internal/api/grpc/mapper"
   "nexa/services/authorization/internal/domain/service"
-  "nexa/services/authorization/shared/proto"
-  sharedProto "nexa/shared/proto"
-  "nexa/shared/status"
-  "nexa/shared/types"
-  "nexa/shared/util"
+  sharedDto "nexa/shared/dto"
+  spanUtil "nexa/shared/span"
+  sharedUtil "nexa/shared/util"
 )
 
 func NewPermission(permission service.IPermission) PermissionHandler {
-  return PermissionHandler{svc: permission}
+  return PermissionHandler{permSvc: permission}
 }
 
 type PermissionHandler struct {
-  proto.UnimplementedPermissionServiceServer
+  authZv1.UnimplementedPermissionServiceServer
 
-  svc service.IPermission
+  permSvc service.IPermission
 }
 
 func (p *PermissionHandler) Register(server *grpc.Server) {
-  proto.RegisterPermissionServiceServer(server, p)
+  authZv1.RegisterPermissionServiceServer(server, p)
 }
 
-func (p *PermissionHandler) Create(ctx context.Context, input *proto.PermissionCreateInput) (*proto.PermissionCreateOutput, error) {
-  dto := mapper.ToPermissionCreateDTO(input)
-  if stats := util.ValidateStruct(ctx, &dto); stats.IsError() {
-    return nil, stats.ToGRPCError()
+func (p *PermissionHandler) Create(ctx context.Context, request *authZv1.PermissionCreateRequest) (*authZv1.PermissionCreateResponse, error) {
+  span := trace.SpanFromContext(ctx)
+
+  dtos := mapper.ToPermissionCreateDTO(request)
+  id, stat := p.permSvc.Create(ctx, &dtos)
+  if stat.IsError() {
+    spanUtil.RecordError(stat.Error, span)
+    return nil, stat.ToGRPCError()
   }
 
-  id, stats := p.svc.Create(ctx, &dto)
-  if stats.IsError() {
-    return nil, stats.ToGRPCError()
-  }
-  return &proto.PermissionCreateOutput{Id: id.Underlying().String()}, stats.ToGRPCError()
+  return &authZv1.PermissionCreateResponse{Id: id.String()}, nil
 }
 
-func (p *PermissionHandler) Find(ctx context.Context, input *proto.PermissionFindInput) (*proto.PermissionResponse, error) {
-  id := types.IdFromString(input.Id)
-  if err := id.Validate(); err != nil {
-    stats := status.ErrBadRequest(err)
-    return nil, stats.ToGRPCError()
+func (p *PermissionHandler) Find(ctx context.Context, request *authZv1.PermissionFindRequest) (*authZv1.FindPermissionResponse, error) {
+  span := trace.SpanFromContext(ctx)
+
+  permissions, stat := p.permSvc.Find(ctx, request.PermIds...)
+  if stat.IsError() {
+    spanUtil.RecordError(stat.Error, span)
+    return nil, stat.ToGRPCError()
   }
 
-  response, stats := p.svc.Find(ctx, id)
-  if stats.IsError() {
-    return nil, stats.ToGRPCError()
-  }
-  return mapper.ToPermissionResponse(&response), stats.ToGRPCError()
+  response := sharedUtil.CastSliceP(permissions, mapper.ToProtoPermission)
+  return &authZv1.FindPermissionResponse{Permission: response}, nil
 }
 
-func (p *PermissionHandler) FindAll(ctx context.Context, input *sharedProto.PagedElementInput) (*proto.PermissionFindAllOutput, error) {
-  dto := input.ToDTO()
-  result, stats := p.svc.FindAll(ctx, &dto)
-  if stats.IsError() {
-    return nil, stats.ToGRPCError()
+func (p *PermissionHandler) FindAll(ctx context.Context, input *common.PagedElementInput) (*authZv1.PermissionFindAllResponse, error) {
+  span := trace.SpanFromContext(ctx)
+
+  pagedDto := sharedDto.PagedElementDTO{
+    Element: input.Element,
+    Page:    input.Page,
   }
-  return mapper.ToPermissionResponses(&result), stats.ToGRPCError()
+
+  result, stat := p.permSvc.FindAll(ctx, &pagedDto)
+  if stat.IsError() {
+    spanUtil.RecordError(stat.Error, span)
+    return nil, stat.ToGRPCError()
+  }
+
+  resp := &authZv1.PermissionFindAllResponse{
+    Details: &common.PagedElementOutput{
+      Element:       result.Element,
+      Page:          result.Page,
+      TotalElements: result.TotalElements,
+      TotalPages:    result.TotalPages,
+    },
+    Permissions: sharedUtil.CastSliceP(result.Data, mapper.ToProtoPermission),
+  }
+
+  return resp, nil
 }
 
-func (p *PermissionHandler) Delete(ctx context.Context, input *proto.PermissionDeleteInput) (*emptypb.Empty, error) {
-  id := types.IdFromString(input.Id)
-  if err := id.Validate(); err != nil {
-    stats := status.ErrBadRequest(err)
-    return nil, stats.ToGRPCError()
-  }
+func (p *PermissionHandler) Delete(ctx context.Context, request *authZv1.PermissionDeleteRequest) (*emptypb.Empty, error) {
+  span := trace.SpanFromContext(ctx)
 
-  stats := p.svc.Delete(ctx, id)
-  if stats.IsError() {
-    return nil, stats.ToGRPCError()
-  }
-  return &emptypb.Empty{}, stats.ToGRPCError()
-}
-
-func (p *PermissionHandler) CheckUser(ctx context.Context, input *proto.CheckUserInput) (*emptypb.Empty, error) {
-  dto := mapper.ToCheckUserPermissionDTO(input)
-  if stats := util.ValidateStruct(ctx, &dto); stats.IsError() {
-    return nil, stats.ToGRPCError()
-  }
-
-  stats := p.svc.CheckUserPermission(ctx, &dto)
-  if stats.IsError() {
-    return nil, stats.ToGRPCError()
-  }
-  return &emptypb.Empty{}, stats.ToGRPCError()
+  stat := p.permSvc.Delete(ctx, request.Id)
+  return nil, stat.ToGRPCErrorWithSpan(span)
 }

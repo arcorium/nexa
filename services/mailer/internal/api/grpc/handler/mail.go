@@ -133,7 +133,7 @@ func (m *MailHandler) Update(ctx context.Context, request *mailerv1.UpdateMailRe
   span := trace.SpanFromContext(ctx)
 
   updateDto := mapper.ToUpdateMailDTO(request)
-  err := sharedUtil.ValidateStruct(ctx, &updateDto)
+  err := sharedUtil.ValidateStructCtx(ctx, &updateDto)
   if err != nil {
     spanUtil.RecordError(err, span)
     return nil, err

@@ -45,9 +45,9 @@ func CastSliceErrP[From, To any](slice []From, f func(*From) (To, error)) ([]To,
 // CastSliceErrsP cast slice with skipping error. when the function return error it will not stop like what CastSliceErrP do.
 // instead, it will skip the element and continue to process next element. element that error when processed will be returned as the
 // id along with the error object
-func CastSliceErrsP[From, To any](slice []From, f func(*From) (To, error)) ([]To, []errors.IndexedError) {
+func CastSliceErrsP[From, To any](slice []From, f func(*From) (To, error)) ([]To, errors.IndicesError) {
   if slice == nil || len(slice) == 0 {
-    return nil, []errors.IndexedError{{Index: -1, Err: errors.ErrEmptySlice}}
+    return nil, errors.IndicesError{}
   }
 
   result := make([]To, 0, len(slice))
@@ -61,13 +61,13 @@ func CastSliceErrsP[From, To any](slice []From, f func(*From) (To, error)) ([]To
     result = append(result, res)
   }
 
-  return result, errs
+  return result, errors.IndicesError{Errs: errs}
 }
 
 // CastSliceErrs works like CastSliceErrsP, but it takes non-pointer
-func CastSliceErrs[From, To any](slice []From, f func(From) (To, error)) ([]To, []errors.IndexedError) {
+func CastSliceErrs[From, To any](slice []From, f func(From) (To, error)) ([]To, errors.IndicesError) {
   if slice == nil || len(slice) == 0 {
-    return nil, []errors.IndexedError{{Index: -1, Err: errors.ErrEmptySlice}}
+    return nil, errors.IndicesError{}
   }
 
   result := make([]To, 0, len(slice))
@@ -81,5 +81,5 @@ func CastSliceErrs[From, To any](slice []From, f func(From) (To, error)) ([]To, 
     result = append(result, res)
   }
 
-  return result, errs
+  return result, errors.IndicesError{Errs: errs}
 }

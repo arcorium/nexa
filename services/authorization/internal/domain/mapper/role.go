@@ -1,16 +1,16 @@
 package mapper
 
 import (
+  "nexa/services/authorization/internal/domain/dto"
   "nexa/services/authorization/internal/domain/entity"
-  sharedDto "nexa/services/authorization/shared/domain/dto"
   "nexa/shared/util"
 )
 
-func ToRoleResponseDTO(role *entity.Role) sharedDto.RoleResponseDTO {
-  return sharedDto.RoleResponseDTO{
-    Id:          role.Id.Underlying().String(),
+func ToRoleResponseDTO(role *entity.Role) dto.RoleResponseDTO {
+  return dto.RoleResponseDTO{
+    Id:          role.Id.String(),
     Name:        role.Name,
     Description: role.Description,
-    Permissions: util.CastSlice(role.Permissions, ToPermissionResponseDTO),
+    Permissions: util.CastSliceP(role.Permissions, ToPermissionResponseDTO),
   }
 }

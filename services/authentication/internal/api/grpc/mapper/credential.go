@@ -6,27 +6,48 @@ import (
   "nexa/shared/wrapper"
 )
 
-func ToLoginDTO(input *authv1.LoginRequest) dto.LoginDTO {
+func ToLoginDTO(req *authv1.LoginRequest) dto.LoginDTO {
   return dto.LoginDTO{
-    Email:    input.Email,
-    Password: input.Password,
+    Email:    req.Email,
+    Password: req.Password,
   }
 }
 
-func ToRegisterDTO(input *authv1.RegisterRequest) dto.RegisterDTO {
+func ToRegisterDTO(req *authv1.RegisterRequest) dto.RegisterDTO {
   return dto.RegisterDTO{
-    Username:  input.Username,
-    Email:     input.Email,
-    Password:  input.Password,
-    FirstName: input.FirstName,
-    LastName:  wrapper.NewNullable(input.LastName),
-    Bio:       wrapper.NewNullable(input.Bio),
+    Username:  req.Username,
+    Email:     req.Email,
+    Password:  req.Password,
+    FirstName: req.FirstName,
+    LastName:  wrapper.NewNullable(req.LastName),
+    Bio:       wrapper.NewNullable(req.Bio),
   }
 }
 
 func ToRefreshTokenDTO(input *authv1.RefreshTokenRequest) dto.RefreshTokenDTO {
   return dto.RefreshTokenDTO{
     AccessToken: input.AccessToken,
+  }
+}
+
+func ToLogoutDTO(input *authv1.LogoutRequest) dto.LogoutDTO {
+  return dto.LogoutDTO{
+    UserId:        input.UserId,
+    CredentialIds: input.CredIds,
+  }
+}
+
+func ToProtoRefreshTokenResponse(input *dto.RefreshTokenResponseDTO) *authv1.RefreshTokenResponse {
+  return &authv1.RefreshTokenResponse{
+    Type:        input.TokenType,
+    AccessToken: input.AccessToken,
+  }
+}
+
+func ToProtoLoginResponse(dto *dto.LoginResponseDTO) *authv1.LoginResponse {
+  return &authv1.LoginResponse{
+    TokenType:   dto.TokenType,
+    AccessToken: dto.Token,
   }
 }
 

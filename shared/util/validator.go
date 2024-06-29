@@ -17,8 +17,21 @@ func GetValidator() *validator.Validate {
   return validatorInstance
 }
 
-func ValidateStruct[T any](ctx context.Context, strct *T) error {
+func ValidateStructCtx[T any](ctx context.Context, strct *T) error {
   err := GetValidator().StructCtx(ctx, strct)
+  if err == nil {
+    return nil
+  }
+
+  verr, ok := err.(validator.ValidationErrors)
+  if !ok {
+    return err
+  }
+  return sharedErr.GrpcFieldValidationErrors(verr)
+}
+
+func ValidateStruct[T any](strct *T) error {
+  err := GetValidator().Struct(strct)
   if err == nil {
     return nil
   }

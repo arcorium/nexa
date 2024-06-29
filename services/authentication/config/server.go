@@ -2,12 +2,12 @@ package config
 
 import (
   "github.com/golang-jwt/jwt/v5"
-  "nexa/shared/server"
+  sharedConf "nexa/shared/config"
   "time"
 )
 
 type Server struct {
-  server.Config
+  sharedConf.Server
   TokenExpiration    time.Duration
   JWTTokenExpiration time.Duration
   JWTSigningMethod   string

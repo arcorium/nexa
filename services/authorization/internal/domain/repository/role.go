@@ -8,11 +8,17 @@ import (
 )
 
 type IRole interface {
-  FindByIds(ctx context.Context, id ...types.Id) ([]entity.Role, error)
+  // FindByIds get roles bad on the ids provided
+  FindByIds(ctx context.Context, ids ...types.Id) ([]entity.Role, error)
+  // FindByUserId get user roles
   FindByUserId(ctx context.Context, userId types.Id) ([]entity.Role, error)
+  // FindAll get all roles
   FindAll(ctx context.Context, parameter repo.QueryParameter) (repo.PaginatedResult[entity.Role], error)
+  // Create create new role
   Create(ctx context.Context, role *entity.Role) error
+  // Patch update role
   Patch(ctx context.Context, role *entity.Role) error
+  // Delete delete role
   Delete(ctx context.Context, id types.Id) error
   // AddPermissions add permission into role
   AddPermissions(ctx context.Context, roleId types.Id, permissionIds ...types.Id) error

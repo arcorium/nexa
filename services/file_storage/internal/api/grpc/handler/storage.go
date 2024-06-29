@@ -114,7 +114,7 @@ func (s *StorageHandler) UpdateMetadata(ctx context.Context, request *protoV1.Up
   span := trace.SpanFromContext(ctx)
 
   input := mapper.ToUpdateMetadataDTO(request)
-  err := sharedUtil.ValidateStruct(ctx, &input)
+  err := sharedUtil.ValidateStructCtx(ctx, &input)
   if err != nil {
     spanUtil.RecordError(err, span)
     return nil, err

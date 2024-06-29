@@ -1,32 +1,44 @@
 package dto
 
 import (
-  entity2 "nexa/services/authentication/internal/domain/entity"
+  domain "nexa/services/authentication/internal/domain/entity"
+  sharedJwt "nexa/shared/jwt"
   "nexa/shared/types"
-  "nexa/shared/util"
+  sharedUtil "nexa/shared/util"
   "time"
 )
 
-type TokenRequestDTO struct {
-  UsageId string `validate:"required,uuid4"`
+type TokenCreateDTO struct {
+  UserId string `validate:"required,uuid4"`
+  Usage  uint8  `validate:"required,usage_enum"`
 }
 
-func (r *TokenRequestDTO) ToEntity(userId types.Id) entity2.Token {
-  return entity2.Token{
-    Token:  util.RandomString(64),
-    UserId: userId,
-    Usage: entity2.TokenUsage{
-      Id: types.IdFromString(r.UsageId),
-    },
-    ExpiredAt: time.Now(),
+func (c *TokenCreateDTO) ToDomain(expiryTime time.Duration) (domain.Token, error) {
+  type Null = domain.Token
+  if err := sharedUtil.ValidateStruct(c); err != nil {
+    return Null{}, err
   }
-}
 
-type TokenRequestResponseDTO struct {
-  Token string
+  userId, err := types.IdFromString(c.UserId)
+  if err != nil {
+    return Null{}, err
+  }
+
+  return domain.Token{
+    Token:     sharedJwt.GenerateRefreshToken(),
+    UserId:    userId,
+    Usage:     domain.TokenUsage(c.Usage),
+    ExpiredAt: time.Now().UTC().Add(expiryTime),
+  }, nil
 }
 
 type TokenVerifyDTO struct {
-  Token   string `validate:"required,len=64"` //TODO: set length of string
-  UsageId string `validate:"required,uuid4"`
+  Token string `validate:"required"`
+  Usage uint8  `validate:"required,usage_enum"`
+}
+
+type TokenResponseDTO struct {
+  Token     string
+  Usage     uint8
+  ExpiredAt time.Time
 }

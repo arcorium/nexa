@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package nexa.proto.generated.authorization.v1;
+option go_package = "nexa/proto/generated/golang/authorization/v1";
+
+import "google/protobuf/empty.proto";
+import "common/paged.proto";
+
+message Role {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+}
+
+message Permission {
+  string id = 1;
+  string code = 2;
+}
+
+message RolePermission {
+  Role role = 1;
+  repeated Permission permissions = 2;
+}
