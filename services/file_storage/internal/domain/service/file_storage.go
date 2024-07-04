@@ -9,7 +9,7 @@ import (
 
 type IFileStorage interface {
   // Store store file
-  Store(ctx context.Context, file *dto.FileStoreDTO) (string, status.Object)
+  Store(ctx context.Context, file *dto.FileStoreDTO) (types.Id, status.Object)
   // Find read file based on the filename
   Find(ctx context.Context, id types.Id) (dto.FileResponseDTO, status.Object)
   FindMetadata(ctx context.Context, id types.Id) (*dto.FileMetadataResponseDTO, status.Object)

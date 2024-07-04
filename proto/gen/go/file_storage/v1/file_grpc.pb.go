@@ -20,11 +20,11 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	FileStorageService_Find_FullMethodName           = "/nexa.proto.generated.storage.v1.FileStorageService/Find"
-	FileStorageService_FindMetadata_FullMethodName   = "/nexa.proto.generated.storage.v1.FileStorageService/FindMetadata"
-	FileStorageService_Store_FullMethodName          = "/nexa.proto.generated.storage.v1.FileStorageService/Store"
-	FileStorageService_UpdateMetadata_FullMethodName = "/nexa.proto.generated.storage.v1.FileStorageService/UpdateMetadata"
-	FileStorageService_Delete_FullMethodName         = "/nexa.proto.generated.storage.v1.FileStorageService/Delete"
+	FileStorageService_Find_FullMethodName         = "/nexa.proto.generated.storage.v1.FileStorageService/Find"
+	FileStorageService_FindMetadata_FullMethodName = "/nexa.proto.generated.storage.v1.FileStorageService/FindMetadata"
+	FileStorageService_Store_FullMethodName        = "/nexa.proto.generated.storage.v1.FileStorageService/Store"
+	FileStorageService_Update_FullMethodName       = "/nexa.proto.generated.storage.v1.FileStorageService/Update"
+	FileStorageService_Delete_FullMethodName       = "/nexa.proto.generated.storage.v1.FileStorageService/Delete"
 )
 
 // FileStorageServiceClient is the client API for FileStorageService service.
@@ -34,7 +34,7 @@ type FileStorageServiceClient interface {
 	Find(ctx context.Context, in *FindFileRequest, opts ...grpc.CallOption) (FileStorageService_FindClient, error)
 	FindMetadata(ctx context.Context, in *FindFileMetadataRequest, opts ...grpc.CallOption) (*FindFileMetadataResponse, error)
 	Store(ctx context.Context, opts ...grpc.CallOption) (FileStorageService_StoreClient, error)
-	UpdateMetadata(ctx context.Context, in *UpdateFileMetadataRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	Update(ctx context.Context, in *UpdateFileRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	Delete(ctx context.Context, in *DeleteFileRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
@@ -121,9 +121,9 @@ func (x *fileStorageServiceStoreClient) CloseAndRecv() (*StoreFileResponse, erro
 	return m, nil
 }
 
-func (c *fileStorageServiceClient) UpdateMetadata(ctx context.Context, in *UpdateFileMetadataRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+func (c *fileStorageServiceClient) Update(ctx context.Context, in *UpdateFileRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, FileStorageService_UpdateMetadata_FullMethodName, in, out, opts...)
+	err := c.cc.Invoke(ctx, FileStorageService_Update_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +146,7 @@ type FileStorageServiceServer interface {
 	Find(*FindFileRequest, FileStorageService_FindServer) error
 	FindMetadata(context.Context, *FindFileMetadataRequest) (*FindFileMetadataResponse, error)
 	Store(FileStorageService_StoreServer) error
-	UpdateMetadata(context.Context, *UpdateFileMetadataRequest) (*emptypb.Empty, error)
+	Update(context.Context, *UpdateFileRequest) (*emptypb.Empty, error)
 	Delete(context.Context, *DeleteFileRequest) (*emptypb.Empty, error)
 	mustEmbedUnimplementedFileStorageServiceServer()
 }
@@ -164,8 +164,8 @@ func (UnimplementedFileStorageServiceServer) FindMetadata(context.Context, *Find
 func (UnimplementedFileStorageServiceServer) Store(FileStorageService_StoreServer) error {
 	return status.Errorf(codes.Unimplemented, "method Store not implemented")
 }
-func (UnimplementedFileStorageServiceServer) UpdateMetadata(context.Context, *UpdateFileMetadataRequest) (*emptypb.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UpdateMetadata not implemented")
+func (UnimplementedFileStorageServiceServer) Update(context.Context, *UpdateFileRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
 }
 func (UnimplementedFileStorageServiceServer) Delete(context.Context, *DeleteFileRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
@@ -248,20 +248,20 @@ func (x *fileStorageServiceStoreServer) Recv() (*StoreFileRequest, error) {
 	return m, nil
 }
 
-func _FileStorageService_UpdateMetadata_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UpdateFileMetadataRequest)
+func _FileStorageService_Update_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateFileRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(FileStorageServiceServer).UpdateMetadata(ctx, in)
+		return srv.(FileStorageServiceServer).Update(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: FileStorageService_UpdateMetadata_FullMethodName,
+		FullMethod: FileStorageService_Update_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(FileStorageServiceServer).UpdateMetadata(ctx, req.(*UpdateFileMetadataRequest))
+		return srv.(FileStorageServiceServer).Update(ctx, req.(*UpdateFileRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -296,8 +296,8 @@ var FileStorageService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _FileStorageService_FindMetadata_Handler,
 		},
 		{
-			MethodName: "UpdateMetadata",
-			Handler:    _FileStorageService_UpdateMetadata_Handler,
+			MethodName: "Update",
+			Handler:    _FileStorageService_Update_Handler,
 		},
 		{
 			MethodName: "Delete",

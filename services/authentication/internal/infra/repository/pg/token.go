@@ -8,10 +8,10 @@ import (
   "nexa/services/authentication/internal/domain/repository"
   "nexa/services/authentication/internal/infra/repository/model"
   "nexa/services/authentication/util"
-  spanUtil "nexa/shared/span"
   "nexa/shared/types"
   sharedUtil "nexa/shared/util"
   "nexa/shared/util/repo"
+  spanUtil "nexa/shared/util/span"
   "time"
 )
 

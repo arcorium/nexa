@@ -3,43 +3,36 @@ package service
 import (
   "context"
   "go.opentelemetry.io/otel/trace"
+  "nexa/services/authorization/constant"
   "nexa/services/authorization/internal/domain/dto"
   "nexa/services/authorization/internal/domain/mapper"
   "nexa/services/authorization/internal/domain/repository"
   "nexa/services/authorization/internal/domain/service"
   "nexa/services/authorization/util"
   sharedDto "nexa/shared/dto"
-  spanUtil "nexa/shared/span"
   "nexa/shared/status"
   "nexa/shared/types"
   sharedUtil "nexa/shared/util"
+  spanUtil "nexa/shared/util/span"
 )
 
 func NewRole(role repository.IRole) service.IRole {
   return &roleService{
-    repo:   role,
-    tracer: util.GetTracer(),
+    roleRepo: role,
+    tracer:   util.GetTracer(),
   }
 }
 
 type roleService struct {
-  repo   repository.IRole
-  tracer trace.Tracer
+  roleRepo repository.IRole
+  tracer   trace.Tracer
 }
 
-func (r *roleService) Find(ctx context.Context, ids ...string) ([]dto.RoleResponseDTO, status.Object) {
-  ctx, span := r.tracer.Start(ctx, "RoleService.Find")
+func (r *roleService) FindByIds(ctx context.Context, roleIds ...types.Id) ([]dto.RoleResponseDTO, status.Object) {
+  ctx, span := r.tracer.Start(ctx, "RoleService.FindByIds")
   defer span.End()
 
-  roleIds, ierr := sharedUtil.CastSliceErrs(ids, func(id string) (types.Id, error) {
-    return types.IdFromString(id)
-  })
-  if !ierr.IsNil() {
-    spanUtil.RecordError(ierr, span)
-    return nil, status.ErrBadRequest(ierr)
-  }
-
-  roles, err := r.repo.FindByIds(ctx, roleIds...)
+  roles, err := r.roleRepo.FindByIds(ctx, roleIds...)
   if err != nil {
     spanUtil.RecordError(err, span)
     return nil, status.FromRepository(err, status.NullCode)
@@ -49,17 +42,11 @@ func (r *roleService) Find(ctx context.Context, ids ...string) ([]dto.RoleRespon
   return roleResponses, status.Success()
 }
 
-func (r *roleService) FindByUserId(ctx context.Context, userId string) ([]dto.RoleResponseDTO, status.Object) {
+func (r *roleService) FindByUserId(ctx context.Context, userId types.Id) ([]dto.RoleResponseDTO, status.Object) {
   ctx, span := r.tracer.Start(ctx, "RoleService.FindByUserId")
   defer span.End()
 
-  id, err := types.IdFromString(userId)
-  if err != nil {
-    spanUtil.RecordError(err, span)
-    return nil, status.ErrBadRequest(err)
-  }
-
-  roles, err := r.repo.FindByUserId(ctx, id)
+  roles, err := r.roleRepo.FindByUserId(ctx, userId)
   if err != nil {
     spanUtil.RecordError(err, span)
     return nil, status.FromRepository(err, status.NullCode)
@@ -73,46 +60,42 @@ func (r *roleService) FindAll(ctx context.Context, input *sharedDto.PagedElement
   ctx, span := r.tracer.Start(ctx, "RoleService.FindAll")
   defer span.End()
 
-  result, err := r.repo.FindAll(ctx, input.ToQueryParam())
+  result, err := r.roleRepo.FindAll(ctx, input.ToQueryParam())
   if err != nil {
     spanUtil.RecordError(err, span)
-    return types.Null[sharedDto.PagedElementResult[dto.RoleResponseDTO]](), status.FromRepository(err, status.NullCode)
+    return sharedDto.PagedElementResult[dto.RoleResponseDTO]{}, status.FromRepository(err, status.NullCode)
   }
 
   rolesDTO := sharedUtil.CastSliceP(result.Data, mapper.ToRoleResponseDTO)
   return sharedDto.NewPagedElementResult2(rolesDTO, input, result.Total), status.FromRepository(err, status.NullCode)
 }
 
-func (r *roleService) Create(ctx context.Context, createDTO *dto.RoleCreateDTO) (string, status.Object) {
+func (r *roleService) Create(ctx context.Context, createDTO *dto.RoleCreateDTO) (types.Id, status.Object) {
   ctx, span := r.tracer.Start(ctx, "RoleService.Create")
   defer span.End()
 
-  // Map and validate
+  // Map
   role, err := createDTO.ToDomain()
   if err != nil {
     spanUtil.RecordError(err, span)
-    return "", status.ErrBadRequest(err)
+    return types.NullId(), status.ErrInternal(err)
   }
 
-  err = r.repo.Create(ctx, &role)
+  err = r.roleRepo.Create(ctx, &role)
   if err != nil {
     spanUtil.RecordError(err, span)
-    return "", status.FromRepository(err, status.NullCode)
+    return types.NullId(), status.FromRepository(err, status.NullCode)
   }
-  return role.Id.String(), status.Created()
+  return role.Id, status.Created()
 }
 
 func (r *roleService) Update(ctx context.Context, updateDTO *dto.RoleUpdateDTO) status.Object {
   ctx, span := r.tracer.Start(ctx, "RoleService.Update")
   defer span.End()
 
-  role, err := updateDTO.ToDomain()
-  if err != nil {
-    spanUtil.RecordError(err, span)
-    return status.ErrBadRequest(err)
-  }
+  role := updateDTO.ToDomain()
 
-  err = r.repo.Patch(ctx, &role)
+  err := r.roleRepo.Patch(ctx, &role)
   if err != nil {
     spanUtil.RecordError(err, span)
     return status.FromRepository(err, status.NullCode)
@@ -120,17 +103,11 @@ func (r *roleService) Update(ctx context.Context, updateDTO *dto.RoleUpdateDTO) 
   return status.Updated()
 }
 
-func (r *roleService) Delete(ctx context.Context, roleId string) status.Object {
+func (r *roleService) Delete(ctx context.Context, roleId types.Id) status.Object {
   ctx, span := r.tracer.Start(ctx, "RoleService.Delete")
   defer span.End()
 
-  id, err := types.IdFromString(roleId)
-  if err != nil {
-    spanUtil.RecordError(err, span)
-    return status.ErrBadRequest(err)
-  }
-
-  err = r.repo.Delete(ctx, id)
+  err := r.roleRepo.Delete(ctx, roleId)
   if err != nil {
     spanUtil.RecordError(err, span)
     return status.FromRepository(err, status.NullCode)
@@ -139,26 +116,11 @@ func (r *roleService) Delete(ctx context.Context, roleId string) status.Object {
   return status.Deleted()
 }
 
-func (r *roleService) AddPermissions(ctx context.Context, permissionsDTO *dto.RoleAddPermissionsDTO) status.Object {
+func (r *roleService) AddPermissions(ctx context.Context, permissionsDTO *dto.ModifyRolesPermissionsDTO) status.Object {
   ctx, span := r.tracer.Start(ctx, "RoleService.AddPermissions")
   defer span.End()
 
-  // Input validation
-  roleId, err := types.IdFromString(permissionsDTO.RoleId)
-  if err != nil {
-    spanUtil.RecordError(err, span)
-    return status.ErrBadRequest(err)
-  }
-
-  permissionIds, ierr := sharedUtil.CastSliceErrs(permissionsDTO.PermissionIds, func(permId string) (types.Id, error) {
-    return types.IdFromString(permId)
-  })
-  if !ierr.IsNil() {
-    spanUtil.RecordError(ierr, span)
-    return status.ErrBadRequest(ierr)
-  }
-
-  err = r.repo.AddPermissions(ctx, roleId, permissionIds...)
+  err := r.roleRepo.AddPermissions(ctx, permissionsDTO.RoleId, permissionsDTO.PermissionIds...)
   if err != nil {
     spanUtil.RecordError(err, span)
     return status.FromRepository(err, status.NullCode)
@@ -167,26 +129,11 @@ func (r *roleService) AddPermissions(ctx context.Context, permissionsDTO *dto.Ro
   return status.Created()
 }
 
-func (r *roleService) RemovePermissions(ctx context.Context, permissionsDTO *dto.RoleRemovePermissionsDTO) status.Object {
+func (r *roleService) RemovePermissions(ctx context.Context, permissionsDTO *dto.ModifyRolesPermissionsDTO) status.Object {
   ctx, span := r.tracer.Start(ctx, "RoleService.RemovePermissions")
   defer span.End()
 
-  // Input validation
-  roleId, err := types.IdFromString(permissionsDTO.RoleId)
-  if err != nil {
-    spanUtil.RecordError(err, span)
-    return status.ErrBadRequest(err)
-  }
-
-  permissionIds, ierr := sharedUtil.CastSliceErrs(permissionsDTO.PermissionIds, func(permId string) (types.Id, error) {
-    return types.IdFromString(permId)
-  })
-  if !ierr.IsNil() {
-    spanUtil.RecordError(ierr, span)
-    return status.ErrBadRequest(ierr)
-  }
-
-  err = r.repo.RemovePermissions(ctx, roleId, permissionIds...)
+  err := r.roleRepo.RemovePermissions(ctx, permissionsDTO.RoleId, permissionsDTO.PermissionIds...)
   if err != nil {
     spanUtil.RecordError(err, span)
     return status.FromRepository(err, status.NullCode)
@@ -195,26 +142,11 @@ func (r *roleService) RemovePermissions(ctx context.Context, permissionsDTO *dto
   return status.Deleted()
 }
 
-func (r *roleService) AddUsers(ctx context.Context, usersDTO *dto.RoleAddUsersDTO) status.Object {
+func (r *roleService) AddUsers(ctx context.Context, usersDTO *dto.ModifyUserRolesDTO) status.Object {
   ctx, span := r.tracer.Start(ctx, "RoleService.AddUsers")
   defer span.End()
 
-  // Input validation
-  userId, err := types.IdFromString(usersDTO.UserId)
-  if err != nil {
-    spanUtil.RecordError(err, span)
-    return status.ErrBadRequest(err)
-  }
-
-  roleIds, ierr := sharedUtil.CastSliceErrs(usersDTO.RoleIds, func(roleId string) (types.Id, error) {
-    return types.IdFromString(roleId)
-  })
-  if !ierr.IsNil() {
-    spanUtil.RecordError(ierr, span)
-    return status.ErrBadRequest(ierr)
-  }
-
-  err = r.repo.AddUser(ctx, userId, roleIds...)
+  err := r.roleRepo.AddUser(ctx, usersDTO.UserId, usersDTO.RoleIds...)
   if err != nil {
     spanUtil.RecordError(err, span)
     return status.FromRepository(err, status.NullCode)
@@ -223,30 +155,36 @@ func (r *roleService) AddUsers(ctx context.Context, usersDTO *dto.RoleAddUsersDT
   return status.Created()
 }
 
-func (r *roleService) RemoveUsers(ctx context.Context, usersDTO *dto.RoleRemoveUsersDTO) status.Object {
+func (r *roleService) RemoveUsers(ctx context.Context, usersDTO *dto.ModifyUserRolesDTO) status.Object {
   ctx, span := r.tracer.Start(ctx, "RoleService.RemoveUsers")
   defer span.End()
 
-  // Input validation
-  userId, err := types.IdFromString(usersDTO.UserId)
-  if err != nil {
-    spanUtil.RecordError(err, span)
-    return status.ErrBadRequest(err)
-  }
-
-  roleIds, ierr := sharedUtil.CastSliceErrs(usersDTO.RoleIds, func(roleId string) (types.Id, error) {
-    return types.IdFromString(roleId)
-  })
-  if !ierr.IsNil() {
-    spanUtil.RecordError(ierr, span)
-    return status.ErrBadRequest(ierr)
-  }
-
-  err = r.repo.RemoveUser(ctx, userId, roleIds...)
+  err := r.roleRepo.RemoveUser(ctx, usersDTO.UserId, usersDTO.RoleIds...)
   if err != nil {
     spanUtil.RecordError(err, span)
     return status.FromRepository(err, status.NullCode)
   }
 
   return status.Deleted()
+}
+
+func (r *roleService) AppendSuperRolesPermission(ctx context.Context, permIds ...types.Id) status.Object {
+  ctx, span := r.tracer.Start(ctx, "PermissionService.AppendSuperRolesPermission")
+  defer span.End()
+
+  // Find role by names
+  role, err := r.roleRepo.FindByName(ctx, constant.DEFAULT_SUPER_ROLE_NAME)
+  if err != nil {
+    spanUtil.RecordError(err, span)
+    return status.FromRepository(err, status.NullCode)
+  }
+
+  // Append permission into it
+  err = r.roleRepo.AddPermissions(ctx, role.Id, permIds...)
+  if err != nil {
+    spanUtil.RecordError(err, span)
+    return status.FromRepository(err, status.NullCode)
+  }
+
+  return status.Created()
 }

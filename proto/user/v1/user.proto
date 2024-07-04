@@ -1,5 +1,5 @@
 syntax = "proto3";
-package nexa.proto.generated.user.v1;
+package nexa.user.v1;
 option go_package = "nexa/proto/generated/golang/user/v1";
 
 import "google/protobuf/duration.proto";
@@ -9,15 +9,13 @@ import "authentication/v1/token.proto";
 import "common/paged.proto";
 
 service UserService {
-  rpc Create(CreateUserRequest) returns (google.protobuf.Empty);
+  rpc Create(CreateUserRequest) returns (CreateUserResponse);
   rpc Update(UpdateUserRequest) returns (google.protobuf.Empty);
-  rpc UpdateVerified(UpdateUserVerifiedRequest) returns (google.protobuf.Empty);
   rpc UpdatePassword(UpdateUserPasswordRequest) returns (google.protobuf.Empty);
   rpc Find(common.PagedElementInput) returns(FindUsersResponse);
-  rpc FindUserByIds(FindUsersByIdsRequest) returns (FindUserByIdsResponse);
-  rpc FindUserByEmails(FindUserByEmailsRequest) returns (FindUserByEmailsResponse);
-  rpc BannedUser(BannedUserRequest) returns (google.protobuf.Empty);
-  rpc DeleteUser(DeleteUserRequest) returns (google.protobuf.Empty);
+  rpc FindByIds(FindUsersByIdsRequest) returns (FindUserByIdsResponse);
+  rpc Banned(BannedUserRequest) returns (google.protobuf.Empty);
+  rpc Delete(DeleteUserRequest) returns (google.protobuf.Empty);
 
   rpc Validate(ValidateUserRequest) returns (ValidateUserResponse);
 
@@ -43,7 +41,6 @@ message Token {
 }
 
 message VerifyUserEmailRequest {
-  string user_id = 1;
   optional string token = 2;
 }
 
@@ -85,10 +82,6 @@ message UpdateUserPasswordRequest {
   string new_password = 3;
 }
 
-message UpdateUserVerifiedRequest {
-  string id = 1;
-}
-
 message FindUsersResponse {
   common.PagedElementOutput details = 1;
   repeated User users = 2;
@@ -96,14 +89,6 @@ message FindUsersResponse {
 
 message FindUsersByIdsRequest {
   repeated string ids = 1;
-}
-
-message FindUserByEmailsRequest {
-  repeated string emails = 1;
-}
-
-message FindUserByEmailsResponse {
-  repeated User users = 1;
 }
 
 message DeleteUserRequest {
@@ -116,7 +101,7 @@ message BannedUserRequest {
 }
 
 message ForgotUserPasswordRequest {
-  string user_id = 1;
+  string email = 1;
 }
 
 message ForgotUserPasswordResponse {
@@ -124,9 +109,9 @@ message ForgotUserPasswordResponse {
 }
 
 message ResetUserPasswordRequest {
-  string user_id = 1;
-  string token = 2;
-  string new_password = 3;
+  optional string token = 1;
+  string new_password = 2;
+  bool logout_all = 3;
 }
 
 message FindUserByIdsResponse {

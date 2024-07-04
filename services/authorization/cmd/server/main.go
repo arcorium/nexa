@@ -2,9 +2,10 @@ package main
 
 import (
   "log"
-  "nexa/services/authorization/internal/app/config"
-  "nexa/shared/database"
+  "nexa/services/authorization/config"
+  sharedConf "nexa/shared/config"
   "nexa/shared/env"
+  "nexa/shared/logger"
 )
 
 func main() {
@@ -14,15 +15,22 @@ func main() {
   }
 
   // Config
-  dbConfig, err := database.LoadConfig()
+  dbConfig, err := sharedConf.Load[config.Database]()
   if err != nil {
     env.LogError(err, -1)
   }
 
-  serverConfig, err := config.LoadServer()
+  serverConfig, err := sharedConf.Load[config.Server]()
   if err != nil {
     log.Fatalln(err)
   }
+
+  // Init global logger
+  logg, err := logger.NewZapLogger(config.IsDebug())
+  if err != nil {
+    log.Fatalln(err)
+  }
+  logger.SetGlobal(logg)
 
   server, err := NewServer(dbConfig, serverConfig)
   if err != nil {

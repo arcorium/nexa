@@ -1,8 +1,9 @@
 syntax = "proto3";
-package nexa.proto.generated.mailer.v1;
+package nexa.mailer.v1;
 option go_package = "nexa/proto/gen/go/mailer/v1";
 
 import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
 import "common/paged.proto";
 import "mailer/v1/tag.proto";
 
@@ -23,7 +24,9 @@ message Mail {
   string recipient = 3;
   string sender = 4;
   string status = 5;
-  repeated Tag tags = 6;
+  google.protobuf.Timestamp sent_at = 6;
+  google.protobuf.Timestamp delivered_at = 7;
+  repeated Tag tags = 8;
 }
 
 enum BodyType {

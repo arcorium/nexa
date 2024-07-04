@@ -1,20 +1,50 @@
 package dto
 
-import "nexa/shared/wrapper"
+import (
+  domain "nexa/services/mailer/internal/domain/entity"
+  "nexa/shared/types"
+  "nexa/shared/wrapper"
+)
 
 type CreateTagDTO struct {
-  Name        string                   `json:"name" validate:"required"`
-  Description wrapper.Nullable[string] `json:"description"`
+  Name        string `validate:"required"`
+  Description wrapper.NullableString
+}
+
+func (c *CreateTagDTO) ToDomain() (domain.Tag, error) {
+  id, err := types.NewId()
+  if err != nil {
+    return domain.Tag{}, err
+  }
+
+  tag := domain.Tag{
+    Id:   id,
+    Name: c.Name,
+  }
+  wrapper.SetOnNonNull(&tag.Description, c.Description)
+
+  return tag, nil
 }
 
 type UpdateTagDTO struct {
-  Id          string                   `json:"id" validate:"required,uuid4"`
-  Name        wrapper.Nullable[string] `json:"name"`
-  Description wrapper.Nullable[string] `json:"description"`
+  Id          types.Id
+  Name        wrapper.NullableString
+  Description wrapper.NullableString
+}
+
+func (u *UpdateTagDTO) ToDomain() domain.Tag {
+  tag := domain.Tag{
+    Id: u.Id,
+  }
+
+  wrapper.SetOnNonNull(&tag.Name, u.Name)
+  wrapper.SetOnNonNull(&tag.Description, u.Description)
+
+  return tag
 }
 
 type TagResponseDTO struct {
-  Id          string `json:"id"`
-  Name        string `json:"name"`
-  Description string `json:"description"` // TODO: Handle on mapper and service
+  Id          types.Id
+  Name        string
+  Description string
 }

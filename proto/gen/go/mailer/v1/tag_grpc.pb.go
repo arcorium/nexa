@@ -21,12 +21,12 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	TagService_Find_FullMethodName       = "/nexa.proto.generated.mailer.v1.TagService/Find"
-	TagService_FindByIds_FullMethodName  = "/nexa.proto.generated.mailer.v1.TagService/FindByIds"
-	TagService_FindByName_FullMethodName = "/nexa.proto.generated.mailer.v1.TagService/FindByName"
-	TagService_Create_FullMethodName     = "/nexa.proto.generated.mailer.v1.TagService/Create"
-	TagService_Update_FullMethodName     = "/nexa.proto.generated.mailer.v1.TagService/Update"
-	TagService_Remove_FullMethodName     = "/nexa.proto.generated.mailer.v1.TagService/Remove"
+	TagService_Find_FullMethodName       = "/nexa.mailer.v1.TagService/Find"
+	TagService_FindByIds_FullMethodName  = "/nexa.mailer.v1.TagService/FindByIds"
+	TagService_FindByName_FullMethodName = "/nexa.mailer.v1.TagService/FindByName"
+	TagService_Create_FullMethodName     = "/nexa.mailer.v1.TagService/Create"
+	TagService_Update_FullMethodName     = "/nexa.mailer.v1.TagService/Update"
+	TagService_Remove_FullMethodName     = "/nexa.mailer.v1.TagService/Remove"
 )
 
 // TagServiceClient is the client API for TagService service.
@@ -263,7 +263,7 @@ func _TagService_Remove_Handler(srv interface{}, ctx context.Context, dec func(i
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var TagService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "nexa.proto.generated.mailer.v1.TagService",
+	ServiceName: "nexa.mailer.v1.TagService",
 	HandlerType: (*TagServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

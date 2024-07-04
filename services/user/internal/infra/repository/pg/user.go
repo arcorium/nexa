@@ -11,6 +11,7 @@ import (
   "nexa/shared/types"
   sharedUtil "nexa/shared/util"
   "nexa/shared/util/repo"
+  spanUtil "nexa/shared/util/span"
   "time"
 )
 
@@ -89,13 +90,17 @@ func (u userRepository) FindByIds(ctx context.Context, userIds ...types.Id) ([]e
   var dbModel []model.User
   err := u.db.NewSelect().
     Model(&dbModel).
+    Relation("Profile").
     Where("id IN (?)", bun.In(uuids)).
     Scan(ctx)
 
   result := repo.CheckSliceResultWithSpan(dbModel, err, span)
-  users := sharedUtil.CastSliceP(dbModel, func(from *model.User) entity.User {
-    return from.ToDomain()
-  })
+  users, ierr := sharedUtil.CastSliceErrsP(dbModel, repo.ToDomainErr[*model.User, entity.User])
+  if !ierr.IsNil() {
+    spanUtil.RecordError(ierr, span)
+    return nil, ierr
+  }
+
   return users, result.Err
 }
 
@@ -106,18 +111,22 @@ func (u userRepository) FindByEmails(ctx context.Context, emails ...types.Email)
   var dbModel []model.User
   err := u.db.NewSelect().
     Model(&dbModel).
+    Relation("Profile").
     Where("email IN (?)", bun.In(emails)).
     Scan(ctx)
 
   result := repo.CheckSliceResultWithSpan(dbModel, err, span)
-  users := sharedUtil.CastSliceP(dbModel, func(from *model.User) entity.User {
-    return from.ToDomain()
-  })
+  users, ierr := sharedUtil.CastSliceErrsP(dbModel, repo.ToDomainErr[*model.User, entity.User])
+  if !ierr.IsNil() {
+    spanUtil.RecordError(ierr, span)
+    return nil, ierr
+  }
+
   return users, result.Err
 }
 
-func (u userRepository) FindAllUsers(ctx context.Context, query repo.QueryParameter) (repo.PaginatedResult[entity.User], error) {
-  ctx, span := u.tracer.Start(ctx, "UserRepository.FindAllUsers")
+func (u userRepository) Get(ctx context.Context, query repo.QueryParameter) (repo.PaginatedResult[entity.User], error) {
+  ctx, span := u.tracer.Start(ctx, "UserRepository.Get")
   defer span.End()
 
   var dbModel []model.User
@@ -128,9 +137,12 @@ func (u userRepository) FindAllUsers(ctx context.Context, query repo.QueryParame
     ScanAndCount(ctx)
 
   result := repo.CheckPaginationResultWithSpan(dbModel, count, err, span)
-  users := sharedUtil.CastSliceP(dbModel, func(from *model.User) entity.User {
-    return from.ToDomain()
-  })
+  users, ierr := sharedUtil.CastSliceErrsP(dbModel, repo.ToDomainErr[*model.User, entity.User])
+  if !ierr.IsNil() {
+    spanUtil.RecordError(ierr, span)
+    return repo.PaginatedResult[entity.User]{}, ierr
+  }
+
   return repo.NewPaginatedResult(users, uint64(count)), result.Err
 }
 

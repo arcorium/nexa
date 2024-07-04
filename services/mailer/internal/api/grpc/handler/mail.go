@@ -2,31 +2,33 @@ package handler
 
 import (
   "context"
-  "errors"
   "go.opentelemetry.io/otel/trace"
-  "google.golang.org/genproto/googleapis/rpc/errdetails"
   "google.golang.org/grpc"
   "google.golang.org/protobuf/types/known/emptypb"
   "nexa/proto/gen/go/common"
   "nexa/proto/gen/go/mailer/v1"
   "nexa/services/mailer/internal/api/grpc/mapper"
   "nexa/services/mailer/internal/domain/service"
+  "nexa/services/mailer/util"
   "nexa/shared/dto"
   sharedErr "nexa/shared/errors"
-  spanUtil "nexa/shared/span"
   "nexa/shared/types"
   sharedUtil "nexa/shared/util"
+  spanUtil "nexa/shared/util/span"
 )
 
 func NewMail(mail service.IMail) MailHandler {
   return MailHandler{
     mailService: mail,
+    tracer:      util.GetTracer(),
   }
 }
 
 type MailHandler struct {
   mailerv1.UnimplementedMailerServiceServer
   mailService service.IMail
+
+  tracer trace.Tracer
 }
 
 func (m *MailHandler) Register(server *grpc.Server) {
@@ -34,7 +36,8 @@ func (m *MailHandler) Register(server *grpc.Server) {
 }
 
 func (m *MailHandler) Find(ctx context.Context, input *common.PagedElementInput) (*mailerv1.FindResponse, error) {
-  span := trace.SpanFromContext(ctx)
+  ctx, span := m.tracer.Start(ctx, "MailerHandler.Find")
+  defer span.End()
 
   elementDTO := dto.PagedElementDTO{
     Element: input.Element,
@@ -61,16 +64,14 @@ func (m *MailHandler) Find(ctx context.Context, input *common.PagedElementInput)
 }
 
 func (m *MailHandler) FindByIds(ctx context.Context, request *mailerv1.FindMailByIdsRequest) (*mailerv1.FindMailByIdsResponse, error) {
-  span := trace.SpanFromContext(ctx)
+  ctx, span := m.tracer.Start(ctx, "MailerHandler.Find")
+  defer span.End()
 
+  // Input type validation
   ids, ierr := sharedUtil.CastSliceErrs(request.MailIds, types.IdFromString)
-  if ierr != nil {
-    errs := sharedUtil.CastSlice(ierr, func(from sharedErr.IndexedError) error {
-      return from.Err
-    })
-    err := errors.Join(errs...)
-    spanUtil.RecordError(err, span)
-    return nil, sharedErr.GrpcFieldIndexedErrors("mail_ids", ierr)
+  if !ierr.IsNil() {
+    spanUtil.RecordError(ierr, span)
+    return nil, ierr.ToGRPCError("mail_ids")
   }
 
   mails, stat := m.mailService.FindByIds(ctx, ids...)
@@ -82,27 +83,23 @@ func (m *MailHandler) FindByIds(ctx context.Context, request *mailerv1.FindMailB
   resp := &mailerv1.FindMailByIdsResponse{
     Mails: sharedUtil.CastSliceP(mails, mapper.ToProtoMail),
   }
-
   return resp, nil
 }
 
 func (m *MailHandler) FindByTag(ctx context.Context, request *mailerv1.FindMailByTagRequest) (*mailerv1.FindMailByTagResponse, error) {
-  span := trace.SpanFromContext(ctx)
+  ctx, span := m.tracer.Start(ctx, "MailerHandler.FindByTag")
+  defer span.End()
 
-  id, err := types.IdFromString(request.TagId)
+  // Input type validation
+  tagId, err := types.IdFromString(request.TagId)
   if err != nil {
-    if errors.Is(err, types.ErrMalformedUUID) {
-      return nil, sharedErr.GrpcFieldErrors(&errdetails.BadRequest_FieldViolation{
-        Field:       "tag_id",
-        Description: err.Error(),
-      })
-    }
-    return nil, err
+    spanUtil.RecordError(err, span)
+    return nil, sharedErr.NewFieldError("tag_id", err).ToGrpcError()
   }
 
-  mails, stat := m.mailService.FindByTag(ctx, id)
+  mails, stat := m.mailService.FindByTag(ctx, tagId)
   if stat.IsError() {
-    spanUtil.RecordError(err, span)
+    spanUtil.RecordError(stat.Error, span)
     return nil, stat.ToGRPCError()
   }
 
@@ -114,9 +111,15 @@ func (m *MailHandler) FindByTag(ctx context.Context, request *mailerv1.FindMailB
 }
 
 func (m *MailHandler) Send(ctx context.Context, request *mailerv1.SendMailRequest) (*mailerv1.SendMailResponse, error) {
-  span := trace.SpanFromContext(ctx)
+  ctx, span := m.tracer.Start(ctx, "MailerHandler.Send")
+  defer span.End()
 
-  dtos := mapper.ToSendMailDTO(request)
+  dtos, err := mapper.ToSendMailDTO(request)
+  if err != nil {
+    spanUtil.RecordError(err, span)
+    return nil, err
+  }
+
   ids, stat := m.mailService.Send(ctx, &dtos)
   if stat.IsError() {
     spanUtil.RecordError(stat.Error, span)
@@ -124,49 +127,34 @@ func (m *MailHandler) Send(ctx context.Context, request *mailerv1.SendMailReques
   }
 
   resp := &mailerv1.SendMailResponse{
-    MailIds: sharedUtil.CastSlice(ids, func(id types.Id) string { return id.Underlying().String() }),
+    MailIds: sharedUtil.CastSlice(ids, sharedUtil.ToString[types.Id]),
   }
   return resp, nil
 }
 
 func (m *MailHandler) Update(ctx context.Context, request *mailerv1.UpdateMailRequest) (*emptypb.Empty, error) {
-  span := trace.SpanFromContext(ctx)
+  ctx, span := m.tracer.Start(ctx, "MailerHandler.Update")
+  defer span.End()
 
-  updateDto := mapper.ToUpdateMailDTO(request)
-  err := sharedUtil.ValidateStructCtx(ctx, &updateDto)
+  updateDto, err := mapper.ToUpdateMailDTO(request)
   if err != nil {
     spanUtil.RecordError(err, span)
     return nil, err
   }
 
   stat := m.mailService.Update(ctx, &updateDto)
-  if stat.IsError() {
-    spanUtil.RecordError(stat.Error, span)
-    return nil, stat.ToGRPCError()
-  }
-
-  return &emptypb.Empty{}, nil
+  return nil, stat.ToGRPCErrorWithSpan(span)
 }
 
 func (m *MailHandler) Remove(ctx context.Context, request *mailerv1.RemoveMailRequest) (*emptypb.Empty, error) {
-  span := trace.SpanFromContext(ctx)
+  ctx, span := m.tracer.Start(ctx, "MailerHandler.Remove")
+  defer span.End()
 
-  id, err := types.IdFromString(request.MailId)
+  mailId, err := types.IdFromString(request.MailId)
   if err != nil {
-    if errors.Is(err, types.ErrMalformedUUID) {
-      return nil, sharedErr.GrpcFieldErrors(&errdetails.BadRequest_FieldViolation{
-        Field:       "mail_id",
-        Description: err.Error(),
-      })
-    }
-    return nil, err
+    spanUtil.RecordError(err, span)
   }
 
-  stat := m.mailService.Remove(ctx, id)
-  if stat.IsError() {
-    spanUtil.RecordError(stat.Error, span)
-    return nil, stat.ToGRPCError()
-  }
-
-  return &emptypb.Empty{}, nil
+  stat := m.mailService.Remove(ctx, mailId)
+  return nil, stat.ToGRPCErrorWithSpan(span)
 }

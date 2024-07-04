@@ -20,9 +20,9 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	ProfileService_Find_FullMethodName         = "/nexa.proto.generated.user.v1.ProfileService/Find"
-	ProfileService_Update_FullMethodName       = "/nexa.proto.generated.user.v1.ProfileService/Update"
-	ProfileService_UpdateAvatar_FullMethodName = "/nexa.proto.generated.user.v1.ProfileService/UpdateAvatar"
+	ProfileService_Find_FullMethodName         = "/nexa.user.v1.ProfileService/Find"
+	ProfileService_Update_FullMethodName       = "/nexa.user.v1.ProfileService/Update"
+	ProfileService_UpdateAvatar_FullMethodName = "/nexa.user.v1.ProfileService/UpdateAvatar"
 )
 
 // ProfileServiceClient is the client API for ProfileService service.
@@ -196,7 +196,7 @@ func (x *profileServiceUpdateAvatarServer) Recv() (*UpdateProfileAvatarRequest, 
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var ProfileService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "nexa.proto.generated.user.v1.ProfileService",
+	ServiceName: "nexa.user.v1.ProfileService",
 	HandlerType: (*ProfileServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

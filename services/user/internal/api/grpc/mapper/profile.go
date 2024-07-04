@@ -1,30 +1,30 @@
 package mapper
 
 import (
-  proto "nexa/proto/generated/golang/user/v1"
+  "nexa/proto/gen/go/user/v1"
   "nexa/services/user/internal/domain/dto"
+  sharedErr "nexa/shared/errors"
+  "nexa/shared/types"
   "nexa/shared/wrapper"
 )
 
-func ToProfileUpdateDTO(request *proto.UpdateProfileRequest) dto.ProfileUpdateDTO {
+func ToProfileUpdateDTO(request *userv1.UpdateProfileRequest) (dto.ProfileUpdateDTO, error) {
+  id, err := types.IdFromString(request.UserId)
+  if err != nil {
+    return dto.ProfileUpdateDTO{},
+      sharedErr.GrpcFieldErrors2(sharedErr.NewFieldError("user_id", err))
+  }
+
   return dto.ProfileUpdateDTO{
-    UserId:    request.UserId,
+    UserId:    id,
     FirstName: wrapper.NewNullable(request.FirstName),
     LastName:  wrapper.NewNullable(request.LastName),
     Bio:       wrapper.NewNullable(request.Bio),
-  }
+  }, nil
 }
 
-func ToProfilePictureUpdateDTO(request *proto.UpdateProfileAvatarRequest) dto.ProfilePictureUpdateDTO {
-  return dto.ProfilePictureUpdateDTO{
-    UserId:   request.UserId,
-    Filename: request.Filename,
-    Bytes:    request.Chunk,
-  }
-}
-
-func ToProtoProfile(response *dto.ProfileResponseDTO) *proto.Profile {
-  return &proto.Profile{
+func ToProtoProfile(response *dto.ProfileResponseDTO) *userv1.Profile {
+  return &userv1.Profile{
     //UserId:    response.UserId,
     FirstName: response.FirstName,
     LastName:  response.LastName,

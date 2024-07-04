@@ -2,6 +2,7 @@ package main
 
 import (
   "context"
+  "errors"
   promProv "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
   "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
   "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery"
@@ -18,33 +19,31 @@ import (
   sdktrace "go.opentelemetry.io/otel/sdk/trace"
   semconv "go.opentelemetry.io/otel/semconv/v1.25.0"
   "go.opentelemetry.io/otel/trace"
-  "go.uber.org/zap"
   "google.golang.org/grpc"
   "google.golang.org/grpc/reflection"
-  "log"
   "net"
   "net/http"
   "nexa/services/mailer/config"
   "nexa/services/mailer/constant"
   "nexa/services/mailer/internal/api/grpc/handler"
+  inter "nexa/services/mailer/internal/api/grpc/interceptor"
   "nexa/services/mailer/internal/app/service"
   "nexa/services/mailer/internal/app/uow/pg"
-  domainService "nexa/services/mailer/internal/domain/service"
-  "nexa/services/mailer/internal/infra/external/mail"
+  external2 "nexa/services/mailer/internal/domain/external"
+  "nexa/services/mailer/internal/infra/external"
   "nexa/services/mailer/internal/infra/repository/model"
-  sharedConf "nexa/shared/config"
   "nexa/shared/database"
-  sharedInterceptor "nexa/shared/grpc/interceptor"
-  "nexa/shared/util"
+  "nexa/shared/grpc/interceptor"
+  "nexa/shared/logger"
+  sharedUtil "nexa/shared/util"
   "nexa/shared/wrapper"
   "os"
   "os/signal"
   "sync"
   "syscall"
-  "time"
 )
 
-func NewServer(dbConfig *sharedConf.Database, serverConfig *config.Server) (*Server, error) {
+func NewServer(dbConfig *config.Database, serverConfig *config.Server) (*Server, error) {
   svr := &Server{
     dbConfig:     dbConfig,
     serverConfig: serverConfig,
@@ -55,34 +54,27 @@ func NewServer(dbConfig *sharedConf.Database, serverConfig *config.Server) (*Ser
 }
 
 type Server struct {
-  dbConfig     *sharedConf.Database
+  dbConfig     *config.Database
   serverConfig *config.Server
   db           *bun.DB
+  mailClient   external2.IMail
 
   grpcServer     *grpc.Server
   metricServer   *http.Server
-  logger         *zap.Logger
+  logger         logger.ILogger
   exporter       sdktrace.SpanExporter
   tracerProvider *sdktrace.TracerProvider
-
-  mailService domainService.IMail
 
   wg sync.WaitGroup
 }
 
 func (s *Server) validationSetup() {
-  wrapper.RegisterDefaultNullableValidations(util.GetValidator())
+  validator := sharedUtil.GetValidator()
+  wrapper.RegisterDefaultNullableValidations(validator)
 }
 
-func (s *Server) grpcServerSetup() error {
+func (s *Server) setupOtel() (*promProv.ServerMetrics, *prometheus.Registry, error) {
   var err error
-  s.logger, err = zap.NewDevelopment()
-  if err != nil {
-    log.Fatalln(err)
-  }
-  // Log
-  zapLogger := sharedInterceptor.ZapLogger(s.logger)
-
   // Metrics
   metrics := promProv.NewServerMetrics(
     promProv.WithServerHandlingTimeHistogram(
@@ -92,12 +84,6 @@ func (s *Server) grpcServerSetup() error {
 
   reg := prometheus.NewRegistry()
   reg.MustRegister(metrics)
-  exemplarFromCtx := func(ctx context.Context) prometheus.Labels {
-    if span := trace.SpanContextFromContext(ctx); span.IsSampled() {
-      return prometheus.Labels{"traceID": span.TraceID().String()}
-    }
-    return nil
-  }
 
   // Trace
   // Exporter
@@ -106,7 +92,7 @@ func (s *Server) grpcServerSetup() error {
     otlptracegrpc.WithEndpoint(s.serverConfig.OTLPGRPCCollectorAddress),
   )
   if err != nil {
-    return err
+    return nil, nil, err
   }
 
   // Resource
@@ -128,16 +114,42 @@ func (s *Server) grpcServerSetup() error {
     propagation.TraceContext{}, propagation.Baggage{},
   ))
 
+  return metrics, reg, nil
+}
+
+func (s *Server) grpcServerSetup() error {
+  // Log
+  s.logger = logger.GetGlobal()
+  zaplogger, ok := s.logger.(*logger.ZapLogger)
+  if !ok {
+    return errors.New("logger is not of expected type, expected zap")
+  }
+  zapLogger := interceptor.ZapLogger(zaplogger.Internal)
+
+  metrics, reg, err := s.setupOtel()
+  if err != nil {
+    return err
+  }
+
+  exemplarFromCtx := func(ctx context.Context) prometheus.Labels {
+    if span := trace.SpanContextFromContext(ctx); span.IsSampled() {
+      return prometheus.Labels{"traceID": span.TraceID().String()}
+    }
+    return nil
+  }
+
   s.grpcServer = grpc.NewServer(
     grpc.StatsHandler(otelgrpc.NewServerHandler()), // tracing
     grpc.ChainUnaryInterceptor(
       recovery.UnaryServerInterceptor(),
       logging.UnaryServerInterceptor(zapLogger), // logging
+      interceptor.UnaryServerAuth(inter.Auth, inter.AuthSelector),
       metrics.UnaryServerInterceptor(promProv.WithExemplarFromContext(exemplarFromCtx)),
     ),
     grpc.ChainStreamInterceptor(
       recovery.StreamServerInterceptor(),
       logging.StreamServerInterceptor(zapLogger), // logging
+      interceptor.StreamServerAuth(inter.Auth, inter.AuthSelector),
       metrics.StreamServerInterceptor(promProv.WithExemplarFromContext(exemplarFromCtx)),
     ),
   )
@@ -162,9 +174,9 @@ func (s *Server) grpcServerSetup() error {
 }
 
 func (s *Server) databaseSetup() error {
-  // Database
+  // Token Database
   var err error
-  s.db, err = database.OpenPostgres(s.dbConfig, true)
+  s.db, err = database.OpenPostgres(&s.dbConfig.Database, true)
   if err != nil {
     return err
   }
@@ -179,6 +191,7 @@ func (s *Server) databaseSetup() error {
 
 func (s *Server) setup() error {
   s.validationSetup()
+
   if err := s.grpcServerSetup(); err != nil {
     return err
   }
@@ -186,25 +199,30 @@ func (s *Server) setup() error {
     return err
   }
 
-  uow := pg.NewMailUOW(s.db)
-  repos := uow.Repositories()
-  tagRepo := repos.Tag()
-
-  mailer, err := mail.NewSMTP(&mail.SMTPConfig{
-    Host:     s.serverConfig.SMTPHost,
-    Port:     s.serverConfig.SMTPPort,
-    Username: s.serverConfig.SMTPUsername,
-    Password: s.serverConfig.SMTPPassword,
-  })
-
-  if err != nil {
-    return err
+  // External client
+  {
+    smtpClient, err := external.NewSMTP(&external.SMTPConfig{
+      Host:     s.serverConfig.SMTPHost,
+      Port:     s.serverConfig.SMTPPort,
+      Username: s.serverConfig.SMTPUsername,
+      Password: s.serverConfig.SMTPPassword,
+    })
+    if err != nil {
+      return err
+    }
+    s.mailClient = smtpClient
   }
 
-  s.mailService = service.NewMail(uow, mailer)
-  tagService := service.NewTag(tagRepo)
+  // Repository
+  mailUOW := pg.NewMailUOW(s.db)
+  repos := mailUOW.Repositories()
 
-  mailHandler := handler.NewMail(s.mailService)
+  // Service
+  mailService := service.NewMail(mailUOW, s.mailClient)
+  tagService := service.NewTag(repos.Tag())
+
+  // GRPC Handler
+  mailHandler := handler.NewMail(mailService)
   mailHandler.Register(s.grpcServer)
 
   tagHandler := handler.NewTag(tagService)
@@ -214,35 +232,30 @@ func (s *Server) setup() error {
 }
 
 func (s *Server) shutdown() {
+  ctx := context.Background()
+
   s.grpcServer.GracefulStop()
-  s.metricServer.Shutdown(context.Background())
+  s.metricServer.Shutdown(ctx)
   s.wg.Wait()
 
-  // Wait until all mailService works done
-  for {
-    if s.mailService.HasWork() {
-      time.Sleep(100)
-      continue
-    }
-    break
+  // OTEL
+  s.exporter.Shutdown(ctx)
+
+  if err := s.tracerProvider.Shutdown(ctx); err != nil {
+    logger.Warn(err.Error())
   }
 
-  // GRPC thingies
-  s.exporter.Shutdown(context.Background())
+  // External
+  if err := s.mailClient.Close(ctx); err != nil {
+    logger.Warn(err.Error())
+  }
 
+  // Database
   if err := s.db.Close(); err != nil {
-    log.Println(err)
+    logger.Warn(err.Error())
   }
 
-  if err := s.logger.Sync(); err != nil {
-    log.Println(err)
-  }
-
-  if err := s.tracerProvider.Shutdown(context.Background()); err != nil {
-    log.Println(err)
-  }
-
-  log.Println("Server Stopped!")
+  logger.Info("Server Stopped!")
 }
 
 func (s *Server) Run() error {
@@ -256,23 +269,24 @@ func (s *Server) Run() error {
     s.wg.Add(1)
     defer s.wg.Done()
 
-    log.Println("Server Listening on ", s.serverConfig.Address())
+    logger.Infof("Server Listening on %s", s.serverConfig.Address())
+
     err = s.grpcServer.Serve(listener)
-    log.Println("Server Stopping ")
+    logger.Info("Server Stopping ")
     if err != nil {
-      log.Println("Server failed to serve:", err)
+      logger.Warnf("Server failed to serve: %s", err)
     }
   }()
 
   go func() {
     s.wg.Add(1)
     defer s.wg.Done()
-    log.Println("Metrics Server Listening on ", s.serverConfig.MetricAddress())
+    logger.Infof("Metrics Server Listening on %s", s.serverConfig.MetricAddress())
 
     err = s.metricServer.ListenAndServe()
-    log.Println("Metrics Server Stopping")
+    logger.Info("Metrics Server Stopping")
     if err != nil {
-      log.Println("Metrics server failed to serve:", err)
+      logger.Warnf("Metrics server failed to serve: %s", err)
     }
   }()
 

@@ -19,6 +19,6 @@ type PaginatedResult[T any] struct {
   Element uint64
 }
 
-func (p PaginatedResult[T]) HasValue() bool {
+func (p *PaginatedResult[T]) HasValue() bool {
   return p.Total != 0 && p.Element != 0
 }

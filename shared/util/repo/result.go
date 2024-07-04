@@ -3,7 +3,7 @@ package repo
 import (
   "database/sql"
   "go.opentelemetry.io/otel/trace"
-  spanUtil "nexa/shared/span"
+  spanUtil "nexa/shared/util/span"
   "nexa/shared/wrapper"
 )
 

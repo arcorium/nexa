@@ -1,22 +1,30 @@
 package dto
 
 import (
-  "nexa/shared/wrapper"
+  domain "nexa/services/file_storage/internal/domain/entity"
+  "nexa/shared/types"
   "time"
 )
 
 type UpdateFileMetadataDTO struct {
-  Id       string `json:"id" validate:"required,uuid4"`
-  Name     wrapper.Nullable[string]
-  IsPublic wrapper.Nullable[bool]
+  Id       types.Id
+  IsPublic bool
+}
+
+func (u *UpdateFileMetadataDTO) ToDomain() domain.FileMetadata {
+  md := domain.FileMetadata{
+    Id:       u.Id,
+    IsPublic: u.IsPublic,
+  }
+
+  return md
 }
 
 type FileMetadataResponseDTO struct {
-  Id   string `json:"id"`
-  Name string `json:"name"`
-  Size uint64 `json:"size"`
-  Path string `json:"path"`
-
-  CreatedAt    time.Time `json:"created_at"`
-  LastModified time.Time `json:"last_modified"`
+  Id           types.Id
+  Name         string
+  Size         uint64
+  Path         types.FilePath
+  CreatedAt    time.Time
+  LastModified time.Time
 }

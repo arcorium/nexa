@@ -1,13 +1,12 @@
 package model
 
 import (
+  "database/sql"
   "github.com/uptrace/bun"
   domain "nexa/services/user/internal/domain/entity"
   "nexa/shared/types"
-  "nexa/shared/util"
   "nexa/shared/util/repo"
   "nexa/shared/variadic"
-  "nexa/shared/wrapper"
   "time"
 )
 
@@ -20,10 +19,11 @@ func FromUserDomain(domain *domain.User, opts ...UserMapOption) User {
     Username:   domain.Username,
     Email:      domain.Email.Underlying(),
     Password:   domain.Password.Underlying(),
-    IsVerified: false,
+    IsVerified: domain.SqlIsVerified(),
   }
 
-  variadic.New(opts...).DoAll(repo.MapOptionFunc(domain, &usr))
+  variadic.New(opts...).
+    DoAll(repo.MapOptionFunc(domain, &usr))
 
   return usr
 }
@@ -31,32 +31,48 @@ func FromUserDomain(domain *domain.User, opts ...UserMapOption) User {
 type User struct {
   bun.BaseModel `bun:"table:users"`
 
-  Id         string `bun:",type:uuid,pk"`
-  Username   string `bun:",nullzero,notnull,unique"`
-  Email      string `bun:",nullzero,notnull,unique"`
-  Password   string `bun:",nullzero,notnull"`
-  IsVerified bool   `bun:",default:false"`
+  Id         string       `bun:",type:uuid,pk"`
+  Username   string       `bun:",nullzero,notnull,unique"`
+  Email      string       `bun:",nullzero,notnull,unique"`
+  Password   string       `bun:",nullzero,notnull"`
+  IsVerified sql.NullBool `bun:",notnull,default:false"`
 
   BannedUntil time.Time `bun:",nullzero"`
   DeletedAt   time.Time `bun:",nullzero"`
   CreatedAt   time.Time `bun:",nullzero,notnull"`
   UpdatedAt   time.Time `bun:",nullzero"`
 
-  Profile *Profile
+  Profile *Profile `bun:"rel:has-one,join=id:user_id"`
 }
 
-func (u *User) ToDomain() domain.User {
+func (u *User) ToDomain() (domain.User, error) {
+  id, err := types.IdFromString(u.Id)
+  if err != nil {
+    return domain.User{}, err
+  }
+
+  email, err := types.EmailFromString(u.Email)
+  if err != nil {
+    return domain.User{}, err
+  }
+
+  var profile *domain.Profile = nil
+  if u.Profile != nil {
+    obj, err := u.Profile.ToDomain()
+    if err != nil {
+      return domain.User{}, err
+    }
+    profile = &obj // dangling and allocated on heap
+  }
+
   return domain.User{
-    Id:          wrapper.DropError(types.IdFromString(u.Id)),
+    Id:          id,
     Username:    u.Username,
-    Email:       wrapper.DropError(types.EmailFromString(u.Email)),
-    Password:    wrapper.DropError(types.PasswordFromString(u.Password)),
-    IsVerified:  u.IsVerified,
+    Email:       email,
+    Password:    types.HashedPassword(u.Password),
+    IsVerified:  &u.IsVerified.Bool,
     BannedUntil: u.BannedUntil,
     IsDeleted:   !u.DeletedAt.IsZero(),
-    Profile: util.NilOr[domain.Profile](u.Profile, func(obj *Profile) *domain.Profile {
-      temp := u.Profile.ToDomain()
-      return &temp
-    }),
-  }
+    Profile:     profile,
+  }, nil
 }

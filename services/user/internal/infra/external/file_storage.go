@@ -7,14 +7,15 @@ import (
   storagev1 "nexa/proto/gen/go/file_storage/v1"
   "nexa/services/user/internal/domain/dto"
   "nexa/services/user/internal/domain/external"
-  spanUtil "nexa/shared/span"
+  "nexa/services/user/util"
   "nexa/shared/types"
+  spanUtil "nexa/shared/util/span"
 )
 
-func NewFileStorageClient(conn grpc.ClientConnInterface, tracer trace.Tracer) external.IFileStorageClient {
+func NewFileStorageClient(conn grpc.ClientConnInterface) external.IFileStorageClient {
   return &fileStorageClient{
     client: storagev1.NewFileStorageServiceClient(conn),
-    tracer: tracer,
+    tracer: util.GetTracer(),
   }
 }
 
@@ -23,26 +24,28 @@ type fileStorageClient struct {
   tracer trace.Tracer
 }
 
-func (f *fileStorageClient) upload(ctx context.Context, filename string, data []byte) (types.Id, error) {
-  span := trace.SpanFromContext(ctx)
+func (f *fileStorageClient) UploadProfileImage(ctx context.Context, dto *dto.UploadImageDTO) (types.Id, types.FilePath, error) {
+  ctx, span := f.tracer.Start(ctx, "FileStorageClient.UploadProfileImage")
+  defer span.End()
 
   stream, err := f.client.Store(ctx)
   if err != nil {
     spanUtil.RecordError(err, span)
-    return types.NullId(), err
+    return types.NullId(), "", err
   }
 
   for {
     request := storagev1.StoreFileRequest{
-      Filename: filename,
+      Filename: dto.Filename,
       IsPublic: true,
-      Chunk:    data,
+      Chunk:    dto.Data,
     }
 
+    // TODO: Split data
     err = stream.Send(&request)
     if err != nil {
       spanUtil.RecordError(err, span)
-      return types.NullId(), err
+      return types.NullId(), "", err
     }
     break
   }
@@ -50,33 +53,19 @@ func (f *fileStorageClient) upload(ctx context.Context, filename string, data []
   recv, err := stream.CloseAndRecv()
   if err != nil {
     spanUtil.RecordError(err, span)
-    return types.NullId(), err
+    return types.NullId(), "", err
   }
 
   id, err := types.IdFromString(recv.FileId)
-  return id, err
+
+  return id, types.FilePathFromString(*recv.Filepath), err
 }
 
-func (f *fileStorageClient) UploadProfileImage(ctx context.Context, dto *dto.UploadImageDTO) (types.Id, error) {
-  ctx, span := f.tracer.Start(ctx, "FileStorageClient.UploadProfileImage")
+func (f *fileStorageClient) DeleteProfileImage(ctx context.Context, id types.Id) error {
+  ctx, span := f.tracer.Start(ctx, "FileStorageClient.DeleteProfileImage")
   defer span.End()
 
-  return f.upload(ctx, dto.Filename, dto.Data)
-}
-
-func (f *fileStorageClient) UpdateProfileImage(ctx context.Context, dto *dto.UpdateImageDTO) (types.Id, error) {
-  ctx, span := f.tracer.Start(ctx, "FileStorageClient.UpdateProfileImage")
-  defer span.End()
-
-  deleteRequest := storagev1.DeleteFileRequest{FileId: dto.Id.Underlying().String()}
-
-  // Delete
-  _, err := f.client.Delete(ctx, &deleteRequest)
-  if err != nil {
-    spanUtil.RecordError(err, span)
-    return types.NullId(), err
-  }
-
-  // Upload new one
-  return f.upload(ctx, dto.Filename, dto.Data)
+  req := storagev1.DeleteFileRequest{FileId: id.String()}
+  _, err := f.client.Delete(ctx, &req)
+  return err
 }

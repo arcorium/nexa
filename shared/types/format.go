@@ -2,7 +2,6 @@ package types
 
 import (
   "errors"
-  "nexa/shared/util"
   "strings"
 )
 
@@ -27,7 +26,10 @@ func GetFileFormat(filename string) (FileFormat, error) {
 type FileFormat string
 
 func (f FileFormat) Validate() error {
-  return util.Ternary(f.Underlying() == "", ErrUnknownFormat, nil)
+  if len(f.Underlying()) == 0 {
+    return ErrUnknownFormat
+  }
+  return nil
 }
 
 func (f FileFormat) Underlying() string {

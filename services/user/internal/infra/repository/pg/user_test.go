@@ -275,16 +275,16 @@ func Test_userRepository_FindAllUsers(t *testing.T) {
         db: tx,
       }
 
-      got, err := u.FindAllUsers(tt.args.ctx, tt.args.query)
+      got, err := u.Get(tt.args.ctx, tt.args.query)
       if (err != nil) != tt.wantErr {
-        t.Errorf("FindAllUsers() error = %v, wantErr %v", err, tt.wantErr)
+        t.Errorf("Get() error = %v, wantErr %v", err, tt.wantErr)
         return
       }
 
       ignoreUserFields(t, got.Data, tt.want.Data)
 
       if !reflect.DeepEqual(got, tt.want) {
-        t.Errorf("FindAllUsers() \ngot = %v\nwant %v", got, tt.want)
+        t.Errorf("Get() \ngot = %v\nwant %v", got, tt.want)
       }
     })
   }

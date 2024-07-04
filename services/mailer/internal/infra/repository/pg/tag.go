@@ -8,10 +8,10 @@ import (
   "nexa/services/mailer/internal/domain/repository"
   "nexa/services/mailer/internal/infra/repository/model"
   "nexa/services/mailer/util"
-  spanUtil "nexa/shared/span"
   "nexa/shared/types"
   sharedUtil "nexa/shared/util"
   "nexa/shared/util/repo"
+  spanUtil "nexa/shared/util/span"
   "time"
 )
 
@@ -39,10 +39,11 @@ func (t *tagRepository) FindAll(ctx context.Context, query repo.QueryParameter) 
     ScanAndCount(ctx)
 
   result := repo.CheckPaginationResultWithSpan(models, count, err, span)
-  users := sharedUtil.CastSliceP(result.Data, func(from *model.Tag) domain.Tag {
-    return from.ToDomain()
-  })
-  return repo.NewPaginatedResult(users, uint64(count)), result.Err
+  tags, ierr := sharedUtil.CastSliceErrsP(result.Data, repo.ToDomainErr[*model.Tag, domain.Tag])
+  if !ierr.IsNil() {
+    return repo.PaginatedResult[domain.Tag]{}, ierr
+  }
+  return repo.NewPaginatedResult(tags, uint64(count)), result.Err
 }
 
 func (t *tagRepository) FindByIds(ctx context.Context, ids ...types.Id) ([]domain.Tag, error) {
@@ -59,12 +60,12 @@ func (t *tagRepository) FindByIds(ctx context.Context, ids ...types.Id) ([]domai
     Where("id IN (?)", bun.In(tagIds)).
     Scan(ctx)
 
-  res := repo.CheckSliceResultWithSpan(models, err, span)
-  result := sharedUtil.CastSliceP(res.Data, func(from *model.Tag) domain.Tag {
-    return from.ToDomain()
-  })
-
-  return result, res.Err
+  result := repo.CheckSliceResultWithSpan(models, err, span)
+  tags, ierr := sharedUtil.CastSliceErrsP(result.Data, repo.ToDomainErr[*model.Tag, domain.Tag])
+  if !ierr.IsNil() {
+    return nil, ierr
+  }
+  return tags, result.Err
 }
 
 func (t *tagRepository) FindByName(ctx context.Context, name string) (*domain.Tag, error) {
@@ -82,7 +83,10 @@ func (t *tagRepository) FindByName(ctx context.Context, name string) (*domain.Ta
     return nil, err
   }
 
-  result := models.ToDomain()
+  result, err := models.ToDomain()
+  if err != nil {
+    return nil, err
+  }
 
   return &result, nil
 }
@@ -126,8 +130,8 @@ func (t *tagRepository) Remove(ctx context.Context, id types.Id) error {
   defer span.End()
 
   res, err := t.db.NewDelete().
-    Model(sharedUtil.Nil[model.Tag]()).
-    Where("id = ?", id.Underlying().String()).
+    Model(types.Nil[model.Tag]()).
+    Where("id = ?", id.String()).
     Exec(ctx)
 
   return repo.CheckResultWithSpan(res, err, span)

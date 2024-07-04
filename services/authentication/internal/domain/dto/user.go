@@ -4,7 +4,7 @@ import (
   "nexa/shared/types"
 )
 
-type UserValidateResponseDTO struct {
+type UserResponseDTO struct {
   UserId   types.Id
   Username string
 }

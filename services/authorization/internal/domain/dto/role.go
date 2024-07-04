@@ -12,58 +12,50 @@ type RoleCreateDTO struct {
 }
 
 func (c *RoleCreateDTO) ToDomain() (entity.Role, error) {
+  id, err := types.NewId()
+  if err != nil {
+    return entity.Role{}, nil
+  }
+
   role := entity.Role{
-    Id: types.NewId2(),
+    Id:   id,
+    Name: c.Name,
   }
 
   wrapper.SetOnNonNull(&role.Description, c.Description)
+
   return role, nil
 }
 
 type RoleUpdateDTO struct {
-  Id          string `validate:"required,uuid4"`
+  RoleId      types.Id
   Name        wrapper.NullableString
   Description wrapper.NullableString
 }
 
-func (u *RoleUpdateDTO) ToDomain() (entity.Role, error) {
-  id, err := types.IdFromString(u.Id)
-  if err != nil {
-    return entity.Role{}, err
-  }
-
+func (u *RoleUpdateDTO) ToDomain() entity.Role {
   role := entity.Role{
-    Id: id,
+    Id: u.RoleId,
   }
 
   wrapper.SetOnNonNull(&role.Name, u.Name)
   wrapper.SetOnNonNull(&role.Description, u.Description)
 
-  return role, nil
+  return role
 }
 
-type RoleAddPermissionsDTO struct {
-  RoleId        string   `validate:"required,uuid4"`
-  PermissionIds []string `validate:"required,dive,uuid4"`
+type ModifyRolesPermissionsDTO struct {
+  RoleId        types.Id
+  PermissionIds []types.Id `validate:"required"`
 }
 
-type RoleRemovePermissionsDTO struct {
-  RoleId        string   `validate:"required,uuid4"`
-  PermissionIds []string `validate:"required,dive,uuid4"`
-}
-
-type RoleAddUsersDTO struct {
-  UserId  string   `validate:"required,uuid4"`
-  RoleIds []string `validate:"required,dive,uuid4"`
-}
-
-type RoleRemoveUsersDTO struct {
-  UserId  string   `validate:"required,uuid4"`
-  RoleIds []string `validate:"required,dive,uuid4"`
+type ModifyUserRolesDTO struct {
+  UserId  types.Id
+  RoleIds []types.Id `validate:"required"`
 }
 
 type RoleResponseDTO struct {
-  Id          string
+  Id          types.Id
   Name        string
   Description string
 

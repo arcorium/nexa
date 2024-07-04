@@ -7,6 +7,7 @@ import (
 )
 
 type IFileStorageClient interface {
-  UploadProfileImage(ctx context.Context, dto *dto.UploadImageDTO) (types.Id, error)
-  UpdateProfileImage(ctx context.Context, dto *dto.UpdateImageDTO) (types.Id, error)
+  // UploadProfileImage upload file image as public
+  UploadProfileImage(ctx context.Context, dto *dto.UploadImageDTO) (types.Id, types.FilePath, error)
+  DeleteProfileImage(ctx context.Context, id types.Id) error
 }

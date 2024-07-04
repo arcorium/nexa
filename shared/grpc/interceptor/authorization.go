@@ -5,10 +5,15 @@ import (
   "errors"
   "fmt"
   "github.com/golang-jwt/jwt/v5"
+  middleware "github.com/grpc-ecosystem/go-grpc-middleware/v2"
+  "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors"
+  "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/selector"
+  "google.golang.org/grpc"
   "google.golang.org/grpc/codes"
   "google.golang.org/grpc/metadata"
   "google.golang.org/grpc/status"
   "nexa/shared/constant"
+  sharedErr "nexa/shared/errors"
   sharedJwt "nexa/shared/jwt"
   sharedUtil "nexa/shared/util"
   "strings"
@@ -97,4 +102,82 @@ func Authorization(ctx context.Context) (context.Context, error) {
   }
 
   return context.WithValue(ctx, constant.CLAIMS_CONTEXT_KEY, claims), nil
+}
+
+type PermCheckFunc func(claims *sharedJwt.UserClaims, meta interceptors.CallMeta) bool
+
+type SelectorMatchFunc func(ctx context.Context, callMeta interceptors.CallMeta) bool
+
+func UnaryServerAuth(f PermCheckFunc, sf SelectorMatchFunc) grpc.UnaryServerInterceptor {
+  return selector.UnaryServerInterceptor(
+    permissionCheck(f),
+    selector.MatchFunc(sf),
+  )
+}
+
+func StreamServerAuth(f PermCheckFunc, sf SelectorMatchFunc) grpc.StreamServerInterceptor {
+  return selector.StreamServerInterceptor(
+    permissionCheckStream(f),
+    selector.MatchFunc(sf),
+  )
+}
+
+func permissionCheck(f PermCheckFunc) grpc.UnaryServerInterceptor {
+  return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+    var err error
+
+    // Parse and validate token
+    ctx, err = Authorization(ctx)
+    if err != nil {
+      return nil, err
+    }
+
+    claims, err := sharedJwt.GetClaimsFromCtx(ctx)
+    if err != nil { // NOTE: error check is not necessary
+      return nil, status.New(codes.Unauthenticated, err.Error()).Err()
+    }
+
+    // Check permission based on route
+    meta := interceptors.NewServerCallMeta(info.FullMethod, nil, req)
+    if !f(claims, meta) {
+      return nil, status.New(codes.PermissionDenied, sharedErr.ErrUnauthorized.Error()).Err()
+    }
+    return handler(ctx, req)
+  }
+}
+
+func permissionCheckStream(f PermCheckFunc) grpc.StreamServerInterceptor {
+  return func(srv any, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+    var err error
+    var newCtx context.Context
+
+    var currCtx context.Context
+    wrappedStream, ok := ss.(*middleware.WrappedServerStream)
+    if !ok {
+      currCtx = ss.Context()
+    } else {
+      currCtx = wrappedStream.WrappedContext
+    }
+
+    // Parse and validate token
+    newCtx, err = Authorization(currCtx)
+    if err != nil {
+      return err
+    }
+
+    wrappedServerStream := middleware.WrapServerStream(ss)
+    wrappedServerStream.WrappedContext = newCtx
+
+    claims, err := sharedJwt.GetClaimsFromCtx(wrappedServerStream.WrappedContext)
+    if err != nil {
+      return status.New(codes.Unauthenticated, err.Error()).Err()
+    }
+
+    // Check permission based on route
+    meta := interceptors.NewServerCallMeta(info.FullMethod, info, nil)
+    if !f(claims, meta) {
+      return status.New(codes.PermissionDenied, sharedErr.ErrUnauthorized.Error()).Err()
+    }
+    return handler(srv, wrappedServerStream)
+  }
 }

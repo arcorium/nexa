@@ -1,8 +1,10 @@
 package types
 
 import (
+  "encoding/hex"
   "errors"
   "github.com/google/uuid"
+  "hash"
   "nexa/shared/wrapper"
 )
 
@@ -34,6 +36,11 @@ func (i Id) Underlying() uuid.UUID {
 
 func (i Id) String() string {
   return i.Underlying().String()
+}
+
+func (i Id) Hash(hash hash.Hash) string {
+  hash.Write([]byte(i.String()))
+  return hex.EncodeToString(hash.Sum(nil))
 }
 
 func (i Id) EqWithString(uuid string) bool {

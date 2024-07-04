@@ -8,7 +8,7 @@ import (
 func ToTokenResponseDTO(token *domain.Token) dto.TokenResponseDTO {
   return dto.TokenResponseDTO{
     Token:     token.Token,
-    Usage:     token.Usage.Underlying(),
+    Usage:     token.Usage,
     ExpiredAt: token.ExpiredAt,
   }
 }

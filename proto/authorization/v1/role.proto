@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package nexa.proto.generated.authorization.v1;
+package nexa.authorization.v1;
 option go_package = "nexa/proto/generated/golang/authorization/v1";
 
 import "google/protobuf/empty.proto";
@@ -8,18 +8,21 @@ import "common/paged.proto";
 import "authorization/v1/message.proto";
 
 service RoleService {
-  rpc Create(RoleCreateRequest) returns (RoleCreateResponse);
-  rpc Update(RoleUpdateRequest) returns (google.protobuf.Empty);
-  rpc Delete(RoleDeleteRequest) returns (google.protobuf.Empty);
-  rpc GetUser(GetUserRolesRequest) returns (GetUserRolesResponse);
-  rpc Find(RoleFindRequest) returns (RoleFindResponse);
-  rpc FindAll(common.PagedElementInput) returns (RoleFindAllResponse);
+  rpc Create(CreateRoleRequest) returns (RoleCreateResponse);
+  rpc Update(UpdateRoleRequest) returns (google.protobuf.Empty);
+  rpc Delete(DeleteRoleRequest) returns (google.protobuf.Empty);
+  rpc GetUsers(GetUserRolesRequest) returns (GetUserRolesResponse);
+  rpc Find(FindRoleRequest) returns (FindRoleResponse);
+  rpc FindAll(common.PagedElementInput) returns (FindAllRolesResponse);
 
   rpc AddUser(AddUserRolesRequest) returns (google.protobuf.Empty);
   rpc RemoveUser(RemoveUserRolesRequest) returns (google.protobuf.Empty);
 
-  rpc AppendPermissions(RoleAppendPermissionsRequest) returns (google.protobuf.Empty);
-  rpc RemovePermissions(RoleRemovePermissionsRequest) returns (google.protobuf.Empty);
+  rpc AppendPermissions(AppendRolePermissionsRequest) returns (google.protobuf.Empty);
+  rpc RemovePermissions(RemoveRolePermissionsRequest) returns (google.protobuf.Empty);
+
+  // Private and supposed to only called by another service
+  rpc AppendSuperAdminPermissions(AppendSuperAdminPermissionsRequest) returns (google.protobuf.Empty);
 }
 
 message GetUserRolesRequest {
@@ -41,7 +44,7 @@ message RemoveUserRolesRequest {
   repeated string role_ids = 2;
 }
 
-message RoleCreateRequest {
+message CreateRoleRequest {
   string name = 1;
   optional string description = 2;
   repeated string permission_ids = 3;
@@ -51,35 +54,39 @@ message RoleCreateResponse {
   string id = 1;
 }
 
-message RoleUpdateRequest {
+message UpdateRoleRequest {
   string id = 1;
   optional string name = 2;
   optional string description = 3;
 }
 
-message RoleDeleteRequest {
+message DeleteRoleRequest {
   string id = 1;
 }
 
-message RoleFindRequest {
+message FindRoleRequest {
   repeated string role_ids = 1;
 }
 
-message RoleFindResponse {
+message FindRoleResponse {
   repeated Role roles = 1;
 }
 
-message RoleFindAllResponse {
+message FindAllRolesResponse {
   common.PagedElementOutput details = 1;
   repeated Role roles = 2;
 }
 
-message RoleAppendPermissionsRequest {
+message AppendRolePermissionsRequest {
   string role_id = 1;
   repeated string permission_ids = 2;
 }
 
-message RoleRemovePermissionsRequest {
+message RemoveRolePermissionsRequest {
   string role_id = 1;
+  repeated string permission_ids = 2;
+}
+
+message AppendSuperAdminPermissionsRequest{
   repeated string permission_ids = 2;
 }

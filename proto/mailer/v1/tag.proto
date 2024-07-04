@@ -1,5 +1,5 @@
 syntax = "proto3";
-package nexa.proto.generated.mailer.v1;
+package nexa.mailer.v1;
 option go_package = "nexa/proto/gen/go/mailer/v1";
 
 import "google/protobuf/empty.proto";

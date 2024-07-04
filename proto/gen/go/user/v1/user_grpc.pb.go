@@ -21,34 +21,30 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	UserService_Create_FullMethodName           = "/nexa.proto.generated.user.v1.UserService/Create"
-	UserService_Update_FullMethodName           = "/nexa.proto.generated.user.v1.UserService/Update"
-	UserService_UpdateVerified_FullMethodName   = "/nexa.proto.generated.user.v1.UserService/UpdateVerified"
-	UserService_UpdatePassword_FullMethodName   = "/nexa.proto.generated.user.v1.UserService/UpdatePassword"
-	UserService_Find_FullMethodName             = "/nexa.proto.generated.user.v1.UserService/Find"
-	UserService_FindUserByIds_FullMethodName    = "/nexa.proto.generated.user.v1.UserService/FindUserByIds"
-	UserService_FindUserByEmails_FullMethodName = "/nexa.proto.generated.user.v1.UserService/FindUserByEmails"
-	UserService_BannedUser_FullMethodName       = "/nexa.proto.generated.user.v1.UserService/BannedUser"
-	UserService_DeleteUser_FullMethodName       = "/nexa.proto.generated.user.v1.UserService/DeleteUser"
-	UserService_Validate_FullMethodName         = "/nexa.proto.generated.user.v1.UserService/Validate"
-	UserService_ResetPassword_FullMethodName    = "/nexa.proto.generated.user.v1.UserService/ResetPassword"
-	UserService_ForgotPassword_FullMethodName   = "/nexa.proto.generated.user.v1.UserService/ForgotPassword"
-	UserService_VerifyEmail_FullMethodName      = "/nexa.proto.generated.user.v1.UserService/VerifyEmail"
+	UserService_Create_FullMethodName         = "/nexa.user.v1.UserService/Create"
+	UserService_Update_FullMethodName         = "/nexa.user.v1.UserService/Update"
+	UserService_UpdatePassword_FullMethodName = "/nexa.user.v1.UserService/UpdatePassword"
+	UserService_Find_FullMethodName           = "/nexa.user.v1.UserService/Find"
+	UserService_FindByIds_FullMethodName      = "/nexa.user.v1.UserService/FindByIds"
+	UserService_Banned_FullMethodName         = "/nexa.user.v1.UserService/Banned"
+	UserService_Delete_FullMethodName         = "/nexa.user.v1.UserService/Delete"
+	UserService_Validate_FullMethodName       = "/nexa.user.v1.UserService/Validate"
+	UserService_ResetPassword_FullMethodName  = "/nexa.user.v1.UserService/ResetPassword"
+	UserService_ForgotPassword_FullMethodName = "/nexa.user.v1.UserService/ForgotPassword"
+	UserService_VerifyEmail_FullMethodName    = "/nexa.user.v1.UserService/VerifyEmail"
 )
 
 // UserServiceClient is the client API for UserService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type UserServiceClient interface {
-	Create(ctx context.Context, in *CreateUserRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	Create(ctx context.Context, in *CreateUserRequest, opts ...grpc.CallOption) (*CreateUserResponse, error)
 	Update(ctx context.Context, in *UpdateUserRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	UpdateVerified(ctx context.Context, in *UpdateUserVerifiedRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	UpdatePassword(ctx context.Context, in *UpdateUserPasswordRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	Find(ctx context.Context, in *common.PagedElementInput, opts ...grpc.CallOption) (*FindUsersResponse, error)
-	FindUserByIds(ctx context.Context, in *FindUsersByIdsRequest, opts ...grpc.CallOption) (*FindUserByIdsResponse, error)
-	FindUserByEmails(ctx context.Context, in *FindUserByEmailsRequest, opts ...grpc.CallOption) (*FindUserByEmailsResponse, error)
-	BannedUser(ctx context.Context, in *BannedUserRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	DeleteUser(ctx context.Context, in *DeleteUserRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	FindByIds(ctx context.Context, in *FindUsersByIdsRequest, opts ...grpc.CallOption) (*FindUserByIdsResponse, error)
+	Banned(ctx context.Context, in *BannedUserRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	Delete(ctx context.Context, in *DeleteUserRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	Validate(ctx context.Context, in *ValidateUserRequest, opts ...grpc.CallOption) (*ValidateUserResponse, error)
 	// Handle validating and resetting the password based on the token
 	ResetPassword(ctx context.Context, in *ResetUserPasswordRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
@@ -66,8 +62,8 @@ func NewUserServiceClient(cc grpc.ClientConnInterface) UserServiceClient {
 	return &userServiceClient{cc}
 }
 
-func (c *userServiceClient) Create(ctx context.Context, in *CreateUserRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	out := new(emptypb.Empty)
+func (c *userServiceClient) Create(ctx context.Context, in *CreateUserRequest, opts ...grpc.CallOption) (*CreateUserResponse, error) {
+	out := new(CreateUserResponse)
 	err := c.cc.Invoke(ctx, UserService_Create_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -78,15 +74,6 @@ func (c *userServiceClient) Create(ctx context.Context, in *CreateUserRequest, o
 func (c *userServiceClient) Update(ctx context.Context, in *UpdateUserRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, UserService_Update_FullMethodName, in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *userServiceClient) UpdateVerified(ctx context.Context, in *UpdateUserVerifiedRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, UserService_UpdateVerified_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -111,36 +98,27 @@ func (c *userServiceClient) Find(ctx context.Context, in *common.PagedElementInp
 	return out, nil
 }
 
-func (c *userServiceClient) FindUserByIds(ctx context.Context, in *FindUsersByIdsRequest, opts ...grpc.CallOption) (*FindUserByIdsResponse, error) {
+func (c *userServiceClient) FindByIds(ctx context.Context, in *FindUsersByIdsRequest, opts ...grpc.CallOption) (*FindUserByIdsResponse, error) {
 	out := new(FindUserByIdsResponse)
-	err := c.cc.Invoke(ctx, UserService_FindUserByIds_FullMethodName, in, out, opts...)
+	err := c.cc.Invoke(ctx, UserService_FindByIds_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *userServiceClient) FindUserByEmails(ctx context.Context, in *FindUserByEmailsRequest, opts ...grpc.CallOption) (*FindUserByEmailsResponse, error) {
-	out := new(FindUserByEmailsResponse)
-	err := c.cc.Invoke(ctx, UserService_FindUserByEmails_FullMethodName, in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *userServiceClient) BannedUser(ctx context.Context, in *BannedUserRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+func (c *userServiceClient) Banned(ctx context.Context, in *BannedUserRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, UserService_BannedUser_FullMethodName, in, out, opts...)
+	err := c.cc.Invoke(ctx, UserService_Banned_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *userServiceClient) DeleteUser(ctx context.Context, in *DeleteUserRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+func (c *userServiceClient) Delete(ctx context.Context, in *DeleteUserRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, UserService_DeleteUser_FullMethodName, in, out, opts...)
+	err := c.cc.Invoke(ctx, UserService_Delete_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -187,15 +165,13 @@ func (c *userServiceClient) VerifyEmail(ctx context.Context, in *VerifyUserEmail
 // All implementations must embed UnimplementedUserServiceServer
 // for forward compatibility
 type UserServiceServer interface {
-	Create(context.Context, *CreateUserRequest) (*emptypb.Empty, error)
+	Create(context.Context, *CreateUserRequest) (*CreateUserResponse, error)
 	Update(context.Context, *UpdateUserRequest) (*emptypb.Empty, error)
-	UpdateVerified(context.Context, *UpdateUserVerifiedRequest) (*emptypb.Empty, error)
 	UpdatePassword(context.Context, *UpdateUserPasswordRequest) (*emptypb.Empty, error)
 	Find(context.Context, *common.PagedElementInput) (*FindUsersResponse, error)
-	FindUserByIds(context.Context, *FindUsersByIdsRequest) (*FindUserByIdsResponse, error)
-	FindUserByEmails(context.Context, *FindUserByEmailsRequest) (*FindUserByEmailsResponse, error)
-	BannedUser(context.Context, *BannedUserRequest) (*emptypb.Empty, error)
-	DeleteUser(context.Context, *DeleteUserRequest) (*emptypb.Empty, error)
+	FindByIds(context.Context, *FindUsersByIdsRequest) (*FindUserByIdsResponse, error)
+	Banned(context.Context, *BannedUserRequest) (*emptypb.Empty, error)
+	Delete(context.Context, *DeleteUserRequest) (*emptypb.Empty, error)
 	Validate(context.Context, *ValidateUserRequest) (*ValidateUserResponse, error)
 	// Handle validating and resetting the password based on the token
 	ResetPassword(context.Context, *ResetUserPasswordRequest) (*emptypb.Empty, error)
@@ -210,14 +186,11 @@ type UserServiceServer interface {
 type UnimplementedUserServiceServer struct {
 }
 
-func (UnimplementedUserServiceServer) Create(context.Context, *CreateUserRequest) (*emptypb.Empty, error) {
+func (UnimplementedUserServiceServer) Create(context.Context, *CreateUserRequest) (*CreateUserResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Create not implemented")
 }
 func (UnimplementedUserServiceServer) Update(context.Context, *UpdateUserRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
-}
-func (UnimplementedUserServiceServer) UpdateVerified(context.Context, *UpdateUserVerifiedRequest) (*emptypb.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UpdateVerified not implemented")
 }
 func (UnimplementedUserServiceServer) UpdatePassword(context.Context, *UpdateUserPasswordRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdatePassword not implemented")
@@ -225,17 +198,14 @@ func (UnimplementedUserServiceServer) UpdatePassword(context.Context, *UpdateUse
 func (UnimplementedUserServiceServer) Find(context.Context, *common.PagedElementInput) (*FindUsersResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Find not implemented")
 }
-func (UnimplementedUserServiceServer) FindUserByIds(context.Context, *FindUsersByIdsRequest) (*FindUserByIdsResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method FindUserByIds not implemented")
+func (UnimplementedUserServiceServer) FindByIds(context.Context, *FindUsersByIdsRequest) (*FindUserByIdsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FindByIds not implemented")
 }
-func (UnimplementedUserServiceServer) FindUserByEmails(context.Context, *FindUserByEmailsRequest) (*FindUserByEmailsResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method FindUserByEmails not implemented")
+func (UnimplementedUserServiceServer) Banned(context.Context, *BannedUserRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Banned not implemented")
 }
-func (UnimplementedUserServiceServer) BannedUser(context.Context, *BannedUserRequest) (*emptypb.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method BannedUser not implemented")
-}
-func (UnimplementedUserServiceServer) DeleteUser(context.Context, *DeleteUserRequest) (*emptypb.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method DeleteUser not implemented")
+func (UnimplementedUserServiceServer) Delete(context.Context, *DeleteUserRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
 }
 func (UnimplementedUserServiceServer) Validate(context.Context, *ValidateUserRequest) (*ValidateUserResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Validate not implemented")
@@ -298,24 +268,6 @@ func _UserService_Update_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
-func _UserService_UpdateVerified_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UpdateUserVerifiedRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(UserServiceServer).UpdateVerified(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: UserService_UpdateVerified_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UserServiceServer).UpdateVerified(ctx, req.(*UpdateUserVerifiedRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _UserService_UpdatePassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(UpdateUserPasswordRequest)
 	if err := dec(in); err != nil {
@@ -352,74 +304,56 @@ func _UserService_Find_Handler(srv interface{}, ctx context.Context, dec func(in
 	return interceptor(ctx, in, info, handler)
 }
 
-func _UserService_FindUserByIds_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _UserService_FindByIds_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(FindUsersByIdsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(UserServiceServer).FindUserByIds(ctx, in)
+		return srv.(UserServiceServer).FindByIds(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: UserService_FindUserByIds_FullMethodName,
+		FullMethod: UserService_FindByIds_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UserServiceServer).FindUserByIds(ctx, req.(*FindUsersByIdsRequest))
+		return srv.(UserServiceServer).FindByIds(ctx, req.(*FindUsersByIdsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _UserService_FindUserByEmails_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(FindUserByEmailsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(UserServiceServer).FindUserByEmails(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: UserService_FindUserByEmails_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UserServiceServer).FindUserByEmails(ctx, req.(*FindUserByEmailsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _UserService_BannedUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _UserService_Banned_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(BannedUserRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(UserServiceServer).BannedUser(ctx, in)
+		return srv.(UserServiceServer).Banned(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: UserService_BannedUser_FullMethodName,
+		FullMethod: UserService_Banned_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UserServiceServer).BannedUser(ctx, req.(*BannedUserRequest))
+		return srv.(UserServiceServer).Banned(ctx, req.(*BannedUserRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _UserService_DeleteUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _UserService_Delete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(DeleteUserRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(UserServiceServer).DeleteUser(ctx, in)
+		return srv.(UserServiceServer).Delete(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: UserService_DeleteUser_FullMethodName,
+		FullMethod: UserService_Delete_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UserServiceServer).DeleteUser(ctx, req.(*DeleteUserRequest))
+		return srv.(UserServiceServer).Delete(ctx, req.(*DeleteUserRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -500,7 +434,7 @@ func _UserService_VerifyEmail_Handler(srv interface{}, ctx context.Context, dec 
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var UserService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "nexa.proto.generated.user.v1.UserService",
+	ServiceName: "nexa.user.v1.UserService",
 	HandlerType: (*UserServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -512,10 +446,6 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _UserService_Update_Handler,
 		},
 		{
-			MethodName: "UpdateVerified",
-			Handler:    _UserService_UpdateVerified_Handler,
-		},
-		{
 			MethodName: "UpdatePassword",
 			Handler:    _UserService_UpdatePassword_Handler,
 		},
@@ -524,20 +454,16 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _UserService_Find_Handler,
 		},
 		{
-			MethodName: "FindUserByIds",
-			Handler:    _UserService_FindUserByIds_Handler,
+			MethodName: "FindByIds",
+			Handler:    _UserService_FindByIds_Handler,
 		},
 		{
-			MethodName: "FindUserByEmails",
-			Handler:    _UserService_FindUserByEmails_Handler,
+			MethodName: "Banned",
+			Handler:    _UserService_Banned_Handler,
 		},
 		{
-			MethodName: "BannedUser",
-			Handler:    _UserService_BannedUser_Handler,
-		},
-		{
-			MethodName: "DeleteUser",
-			Handler:    _UserService_DeleteUser_Handler,
+			MethodName: "Delete",
+			Handler:    _UserService_Delete_Handler,
 		},
 		{
 			MethodName: "Validate",

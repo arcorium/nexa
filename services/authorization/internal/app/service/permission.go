@@ -9,10 +9,10 @@ import (
   "nexa/services/authorization/internal/domain/service"
   "nexa/services/authorization/util"
   sharedDto "nexa/shared/dto"
-  spanUtil "nexa/shared/span"
   "nexa/shared/status"
   "nexa/shared/types"
   sharedUtil "nexa/shared/util"
+  spanUtil "nexa/shared/util/span"
 )
 
 func NewPermission(permission repository.IPermission) service.IPermission {
@@ -28,38 +28,30 @@ type permissionService struct {
   tracer trace.Tracer
 }
 
-func (p *permissionService) Create(ctx context.Context, createDTO *dto.PermissionCreateDTO) (string, status.Object) {
+func (p *permissionService) Create(ctx context.Context, createDTO *dto.PermissionCreateDTO) (types.Id, status.Object) {
   ctx, span := p.tracer.Start(ctx, "PermissionService.Create")
   defer span.End()
 
   domain, err := createDTO.ToDomain()
   if err != nil {
     spanUtil.RecordError(err, span)
-    return "", status.ErrBadRequest(err)
+    return types.NullId(), status.ErrInternal(err)
   }
 
   err = p.permRepo.Create(ctx, &domain)
   if err != nil {
-    return "", status.FromRepository(err, status.NullCode)
+    spanUtil.RecordError(err, span)
+    return types.NullId(), status.FromRepository(err, status.NullCode)
   }
 
-  return domain.Id.String(), status.Created()
+  return domain.Id, status.Created()
 }
 
-func (p *permissionService) Find(ctx context.Context, permIds ...string) ([]dto.PermissionResponseDTO, status.Object) {
-  ctx, span := p.tracer.Start(ctx, "PermissionService.Find")
+func (p *permissionService) Find(ctx context.Context, permIds ...types.Id) ([]dto.PermissionResponseDTO, status.Object) {
+  ctx, span := p.tracer.Start(ctx, "PermissionService.FindByIds")
   defer span.End()
 
-  ids, ierr := sharedUtil.CastSliceErrs(permIds, func(permId string) (types.Id, error) {
-    return types.IdFromString(permId)
-  })
-
-  if !ierr.IsNil() {
-    spanUtil.RecordError(ierr, span)
-    return nil, status.ErrBadRequest(ierr)
-  }
-
-  permissions, err := p.permRepo.FindByIds(ctx, ids...)
+  permissions, err := p.permRepo.FindByIds(ctx, permIds...)
   if err != nil {
     spanUtil.RecordError(err, span)
     return nil, status.FromRepository(err, status.NullCode)
@@ -69,20 +61,11 @@ func (p *permissionService) Find(ctx context.Context, permIds ...string) ([]dto.
   return responseDTOS, status.Success()
 }
 
-func (p *permissionService) FindByRoles(ctx context.Context, roleIds ...string) ([]dto.PermissionResponseDTO, status.Object) {
+func (p *permissionService) FindByRoles(ctx context.Context, roleIds ...types.Id) ([]dto.PermissionResponseDTO, status.Object) {
   ctx, span := p.tracer.Start(ctx, "PermissionService.FindByRoles")
   defer span.End()
 
-  ids, ierr := sharedUtil.CastSliceErrs(roleIds, func(permId string) (types.Id, error) {
-    return types.IdFromString(permId)
-  })
-
-  if !ierr.IsNil() {
-    spanUtil.RecordError(ierr, span)
-    return nil, status.ErrBadRequest(ierr)
-  }
-
-  permissions, err := p.permRepo.FindByRoleIds(ctx, ids...)
+  permissions, err := p.permRepo.FindByRoleIds(ctx, roleIds...)
   if err != nil {
     spanUtil.RecordError(err, span)
     return nil, status.FromRepository(err, status.NullCode)
@@ -99,50 +82,21 @@ func (p *permissionService) FindAll(ctx context.Context, input *sharedDto.PagedE
   result, err := p.permRepo.FindAll(ctx, input.ToQueryParam())
   if err != nil {
     spanUtil.RecordError(err, span)
-    return sharedDto.PagedElementResult[dto.PermissionResponseDTO]{}, status.ErrBadRequest(err)
+    return sharedDto.PagedElementResult[dto.PermissionResponseDTO]{}, status.FromRepository(err, status.NullCode)
   }
 
   responseDTOS := sharedUtil.CastSliceP(result.Data, mapper.ToPermissionResponseDTO)
   return sharedDto.NewPagedElementResult2(responseDTOS, input, result.Total), status.Success()
 }
 
-func (p *permissionService) Delete(ctx context.Context, permId string) status.Object {
+func (p *permissionService) Delete(ctx context.Context, permId types.Id) status.Object {
   ctx, span := p.tracer.Start(ctx, "PermissionService.Delete")
   defer span.End()
 
-  id, err := types.IdFromString(permId)
-  if err != nil {
-    spanUtil.RecordError(err, span)
-    return status.ErrBadRequest(err)
-  }
-
-  err = p.permRepo.Delete(ctx, id)
+  err := p.permRepo.Delete(ctx, permId)
   if err != nil {
     spanUtil.RecordError(err, span)
     return status.FromRepository(err, status.NullCode)
   }
   return status.Deleted()
 }
-
-//
-//func (p *permissionService) Find(ctx context.Context, id types.Id) (dto.PermissionResponseDTO, status.Object) {
-//  permission, err := p.permRepo.FindById(ctx, id)
-//  return mapper.ToPermissionResponseDTO(&permission), status.FromRepository(err, status.NullCode)
-//}
-//
-//func (p *permissionService) FindAll(ctx context.Context, input *sharedDto.PagedElementDTO) (sharedDto.PagedElementResult[dto.PermissionResponseDTO], status.Object) {
-//  result, err := p.permRepo.FindAll(ctx, input.ToQueryParam())
-//  responseDTOS := util.CastSlice(result.Data, mapper.ToPermissionResponseDTO)
-//  return sharedDto.NewPagedElementOutput2(responseDTOS, input, result.Total), status.FromRepository(err, status.NullCode)
-//}
-//
-//func (p *permissionService) Create(ctx context.Context, createDTO *dto.PermissionCreateDTO) (types.Id, status.Object) {
-//  perm := createDTO.ToDomain()
-//  err := p.permRepo.Create(ctx, &perm)
-//  return perm.Id, status.FromRepository(err, status.NullCode)
-//}
-//
-//func (p *permissionService) Delete(ctx context.Context, id types.Id) status.Object {
-//  err := p.permRepo.Delete(ctx, id)
-//  return status.FromRepository(err, status.NullCode)
-//}

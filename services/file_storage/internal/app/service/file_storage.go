@@ -2,68 +2,76 @@ package service
 
 import (
   "context"
+  "fmt"
   "go.opentelemetry.io/otel/trace"
+  "nexa/services/file_storage/internal/app/uow"
   "nexa/services/file_storage/internal/domain/dto"
   "nexa/services/file_storage/internal/domain/external"
   "nexa/services/file_storage/internal/domain/mapper"
-  "nexa/services/file_storage/internal/domain/repository"
   "nexa/services/file_storage/internal/domain/service"
   "nexa/services/file_storage/util"
-  spanUtil "nexa/shared/span"
   "nexa/shared/status"
   "nexa/shared/types"
+  sharedUow "nexa/shared/uow"
+  spanUtil "nexa/shared/util/span"
 )
 
-func NewFileStorage(metadataRepo repository.IFileMetadata, storage external.IStorage) service.IFileStorage {
+func NewFileStorage(unit sharedUow.IUnitOfWork[uow.FileMetadataStorage], storage external.IStorage) service.IFileStorage {
   return &fileStorage{
-    metadataRepo: metadataRepo,
-    storageExt:   storage,
-    tracer:       util.GetTracer(),
+    unit:       unit,
+    storageExt: storage,
+    tracer:     util.GetTracer(),
   }
 }
 
 type fileStorage struct {
-  metadataRepo repository.IFileMetadata
-  storageExt   external.IStorage
+  unit       sharedUow.IUnitOfWork[uow.FileMetadataStorage]
+  storageExt external.IStorage
 
   tracer trace.Tracer
 }
 
-func (f fileStorage) Store(ctx context.Context, file *dto.FileStoreDTO) (string, status.Object) {
+func (f *fileStorage) publicPath(filename string) string {
+  return fmt.Sprintf("/public/%s", filename)
+}
+
+func (f *fileStorage) Store(ctx context.Context, fileDto *dto.FileStoreDTO) (types.Id, status.Object) {
   ctx, span := f.tracer.Start(ctx, "FileStorageService.Store")
   defer span.End()
 
-  // upload to storage
-  files := mapper.MapFileStoreDTO(file)
-  relativePath, err := f.storageExt.Store(ctx, &files)
+  // Map to domain
+  file, metadata, err := fileDto.ToDomain(f.storageExt)
   if err != nil {
     spanUtil.RecordError(err, span)
-    return "", status.New(status.EXTERNAL_SERVICE_ERROR, err)
+    return types.NullId(), status.ErrInternal(err)
   }
 
-  // save metadata
-  metadata, err := mapper.MapFileMetadata(file, f.storageExt)
+  // Upload file
+  relativePath, err := f.storageExt.Store(ctx, &file)
+  if err != nil {
+    spanUtil.RecordError(err, span)
+    return types.NullId(), status.ErrExternal(err)
+  }
+
+  // Save metadata
   metadata.ProviderPath = relativePath
+  repos := f.unit.Repositories()
+  err = repos.Metadata().Create(ctx, &metadata)
   if err != nil {
     spanUtil.RecordError(err, span)
-    return "", status.ErrInternal(err)
+    return types.NullId(), status.FromRepository(err, status.NullCode)
   }
 
-  err = f.metadataRepo.Create(ctx, &metadata)
-  if err != nil {
-    spanUtil.RecordError(err, span)
-    return "", status.FromRepository(err, status.NullCode)
-  }
-
-  return metadata.Id.Underlying().String(), status.Created()
+  return metadata.Id, status.Created()
 }
 
-func (f fileStorage) Find(ctx context.Context, id types.Id) (dto.FileResponseDTO, status.Object) {
+func (f *fileStorage) Find(ctx context.Context, id types.Id) (dto.FileResponseDTO, status.Object) {
   ctx, span := f.tracer.Start(ctx, "FileStorageService.Find")
   defer span.End()
 
   // get metadata
-  metadata, err := f.metadataRepo.FindByIds(ctx, id)
+  repos := f.unit.Repositories()
+  metadata, err := repos.Metadata().FindByIds(ctx, id)
   if err != nil {
     spanUtil.RecordError(err, span)
     return dto.FileResponseDTO{}, status.FromRepository(err, status.NullCode)
@@ -73,18 +81,19 @@ func (f fileStorage) Find(ctx context.Context, id types.Id) (dto.FileResponseDTO
   file, err := f.storageExt.Find(ctx, metadata[0].ProviderPath)
   if err != nil {
     spanUtil.RecordError(err, span)
-    return dto.FileResponseDTO{}, status.New(status.EXTERNAL_SERVICE_ERROR, err)
+    return dto.FileResponseDTO{}, status.ErrExternal(err)
   }
 
   return mapper.ToFileResponse(&file), status.Success()
 }
 
-func (f fileStorage) FindMetadata(ctx context.Context, id types.Id) (*dto.FileMetadataResponseDTO, status.Object) {
+func (f *fileStorage) FindMetadata(ctx context.Context, id types.Id) (*dto.FileMetadataResponseDTO, status.Object) {
   ctx, span := f.tracer.Start(ctx, "FileStorageService.FindMetadata")
   defer span.End()
 
   // get metadata
-  metadata, err := f.metadataRepo.FindByIds(ctx, id)
+  repos := f.unit.Repositories()
+  metadata, err := repos.Metadata().FindByIds(ctx, id)
   if err != nil {
     spanUtil.RecordError(err, span)
     return nil, status.FromRepository(err, status.NullCode)
@@ -94,45 +103,98 @@ func (f fileStorage) FindMetadata(ctx context.Context, id types.Id) (*dto.FileMe
   return &resp, status.Success()
 }
 
-func (f fileStorage) Delete(ctx context.Context, id types.Id) status.Object {
+func (f *fileStorage) Delete(ctx context.Context, id types.Id) status.Object {
   ctx, span := f.tracer.Start(ctx, "FileStorageService.Delete")
   defer span.End()
 
-  // get metadata
-  metadata, err := f.metadataRepo.FindByIds(ctx, id)
+  // Get metadata
+  repos := f.unit.Repositories()
+  metadata, err := repos.Metadata().FindByIds(ctx, id)
   if err != nil {
     spanUtil.RecordError(err, span)
     return status.FromRepository(err, status.NullCode)
   }
 
-  // delete from storage
-  err = f.storageExt.Delete(ctx, metadata[0].ProviderPath)
-  if err != nil {
-    return status.FromRepository(err, status.NullCode)
-  }
+  stat := status.Deleted()
+  // err ignored, because it could be caused by repository and storage external service
+  _ = f.unit.DoTx(ctx, func(ctx context.Context, storage uow.FileMetadataStorage) error {
+    ctx, span := f.tracer.Start(ctx, "UOW.Delete")
+    // Delete metadata from persistent database
+    err = storage.Metadata().DeleteById(ctx, id)
+    if err != nil {
+      spanUtil.RecordError(err, span)
+      stat = status.FromRepository(err, status.NullCode)
+      return err
+    }
 
-  // delete metadata
-  err = f.metadataRepo.DeleteById(ctx, id)
-  if err != nil {
-    return status.FromRepository(err, status.NullCode)
-  }
+    // Delete from storage
+    err = f.storageExt.Delete(ctx, metadata[0].ProviderPath)
+    if err != nil {
+      spanUtil.RecordError(err, span)
+      stat = status.ErrExternal(err)
+      return err
+    }
 
-  return status.Deleted()
+    return nil
+  })
+
+  return stat
 }
 
-func (f fileStorage) UpdateMetadata(ctx context.Context, input *dto.UpdateFileMetadataDTO) status.Object {
+func (f *fileStorage) UpdateMetadata(ctx context.Context, input *dto.UpdateFileMetadataDTO) status.Object {
   ctx, span := f.tracer.Start(ctx, "FileStorageService.UpdateMetadata")
   defer span.End()
 
-  obj, err := mapper.MapUpdateFileMetadataDTO(input)
+  obj := input.ToDomain()
+  // Get file metadata
+  repos := f.unit.Repositories()
+  metadata, err := repos.Metadata().FindByIds(ctx, input.Id)
   if err != nil {
-    return status.ErrInternal(err)
-  }
-
-  err = f.metadataRepo.Update(ctx, &obj)
-  if err != nil {
+    spanUtil.RecordError(err, span)
     return status.FromRepository(err, status.NullCode)
   }
 
-  return status.Updated()
+  // Doesn't need to update, currently it only handle moving into/from public path
+  if metadata[0].IsPublic == obj.IsPublic {
+    return status.Updated()
+  }
+
+  stat := status.Updated()
+  _ = f.unit.DoTx(ctx, func(ctx context.Context, storage uow.FileMetadataStorage) error {
+    ctx, span = f.tracer.Start(ctx, "UOW.UpdateMetadata")
+    defer span.End()
+
+    // Copy file
+    dest := metadata[0].Name
+    if obj.IsPublic {
+      dest = f.publicPath(dest)
+    }
+    newPath, err := f.storageExt.Copy(ctx, metadata[0].ProviderPath, dest)
+    if err != nil {
+      spanUtil.RecordError(err, span)
+      stat = status.ErrExternal(err)
+      return err
+    }
+
+    // Update file metadata
+    obj.ProviderPath = newPath
+    err = storage.Metadata().Update(ctx, &obj)
+    if err != nil {
+      spanUtil.RecordError(err, span)
+      stat = status.FromRepository(err, status.NullCode)
+      return err
+    }
+
+    // Delete old file
+    err = f.storageExt.Delete(ctx, metadata[0].ProviderPath)
+    if err != nil {
+      spanUtil.RecordError(err, span)
+      stat = status.ErrExternal(err)
+      return err
+    }
+
+    return nil
+  })
+
+  return stat
 }

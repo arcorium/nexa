@@ -12,6 +12,8 @@ type IRole interface {
   FindByIds(ctx context.Context, ids ...types.Id) ([]entity.Role, error)
   // FindByUserId get user roles
   FindByUserId(ctx context.Context, userId types.Id) ([]entity.Role, error)
+  // FindByName get roles by the name
+  FindByName(ctx context.Context, name string) (entity.Role, error)
   // FindAll get all roles
   FindAll(ctx context.Context, parameter repo.QueryParameter) (repo.PaginatedResult[entity.Role], error)
   // Create create new role

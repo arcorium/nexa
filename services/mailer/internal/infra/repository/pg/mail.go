@@ -37,10 +37,13 @@ func (m *mailRepository) FindAll(ctx context.Context, query repo.QueryParameter)
     Limit(int(query.Limit)).
     ScanAndCount(ctx)
 
+  // Checking and Mapping
   result := repo.CheckPaginationResultWithSpan(models, count, err, span)
-  users := sharedUtil.CastSliceP(result.Data, func(from *model.Mail) domain.Mail {
-    return from.ToDomain()
-  })
+  users, ierr := sharedUtil.CastSliceErrsP(result.Data, repo.ToDomainErr[*model.Mail, domain.Mail])
+  if !ierr.IsNil() {
+    return repo.PaginatedResult[domain.Mail]{}, ierr
+  }
+
   return repo.NewPaginatedResult(users, uint64(count)), result.Err
 }
 
@@ -60,9 +63,11 @@ func (m *mailRepository) FindByIds(ctx context.Context, ids ...types.Id) ([]doma
     Scan(ctx)
 
   res := repo.CheckSliceResultWithSpan(models, err, span)
-  result := sharedUtil.CastSliceP(res.Data, func(from *model.Mail) domain.Mail {
-    return from.ToDomain()
-  })
+
+  result, ierr := sharedUtil.CastSliceErrsP(res.Data, repo.ToDomainErr[*model.Mail, domain.Mail])
+  if !ierr.IsNil() {
+    return nil, ierr
+  }
   return result, res.Err
 }
 
@@ -75,13 +80,14 @@ func (m *mailRepository) FindByTag(ctx context.Context, tag types.Id) ([]domain.
   err := m.db.NewSelect().
     Model(&models).
     Relation("Tags").
-    Where("tags.id = ?", tag.Underlying().String()).
+    Where("tags.id = ?", tag.String()).
     Scan(ctx)
 
   res := repo.CheckSliceResultWithSpan(models, err, span)
-  result := sharedUtil.CastSliceP(res.Data, func(from *model.Mail) domain.Mail {
-    return from.ToDomain()
-  })
+  result, ierr := sharedUtil.CastSliceErrsP(res.Data, repo.ToDomainErr[*model.Mail, domain.Mail])
+  if !ierr.IsNil() {
+    return nil, ierr
+  }
   return result, res.Err
 }
 
@@ -130,7 +136,7 @@ func (m *mailRepository) RemoveTags(ctx context.Context, mailId types.Id, tagIds
   })
 
   res, err := m.db.NewDelete().
-    Model(sharedUtil.Nil[model.MailTag]()).
+    Model(types.Nil[model.MailTag]()).
     Where("id = ? AND tag_id IN (?)", mailId.Underlying().String(), bun.In(ids)).
     Exec(ctx)
 
@@ -160,8 +166,8 @@ func (m *mailRepository) Remove(ctx context.Context, id types.Id) error {
   defer span.End()
 
   res, err := m.db.NewDelete().
-    Model(sharedUtil.Nil[model.Mail]()).
-    Where("id = ?", id.Underlying().String()).
+    Model(types.Nil[model.Mail]()).
+    Where("id = ?", id.String()).
     Exec(ctx)
 
   return repo.CheckResultWithSpan(res, err, span)

@@ -1,44 +1,93 @@
 package mapper
 
 import (
+  "google.golang.org/protobuf/types/known/timestamppb"
   mailerv1 "nexa/proto/gen/go/mailer/v1"
   "nexa/services/mailer/internal/domain/dto"
-  "nexa/shared/util"
+  "nexa/services/mailer/util"
+  sharedErr "nexa/shared/errors"
+  "nexa/shared/types"
+  sharedUtil "nexa/shared/util"
   "nexa/shared/wrapper"
 )
 
-func ToSendMailDTO(request *mailerv1.SendMailRequest) dto.SendMailDTO {
-  return dto.SendMailDTO{
+func ToSendMailDTO(request *mailerv1.SendMailRequest) (dto.SendMailDTO, error) {
+  recipientEmails, ierr := sharedUtil.CastSliceErrs(request.Recipients, types.EmailFromString)
+  if !ierr.IsNil() {
+    return dto.SendMailDTO{}, ierr.ToGRPCError("recipients")
+  }
+
+  tagIds, ierr := sharedUtil.CastSliceErrs(request.TagIds, types.IdFromString)
+  if !ierr.IsNil() {
+    return dto.SendMailDTO{}, ierr.ToGRPCError("tag_ids")
+  }
+
+  bodyType, err := util.ToDomainBodyType(request.BodyType)
+  if err != nil {
+    return dto.SendMailDTO{}, sharedErr.NewFieldError("body_type", err).ToGrpcError()
+  }
+
+  var senderEmail *types.Email = nil
+  if request.Sender != nil {
+    email, err := types.EmailFromString(*request.Sender)
+    if err != nil {
+      return dto.SendMailDTO{}, sharedErr.NewFieldError("sender", err).ToGrpcError()
+    }
+    senderEmail = &email // dangling and escaped
+  }
+
+  dtos := dto.SendMailDTO{
     Subject:    request.Subject,
-    Recipients: request.Recipients,
-    Sender:     wrapper.NewNullable(request.Sender),
-    BodyType:   uint8(request.BodyType),
+    Recipients: recipientEmails,
+    Sender:     wrapper.NewNullable(senderEmail),
+    BodyType:   bodyType,
     Body:       request.Body,
-    TagIds:     request.TagIds,
-    Attachments: util.CastSlice(request.Attachments, func(from *mailerv1.FileAttachment) dto.FileAttachment {
+    TagIds:     tagIds,
+    Attachments: sharedUtil.CastSlice(request.Attachments, func(attachment *mailerv1.FileAttachment) dto.FileAttachment {
       return dto.FileAttachment{
-        Filename: from.Filename,
-        Data:     from.Data,
+        Filename: attachment.Filename,
+        Data:     attachment.Data,
       }
     }),
   }
+
+  err = sharedUtil.ValidateStruct(&dtos)
+  return dtos, err
 }
 
-func ToUpdateMailDTO(request *mailerv1.UpdateMailRequest) dto.UpdateMailDTO {
-  return dto.UpdateMailDTO{
-    Id:            request.MailId,
-    AddedTagIds:   request.AddedTagIds,
-    RemovedTagIds: request.RemovedTagIds,
+func ToUpdateMailDTO(request *mailerv1.UpdateMailRequest) (dto.UpdateMailDTO, error) {
+  // Mapping and Validation
+  mailId, err := types.IdFromString(request.MailId)
+  if err != nil {
+    return dto.UpdateMailDTO{}, sharedErr.NewFieldError("mail_id", err).ToGrpcError()
   }
+
+  appendTagIds, ierr := sharedUtil.CastSliceErrs(request.AddedTagIds, types.IdFromString)
+  if !ierr.IsNil() {
+    return dto.UpdateMailDTO{}, ierr.ToGRPCError("added_tag_ids")
+  }
+
+  removedTagIds, ierr := sharedUtil.CastSliceErrs(request.RemovedTagIds, types.IdFromString)
+  if !ierr.IsNil() {
+    return dto.UpdateMailDTO{}, ierr.ToGRPCError("removed_tag_ids")
+  }
+
+  return dto.UpdateMailDTO{
+    Id:            mailId,
+    AddedTagIds:   appendTagIds,
+    RemovedTagIds: removedTagIds,
+  }, nil
 }
 
 func ToProtoMail(dto *dto.MailResponseDTO) *mailerv1.Mail {
   return &mailerv1.Mail{
-    Id:        dto.Id,
-    Subject:   dto.Subject,
-    Recipient: dto.Recipient,
-    Sender:    dto.Sender,
-    Status:    dto.Status,
-    Tags:      util.CastSliceP(dto.Tags, ToProtoTag),
+    Id:          dto.Id.String(),
+    Subject:     dto.Subject,
+    Recipient:   dto.Recipient.String(),
+    Sender:      dto.Sender.String(),
+    Status:      dto.Status.String(),
+    SentAt:      timestamppb.New(dto.SentAt),
+    DeliveredAt: timestamppb.New(dto.DeliveredAt),
+    Tags:        sharedUtil.CastSliceP(dto.Tags, ToProtoTag),
   }
 }

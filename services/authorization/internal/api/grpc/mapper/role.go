@@ -3,56 +3,88 @@ package mapper
 import (
   authZv1 "nexa/proto/gen/go/authorization/v1"
   "nexa/services/authorization/internal/domain/dto"
+  sharedErr "nexa/shared/errors"
+  "nexa/shared/types"
   sharedUtil "nexa/shared/util"
   "nexa/shared/wrapper"
 )
 
-func ToRoleCreateDTO(req *authZv1.RoleCreateRequest) dto.RoleCreateDTO {
-  return dto.RoleCreateDTO{
+func ToRoleCreateDTO(req *authZv1.CreateRoleRequest) (dto.RoleCreateDTO, error) {
+  dtos := dto.RoleCreateDTO{
     Name:        req.Name,
     Description: wrapper.NewNullable(req.Description),
   }
+
+  err := sharedUtil.ValidateStruct(&dtos)
+  return dtos, err
 }
 
-func ToRoleUpdateDTO(req *authZv1.RoleUpdateRequest) dto.RoleUpdateDTO {
+func ToRoleUpdateDTO(req *authZv1.UpdateRoleRequest) (dto.RoleUpdateDTO, error) {
+  id, err := types.IdFromString(req.Id)
+  if err != nil {
+    return dto.RoleUpdateDTO{}, sharedErr.NewFieldError("id", err).ToGrpcError()
+  }
+
   return dto.RoleUpdateDTO{
-    Id:          req.Id,
+    RoleId:      id,
     Name:        wrapper.NewNullable(req.Name),
     Description: wrapper.NewNullable(req.Description),
-  }
+  }, nil
 }
 
-func ToAddRolePermissionsDTO(req *authZv1.RoleAppendPermissionsRequest) dto.RoleAddPermissionsDTO {
-  return dto.RoleAddPermissionsDTO{
-    RoleId:        req.RoleId,
-    PermissionIds: req.PermissionIds,
+func toModifyRolesPermissionsDTO(roleId string, permIds []string) (dto.ModifyRolesPermissionsDTO, error) {
+  id, err := types.IdFromString(roleId)
+  if err != nil {
+    return dto.ModifyRolesPermissionsDTO{}, sharedErr.NewFieldError("user_id", err).ToGrpcError()
   }
+
+  ids, ierr := sharedUtil.CastSliceErrs(permIds, types.IdFromString)
+  if !ierr.IsNil() {
+    return dto.ModifyRolesPermissionsDTO{}, ierr.ToGRPCError("role_ids")
+  }
+
+  return dto.ModifyRolesPermissionsDTO{
+    RoleId:        id,
+    PermissionIds: ids,
+  }, nil
 }
 
-func ToRemoveRolePermissionsDTO(req *authZv1.RoleRemovePermissionsRequest) dto.RoleRemovePermissionsDTO {
-  return dto.RoleRemovePermissionsDTO{
-    RoleId:        req.RoleId,
-    PermissionIds: req.PermissionIds,
-  }
+func ToAddRolePermissionsDTO(req *authZv1.AppendRolePermissionsRequest) (dto.ModifyRolesPermissionsDTO, error) {
+  return toModifyRolesPermissionsDTO(req.RoleId, req.PermissionIds)
 }
 
-func ToAddUsersDTO(input *authZv1.AddUserRolesRequest) dto.RoleAddUsersDTO {
-  return dto.RoleAddUsersDTO{
-    UserId:  input.UserId,
-    RoleIds: input.RoleIds,
-  }
+func ToRemoveRolePermissionsDTO(req *authZv1.RemoveRolePermissionsRequest) (dto.ModifyRolesPermissionsDTO, error) {
+  return toModifyRolesPermissionsDTO(req.RoleId, req.PermissionIds)
 }
 
-func ToRemoveUsersDTO(input *authZv1.RemoveUserRolesRequest) dto.RoleRemoveUsersDTO {
-  return dto.RoleRemoveUsersDTO{
-    UserId:  input.UserId,
-    RoleIds: input.RoleIds,
+func toModifyUserRolesDTO(userId string, roleIds []string) (dto.ModifyUserRolesDTO, error) {
+  id, err := types.IdFromString(userId)
+  if err != nil {
+    return dto.ModifyUserRolesDTO{}, sharedErr.NewFieldError("user_id", err).ToGrpcError()
   }
+
+  ids, ierr := sharedUtil.CastSliceErrs(roleIds, types.IdFromString)
+  if !ierr.IsNil() {
+    return dto.ModifyUserRolesDTO{}, ierr.ToGRPCError("role_ids")
+  }
+
+  return dto.ModifyUserRolesDTO{
+    UserId:  id,
+    RoleIds: ids,
+  }, nil
 }
 
-func ToRoleResponse(resp *dto.RoleResponseDTO) *authZv1.Role {
+func ToAddUsersDTO(input *authZv1.AddUserRolesRequest) (dto.ModifyUserRolesDTO, error) {
+  return toModifyUserRolesDTO(input.UserId, input.RoleIds)
+}
+
+func ToRemoveUsersDTO(input *authZv1.RemoveUserRolesRequest) (dto.ModifyUserRolesDTO, error) {
+  return toModifyUserRolesDTO(input.UserId, input.RoleIds)
+}
+
+func ToProtoRole(resp *dto.RoleResponseDTO) *authZv1.Role {
   return &authZv1.Role{
-    Id:          resp.Id,
+    Id:          resp.Id.String(),
     Name:        resp.Name,
     Description: resp.Description,
   }
@@ -61,7 +93,7 @@ func ToRoleResponse(resp *dto.RoleResponseDTO) *authZv1.Role {
 func ToProtoRolePermission(responseDTO *dto.RoleResponseDTO, includePerm bool) *authZv1.RolePermission {
   rolePerm := &authZv1.RolePermission{
     Role: &authZv1.Role{
-      Id:          responseDTO.Id,
+      Id:          responseDTO.Id.String(),
       Name:        responseDTO.Name,
       Description: responseDTO.Description,
     },
@@ -69,7 +101,7 @@ func ToProtoRolePermission(responseDTO *dto.RoleResponseDTO, includePerm bool) *
   if includePerm {
     rolePerm.Permissions = sharedUtil.CastSliceP(responseDTO.Permissions, func(perm *dto.PermissionResponseDTO) *authZv1.Permission {
       return &authZv1.Permission{
-        Id:   perm.Id,
+        Id:   perm.Id.String(),
         Code: perm.Code,
       }
     })

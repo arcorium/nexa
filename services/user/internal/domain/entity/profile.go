@@ -9,5 +9,10 @@ type Profile struct {
   FirstName string
   LastName  string
   Bio       string
+  PhotoId   types.Id
   PhotoURL  types.FilePath
+}
+
+func (p *Profile) HasAvatar() bool {
+  return len(p.PhotoURL.Underlying()) == 0 || p.Id.Eq(types.NullId())
 }

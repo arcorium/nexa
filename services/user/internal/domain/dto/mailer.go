@@ -1,11 +1,13 @@
 package dto
 
+import "nexa/shared/types"
+
 type SendEmailVerificationDTO struct {
-  Recipient string `json:"recipient"`
-  Token     string `json:"token"`
+  Recipient types.Email
+  Token     string
 }
 
 type SendForgotPasswordDTO struct {
-  Recipient string `json:"recipient"`
-  Token     string `json:"token"`
+  Recipient types.Email
+  Token     string
 }

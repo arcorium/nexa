@@ -21,22 +21,22 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	PermissionService_Create_FullMethodName      = "/nexa.proto.generated.authorization.v1.PermissionService/Create"
-	PermissionService_Find_FullMethodName        = "/nexa.proto.generated.authorization.v1.PermissionService/Find"
-	PermissionService_FindByRoles_FullMethodName = "/nexa.proto.generated.authorization.v1.PermissionService/FindByRoles"
-	PermissionService_FindAll_FullMethodName     = "/nexa.proto.generated.authorization.v1.PermissionService/FindAll"
-	PermissionService_Delete_FullMethodName      = "/nexa.proto.generated.authorization.v1.PermissionService/Delete"
+	PermissionService_Create_FullMethodName      = "/nexa.authorization.v1.PermissionService/Create"
+	PermissionService_Find_FullMethodName        = "/nexa.authorization.v1.PermissionService/Find"
+	PermissionService_FindByRoles_FullMethodName = "/nexa.authorization.v1.PermissionService/FindByRoles"
+	PermissionService_FindAll_FullMethodName     = "/nexa.authorization.v1.PermissionService/FindAll"
+	PermissionService_Delete_FullMethodName      = "/nexa.authorization.v1.PermissionService/Delete"
 )
 
 // PermissionServiceClient is the client API for PermissionService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type PermissionServiceClient interface {
-	Create(ctx context.Context, in *PermissionCreateRequest, opts ...grpc.CallOption) (*PermissionCreateResponse, error)
-	Find(ctx context.Context, in *PermissionFindRequest, opts ...grpc.CallOption) (*FindPermissionResponse, error)
-	FindByRoles(ctx context.Context, in *FindPermissionByRolesRequest, opts ...grpc.CallOption) (*FindPermissionByRolesResponse, error)
-	FindAll(ctx context.Context, in *common.PagedElementInput, opts ...grpc.CallOption) (*PermissionFindAllResponse, error)
-	Delete(ctx context.Context, in *PermissionDeleteRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	Create(ctx context.Context, in *CreatePermissionRequest, opts ...grpc.CallOption) (*CreatePermissionResponse, error)
+	Find(ctx context.Context, in *FindPermissionRequest, opts ...grpc.CallOption) (*FindPermissionResponse, error)
+	FindByRoles(ctx context.Context, in *FindPermissionsByRoleRequest, opts ...grpc.CallOption) (*FindPermissionByRoleResponse, error)
+	FindAll(ctx context.Context, in *common.PagedElementInput, opts ...grpc.CallOption) (*FindAllPermissionResponse, error)
+	Delete(ctx context.Context, in *DeletePermissionRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type permissionServiceClient struct {
@@ -47,8 +47,8 @@ func NewPermissionServiceClient(cc grpc.ClientConnInterface) PermissionServiceCl
 	return &permissionServiceClient{cc}
 }
 
-func (c *permissionServiceClient) Create(ctx context.Context, in *PermissionCreateRequest, opts ...grpc.CallOption) (*PermissionCreateResponse, error) {
-	out := new(PermissionCreateResponse)
+func (c *permissionServiceClient) Create(ctx context.Context, in *CreatePermissionRequest, opts ...grpc.CallOption) (*CreatePermissionResponse, error) {
+	out := new(CreatePermissionResponse)
 	err := c.cc.Invoke(ctx, PermissionService_Create_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -56,7 +56,7 @@ func (c *permissionServiceClient) Create(ctx context.Context, in *PermissionCrea
 	return out, nil
 }
 
-func (c *permissionServiceClient) Find(ctx context.Context, in *PermissionFindRequest, opts ...grpc.CallOption) (*FindPermissionResponse, error) {
+func (c *permissionServiceClient) Find(ctx context.Context, in *FindPermissionRequest, opts ...grpc.CallOption) (*FindPermissionResponse, error) {
 	out := new(FindPermissionResponse)
 	err := c.cc.Invoke(ctx, PermissionService_Find_FullMethodName, in, out, opts...)
 	if err != nil {
@@ -65,8 +65,8 @@ func (c *permissionServiceClient) Find(ctx context.Context, in *PermissionFindRe
 	return out, nil
 }
 
-func (c *permissionServiceClient) FindByRoles(ctx context.Context, in *FindPermissionByRolesRequest, opts ...grpc.CallOption) (*FindPermissionByRolesResponse, error) {
-	out := new(FindPermissionByRolesResponse)
+func (c *permissionServiceClient) FindByRoles(ctx context.Context, in *FindPermissionsByRoleRequest, opts ...grpc.CallOption) (*FindPermissionByRoleResponse, error) {
+	out := new(FindPermissionByRoleResponse)
 	err := c.cc.Invoke(ctx, PermissionService_FindByRoles_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -74,8 +74,8 @@ func (c *permissionServiceClient) FindByRoles(ctx context.Context, in *FindPermi
 	return out, nil
 }
 
-func (c *permissionServiceClient) FindAll(ctx context.Context, in *common.PagedElementInput, opts ...grpc.CallOption) (*PermissionFindAllResponse, error) {
-	out := new(PermissionFindAllResponse)
+func (c *permissionServiceClient) FindAll(ctx context.Context, in *common.PagedElementInput, opts ...grpc.CallOption) (*FindAllPermissionResponse, error) {
+	out := new(FindAllPermissionResponse)
 	err := c.cc.Invoke(ctx, PermissionService_FindAll_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -83,7 +83,7 @@ func (c *permissionServiceClient) FindAll(ctx context.Context, in *common.PagedE
 	return out, nil
 }
 
-func (c *permissionServiceClient) Delete(ctx context.Context, in *PermissionDeleteRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+func (c *permissionServiceClient) Delete(ctx context.Context, in *DeletePermissionRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, PermissionService_Delete_FullMethodName, in, out, opts...)
 	if err != nil {
@@ -96,11 +96,11 @@ func (c *permissionServiceClient) Delete(ctx context.Context, in *PermissionDele
 // All implementations must embed UnimplementedPermissionServiceServer
 // for forward compatibility
 type PermissionServiceServer interface {
-	Create(context.Context, *PermissionCreateRequest) (*PermissionCreateResponse, error)
-	Find(context.Context, *PermissionFindRequest) (*FindPermissionResponse, error)
-	FindByRoles(context.Context, *FindPermissionByRolesRequest) (*FindPermissionByRolesResponse, error)
-	FindAll(context.Context, *common.PagedElementInput) (*PermissionFindAllResponse, error)
-	Delete(context.Context, *PermissionDeleteRequest) (*emptypb.Empty, error)
+	Create(context.Context, *CreatePermissionRequest) (*CreatePermissionResponse, error)
+	Find(context.Context, *FindPermissionRequest) (*FindPermissionResponse, error)
+	FindByRoles(context.Context, *FindPermissionsByRoleRequest) (*FindPermissionByRoleResponse, error)
+	FindAll(context.Context, *common.PagedElementInput) (*FindAllPermissionResponse, error)
+	Delete(context.Context, *DeletePermissionRequest) (*emptypb.Empty, error)
 	mustEmbedUnimplementedPermissionServiceServer()
 }
 
@@ -108,19 +108,19 @@ type PermissionServiceServer interface {
 type UnimplementedPermissionServiceServer struct {
 }
 
-func (UnimplementedPermissionServiceServer) Create(context.Context, *PermissionCreateRequest) (*PermissionCreateResponse, error) {
+func (UnimplementedPermissionServiceServer) Create(context.Context, *CreatePermissionRequest) (*CreatePermissionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Create not implemented")
 }
-func (UnimplementedPermissionServiceServer) Find(context.Context, *PermissionFindRequest) (*FindPermissionResponse, error) {
+func (UnimplementedPermissionServiceServer) Find(context.Context, *FindPermissionRequest) (*FindPermissionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Find not implemented")
 }
-func (UnimplementedPermissionServiceServer) FindByRoles(context.Context, *FindPermissionByRolesRequest) (*FindPermissionByRolesResponse, error) {
+func (UnimplementedPermissionServiceServer) FindByRoles(context.Context, *FindPermissionsByRoleRequest) (*FindPermissionByRoleResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method FindByRoles not implemented")
 }
-func (UnimplementedPermissionServiceServer) FindAll(context.Context, *common.PagedElementInput) (*PermissionFindAllResponse, error) {
+func (UnimplementedPermissionServiceServer) FindAll(context.Context, *common.PagedElementInput) (*FindAllPermissionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method FindAll not implemented")
 }
-func (UnimplementedPermissionServiceServer) Delete(context.Context, *PermissionDeleteRequest) (*emptypb.Empty, error) {
+func (UnimplementedPermissionServiceServer) Delete(context.Context, *DeletePermissionRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
 }
 func (UnimplementedPermissionServiceServer) mustEmbedUnimplementedPermissionServiceServer() {}
@@ -137,7 +137,7 @@ func RegisterPermissionServiceServer(s grpc.ServiceRegistrar, srv PermissionServ
 }
 
 func _PermissionService_Create_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(PermissionCreateRequest)
+	in := new(CreatePermissionRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -149,13 +149,13 @@ func _PermissionService_Create_Handler(srv interface{}, ctx context.Context, dec
 		FullMethod: PermissionService_Create_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PermissionServiceServer).Create(ctx, req.(*PermissionCreateRequest))
+		return srv.(PermissionServiceServer).Create(ctx, req.(*CreatePermissionRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _PermissionService_Find_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(PermissionFindRequest)
+	in := new(FindPermissionRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -167,13 +167,13 @@ func _PermissionService_Find_Handler(srv interface{}, ctx context.Context, dec f
 		FullMethod: PermissionService_Find_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PermissionServiceServer).Find(ctx, req.(*PermissionFindRequest))
+		return srv.(PermissionServiceServer).Find(ctx, req.(*FindPermissionRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _PermissionService_FindByRoles_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(FindPermissionByRolesRequest)
+	in := new(FindPermissionsByRoleRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -185,7 +185,7 @@ func _PermissionService_FindByRoles_Handler(srv interface{}, ctx context.Context
 		FullMethod: PermissionService_FindByRoles_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PermissionServiceServer).FindByRoles(ctx, req.(*FindPermissionByRolesRequest))
+		return srv.(PermissionServiceServer).FindByRoles(ctx, req.(*FindPermissionsByRoleRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -209,7 +209,7 @@ func _PermissionService_FindAll_Handler(srv interface{}, ctx context.Context, de
 }
 
 func _PermissionService_Delete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(PermissionDeleteRequest)
+	in := new(DeletePermissionRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -221,7 +221,7 @@ func _PermissionService_Delete_Handler(srv interface{}, ctx context.Context, dec
 		FullMethod: PermissionService_Delete_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PermissionServiceServer).Delete(ctx, req.(*PermissionDeleteRequest))
+		return srv.(PermissionServiceServer).Delete(ctx, req.(*DeletePermissionRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -230,7 +230,7 @@ func _PermissionService_Delete_Handler(srv interface{}, ctx context.Context, dec
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var PermissionService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "nexa.proto.generated.authorization.v1.PermissionService",
+	ServiceName: "nexa.authorization.v1.PermissionService",
 	HandlerType: (*PermissionServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

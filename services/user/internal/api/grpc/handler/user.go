@@ -2,19 +2,20 @@ package handler
 
 import (
   "context"
-  "errors"
   "go.opentelemetry.io/otel/trace"
-  "google.golang.org/genproto/googleapis/rpc/errdetails"
   "google.golang.org/grpc"
   "google.golang.org/protobuf/types/known/emptypb"
-  proto "nexa/proto/generated/golang/user/v1"
+  "nexa/proto/gen/go/common"
+  userv1 "nexa/proto/gen/go/user/v1"
   "nexa/services/user/internal/api/grpc/mapper"
   "nexa/services/user/internal/domain/service"
   "nexa/services/user/util"
+  "nexa/shared/dto"
   sharedErr "nexa/shared/errors"
-  spanUtil "nexa/shared/span"
   "nexa/shared/types"
   sharedUtil "nexa/shared/util"
+  spanUtil "nexa/shared/util/span"
+  "nexa/shared/wrapper"
 )
 
 func NewUserHandler(user service.IUser) UserHandler {
@@ -25,194 +26,231 @@ func NewUserHandler(user service.IUser) UserHandler {
 }
 
 type UserHandler struct {
-  proto.UnimplementedUserServiceServer
+  userv1.UnimplementedUserServiceServer
 
   userService service.IUser
   tracer      trace.Tracer
 }
 
 func (u *UserHandler) Register(server *grpc.Server) {
-  proto.RegisterUserServiceServer(server, u)
+  userv1.RegisterUserServiceServer(server, u)
 }
 
-func (u *UserHandler) Create(ctx context.Context, request *proto.CreateUserRequest) (*emptypb.Empty, error) {
-  span := trace.SpanFromContext(ctx)
-  dtoInput := mapper.ToDTOCreateInput(request)
+func (u *UserHandler) Create(ctx context.Context, request *userv1.CreateUserRequest) (*userv1.CreateUserResponse, error) {
+  ctx, span := u.tracer.Start(ctx, "UserHandler.Create")
+  defer span.End()
 
-  err := sharedUtil.ValidateStructCtx(ctx, &dtoInput)
+  dtoInput, err := mapper.ToUserCreateDTO(request)
   if err != nil {
     spanUtil.RecordError(err, span)
     return nil, err
   }
 
-  stats := u.userService.Create(ctx, &dtoInput)
+  id, stats := u.userService.Create(ctx, &dtoInput)
   if stats.IsError() {
     spanUtil.RecordError(stats.Error, span)
     return nil, stats.ToGRPCError()
   }
-  return &emptypb.Empty{}, nil
+
+  resp := &userv1.CreateUserResponse{
+    Id: id,
+  }
+  return resp, nil
 }
 
-func (u *UserHandler) Update(ctx context.Context, request *proto.UpdateUserRequest) (*emptypb.Empty, error) {
-  span := trace.SpanFromContext(ctx)
-  dtoInput := mapper.ToDTOUserUpdateInput(request)
-  // TODO: Get user id from access token claims from ctx
+func (u *UserHandler) Update(ctx context.Context, request *userv1.UpdateUserRequest) (*emptypb.Empty, error) {
+  ctx, span := u.tracer.Start(ctx, "UserHandler.Update")
+  defer span.End()
 
-  err := sharedUtil.ValidateStructCtx(ctx, &dtoInput)
+  dtoInput, err := mapper.ToUserUpdateDTO(request)
   if err != nil {
     spanUtil.RecordError(err, span)
     return nil, err
   }
 
-  stats := u.userService.Update(ctx, &dtoInput)
-  if stats.IsError() {
-    spanUtil.RecordError(stats.Error, span)
-    return nil, stats.ToGRPCError()
-  }
-  return &emptypb.Empty{}, nil
+  stat := u.userService.Update(ctx, &dtoInput)
+  return nil, stat.ToGRPCErrorWithSpan(span)
 }
 
-func (u *UserHandler) UpdateVerified(ctx context.Context, request *proto.UpdateUserVerifiedRequest) (*emptypb.Empty, error) {
-  span := trace.SpanFromContext(ctx)
-  id, err := types.IdFromString(request.Id)
-  // TODO: Get user id from access token claims from ctx
-  if errors.Is(err, types.ErrMalformedUUID) {
-    return nil, sharedErr.GrpcFieldErrors(&errdetails.BadRequest_FieldViolation{
-      Field:       "id",
-      Description: err.Error(),
-    })
-  }
+func (u *UserHandler) UpdatePassword(ctx context.Context, request *userv1.UpdateUserPasswordRequest) (*emptypb.Empty, error) {
+  ctx, span := u.tracer.Start(ctx, "UserHandler.UpdatePassword")
+  defer span.End()
 
-  stats := u.userService.UpdateVerified(ctx, id)
-  if stats.IsError() {
-    spanUtil.RecordError(stats.Error, span)
-    return nil, stats.ToGRPCError()
-  }
-  return &emptypb.Empty{}, nil
-}
-
-func (u *UserHandler) UpdatePassword(ctx context.Context, request *proto.UpdateUserPasswordRequest) (*emptypb.Empty, error) {
-  span := trace.SpanFromContext(ctx)
-  dtoInput := mapper.ToDTOUserUpdatePasswordInput(request)
-  // TODO: Get user id from access token claims from ctx
-
-  err := sharedUtil.ValidateStructCtx(ctx, &dtoInput)
+  dtoInput, err := mapper.ToUserUpdatePasswordDTO(request)
   if err != nil {
     spanUtil.RecordError(err, span)
     return nil, err
   }
 
-  stats := u.userService.UpdatePassword(ctx, &dtoInput)
-  if stats.IsError() {
-    spanUtil.RecordError(stats.Error, span)
-    return nil, stats.ToGRPCError()
-  }
-  return &emptypb.Empty{}, nil
+  stat := u.userService.UpdatePassword(ctx, &dtoInput)
+  return nil, stat.ToGRPCErrorWithSpan(span)
 }
 
-func (u *UserHandler) ResetPassword(ctx context.Context, request *proto.ResetUserPasswordRequest) (*emptypb.Empty, error) {
-  span := trace.SpanFromContext(ctx)
-  dtoInput := mapper.ToDTOUserResetPasswordInput(request)
+func (u *UserHandler) Find(ctx context.Context, input *common.PagedElementInput) (*userv1.FindUsersResponse, error) {
+  ctx, span := u.tracer.Start(ctx, "UserHandler.Find")
+  defer span.End()
 
-  err := sharedUtil.ValidateStructCtx(ctx, &dtoInput)
-  if err != nil {
-    spanUtil.RecordError(err, span)
+  pagedDto := dto.PagedElementDTO{
+    Element: input.Element,
+    Page:    input.Page,
+  }
+
+  result, stat := u.userService.FindAll(ctx, pagedDto)
+  if stat.IsError() {
+    spanUtil.RecordError(stat.Error, span)
+    return nil, stat.ToGRPCError()
+  }
+
+  resp := &userv1.FindUsersResponse{
+    Details: &common.PagedElementOutput{
+      Element:       result.Element,
+      Page:          result.Page,
+      TotalElements: result.TotalElements,
+      TotalPages:    result.TotalPages,
+    },
+    Users: sharedUtil.CastSliceP(result.Data, mapper.ToProtoUser),
+  }
+  return resp, nil
+}
+
+func (u *UserHandler) FindByIds(ctx context.Context, request *userv1.FindUsersByIdsRequest) (*userv1.FindUserByIdsResponse, error) {
+  ctx, span := u.tracer.Start(ctx, "UserHandler.FindByIds")
+  defer span.End()
+
+  userIds, ierr := sharedUtil.CastSliceErrs(request.Ids, types.IdFromString)
+  if !ierr.IsNil() {
+    spanUtil.RecordError(ierr, span)
+    err := sharedErr.GrpcFieldIndexedErrors("ids", ierr)
     return nil, err
   }
 
-  stats := u.userService.ResetPassword(ctx, &dtoInput)
-  if stats.IsError() {
-    spanUtil.RecordError(stats.Error, span)
-    return nil, stats.ToGRPCError()
-  }
-  return &emptypb.Empty{}, nil
-}
-
-func (u *UserHandler) FindUserByIds(ctx context.Context, request *proto.FindUsersByIdsRequest) (*proto.FindUserByIdsResponse, error) {
-  span := trace.SpanFromContext(ctx)
-  ids, ierr := sharedUtil.CastSliceErrsP(request.Ids, func(from *string) (types.Id, error) {
-    return types.IdFromString(*from)
-  })
-
-  if ierr != nil {
-    errs := sharedUtil.CastSlice(ierr, func(from sharedErr.IndexedError) error {
-      return from.Err
-    })
-    err := errors.Join(errs...)
-    spanUtil.RecordError(err, span)
-    return nil, sharedErr.GrpcFieldIndexedErrors("ids", ierr)
+  users, stat := u.userService.FindByIds(ctx, userIds...)
+  if stat.IsError() {
+    spanUtil.RecordError(stat.Error, span)
+    return nil, stat.ToGRPCError()
   }
 
-  users, stats := u.userService.FindByIds(ctx, ids)
-  return &proto.FindUserByIdsResponse{
+  resp := &userv1.FindUserByIdsResponse{
     Users: sharedUtil.CastSliceP(users, mapper.ToProtoUser),
-  }, stats.ToGRPCErrorWithSpan(span)
-}
-
-func (u *UserHandler) FindUserByEmails(ctx context.Context, request *proto.FindUserByEmailsRequest) (*proto.FindUserByEmailsResponse, error) {
-  span := trace.SpanFromContext(ctx)
-  emails, ierr := sharedUtil.CastSliceErrsP(request.Emails, func(from *string) (types.Email, error) {
-    return types.EmailFromString(*from)
-  })
-
-  if ierr != nil {
-    errs := sharedUtil.CastSlice(ierr, func(from sharedErr.IndexedError) error {
-      return from.Err
-    })
-    err := errors.Join(errs...)
-    spanUtil.RecordError(err, span)
-    return nil, sharedErr.GrpcFieldIndexedErrors("emails", ierr)
   }
-
-  users, stats := u.userService.FindByEmails(ctx, emails)
-  return &proto.FindUserByEmailsResponse{
-    Users: sharedUtil.CastSliceP(users, mapper.ToProtoUser),
-  }, stats.ToGRPCErrorWithSpan(span)
+  return resp, nil
 }
 
-func (u *UserHandler) BannedUser(ctx context.Context, request *proto.BannedUserRequest) (*emptypb.Empty, error) {
-  // TODO: Get user id from access token claims from ctx
-  span := trace.SpanFromContext(ctx)
-  dtoInput := mapper.ToDTOUserBannedInput(request)
+func (u *UserHandler) Banned(ctx context.Context, request *userv1.BannedUserRequest) (*emptypb.Empty, error) {
+  ctx, span := u.tracer.Start(ctx, "UserHandler.Banned")
+  defer span.End()
 
-  err := sharedUtil.ValidateStructCtx(ctx, &dtoInput)
+  // Map and validation
+  dtoInput, err := mapper.ToDTOUserBannedInput(request)
   if err != nil {
     spanUtil.RecordError(err, span)
     return nil, err
   }
 
   stats := u.userService.BannedUser(ctx, &dtoInput)
-  if stats.IsError() {
-    spanUtil.RecordError(stats.Error, span)
-    return nil, stats.ToGRPCError()
-  }
-  return &emptypb.Empty{}, nil
+  return nil, stats.ToGRPCErrorWithSpan(span)
 }
 
-func (u *UserHandler) DeleteUser(ctx context.Context, request *proto.DeleteUserRequest) (*emptypb.Empty, error) {
-  // TODO: Get user id from access token claims from ctx
-  span := trace.SpanFromContext(ctx)
-  id, err := types.IdFromString(request.Ids)
+func (u *UserHandler) Delete(ctx context.Context, request *userv1.DeleteUserRequest) (*emptypb.Empty, error) {
+  ctx, span := u.tracer.Start(ctx, "UserHandler.Delete")
+  defer span.End()
+
+  // Validation
+  userId, err := types.IdFromString(request.Ids)
   if err != nil {
     spanUtil.RecordError(err, span)
-    if errors.Is(err, types.ErrMalformedUUID) {
-      return nil, sharedErr.GrpcFieldErrors(&errdetails.BadRequest_FieldViolation{
-        Field:       "id",
-        Description: err.Error(),
-      })
-    }
+    return nil, sharedErr.NewFieldError("ids", err).ToGrpcError()
+  }
+
+  stats := u.userService.DeleteById(ctx, userId)
+  return nil, stats.ToGRPCErrorWithSpan(span)
+}
+
+func (u *UserHandler) Validate(ctx context.Context, request *userv1.ValidateUserRequest) (*userv1.ValidateUserResponse, error) {
+  ctx, span := u.tracer.Start(ctx, "UserHandler.Validate")
+  defer span.End()
+
+  email, err := types.EmailFromString(request.Email)
+  if err != nil {
+    spanUtil.RecordError(err, span)
+    return nil, sharedErr.NewFieldError("email", err).ToGrpcError()
+  }
+
+  // Empty validation
+  eerr := sharedUtil.StringEmptyValidates(types.NewField("password", request.Password))
+  if !eerr.IsNil() {
+    spanUtil.RecordError(eerr, span)
+    return nil, eerr.ToGRPCError()
+  }
+  password := types.PasswordFromString(request.Password)
+
+  userResponseDTO, stat := u.userService.Validate(ctx, email, password)
+  if stat.IsError() {
+    spanUtil.RecordError(stat.Error, span)
+    return nil, stat.ToGRPCError()
+  }
+  user := mapper.ToProtoUser(&userResponseDTO)
+  return &userv1.ValidateUserResponse{User: user}, nil
+}
+
+func (u *UserHandler) ResetPassword(ctx context.Context, request *userv1.ResetUserPasswordRequest) (*emptypb.Empty, error) {
+  ctx, span := u.tracer.Start(ctx, "UserHandler.ResetPassword")
+  defer span.End()
+
+  dtoInput, err := mapper.ToDTOUserResetPasswordInput(request)
+  if err != nil {
+    spanUtil.RecordError(err, span)
     return nil, err
   }
 
-  stats := u.userService.DeleteById(ctx, id)
-  if stats.IsError() {
-    spanUtil.RecordError(stats.Error, span)
-    return nil, stats.ToGRPCError()
-  }
-  return &emptypb.Empty{}, nil
+  stats := u.userService.ResetPassword(ctx, &dtoInput)
+  return nil, stats.ToGRPCErrorWithSpan(span)
 }
 
-func (u *UserHandler) Validate(ctx context.Context, request *proto.ValidateUserRequest) (*proto.ValidateUserResponse, error) {
-  // TODO: Implement it
-  return nil, nil
+func (u *UserHandler) ForgotPassword(ctx context.Context, request *userv1.ForgotUserPasswordRequest) (*userv1.ForgotUserPasswordResponse, error) {
+  ctx, span := u.tracer.Start(ctx, "UserHandler.ForgotPassword")
+  defer span.End()
+
+  recipientEmail, err := types.EmailFromString(request.Email)
+  if err != nil {
+    spanUtil.RecordError(err, span)
+    return nil, sharedErr.NewFieldError("email", err).ToGrpcError()
+  }
+
+  tokenResp, stat := u.userService.ForgotPassword(ctx, recipientEmail)
+  if stat.IsError() {
+    spanUtil.RecordError(stat.Error, span)
+    return nil, stat.ToGRPCError()
+  }
+
+  return &userv1.ForgotUserPasswordResponse{
+    Token: mapper.ToProtoTokenResponse(&tokenResp),
+  }, nil
+}
+
+func (u *UserHandler) VerifyEmail(ctx context.Context, request *userv1.VerifyUserEmailRequest) (*userv1.VerifyUserEmailResponse, error) {
+  ctx, span := u.tracer.Start(ctx, "UserHandler.VerifyEmail")
+  defer span.End()
+
+  token := wrapper.NewNullable(request.Token)
+  if token.HasValue() {
+    // Verify
+    stat := u.userService.VerifyEmail(ctx, token.RawValue())
+    if stat.IsError() {
+      spanUtil.RecordError(stat.Error, span)
+      return nil, stat.ToGRPCError()
+    }
+    return nil, nil
+  }
+
+  // Request
+  tokenResp, stat := u.userService.EmailVerificationRequest(ctx)
+  if stat.IsError() {
+    spanUtil.RecordError(stat.Error, span)
+    return nil, stat.ToGRPCError()
+  }
+
+  return &userv1.VerifyUserEmailResponse{
+    Token: mapper.ToProtoTokenResponse(&tokenResp),
+  }, nil
 }

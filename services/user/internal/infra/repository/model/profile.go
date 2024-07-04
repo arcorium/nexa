@@ -6,7 +6,6 @@ import (
   "nexa/shared/types"
   "nexa/shared/util/repo"
   "nexa/shared/variadic"
-  "nexa/shared/wrapper"
   "time"
 )
 
@@ -14,9 +13,10 @@ type ProfileMapOption = repo.DataAccessModelMapOption[*domain.Profile, *Profile]
 
 func FromProfileDomain(domain *domain.Profile, opts ...ProfileMapOption) Profile {
   pfl := Profile{
-    UserId:    domain.Id.Underlying().String(),
+    UserId:    domain.Id.String(),
     FirstName: domain.FirstName,
     LastName:  domain.LastName,
+    PhotoId:   domain.PhotoId.String(),
     PhotoURL:  domain.PhotoURL.FileName(),
     Bio:       domain.Bio,
   }
@@ -32,20 +32,32 @@ type Profile struct {
   UserId    string `bun:",type:uuid,pk"` // Profile is unique per user
   FirstName string `bun:",notnull"`
   LastName  string `bun:",nullzero"`
-  PhotoURL  string `bun:",nullzero"` // TODO: Change into uuid
+  PhotoId   string `bun:",type:uuid,notnull"` // Id of profile image on file storage
+  PhotoURL  string `bun:",nullzero"`
   Bio       string `bun:",nullzero"`
 
   UpdatedAt time.Time `bun:",nullzero"`
 
-  User *User `bun:"rel:belongs-to,join:user_id=id,on_delete:CASCADE"`
+  //User *User `bun:"rel:belongs-to,join:user_id=id,on_delete:CASCADE"`
 }
 
-func (p *Profile) ToDomain() domain.Profile {
+func (p *Profile) ToDomain() (domain.Profile, error) {
+  userId, err := types.IdFromString(p.UserId)
+  if err != nil {
+    return domain.Profile{}, err
+  }
+
+  photoId, err := types.IdFromString(p.PhotoId)
+  if err != nil {
+    return domain.Profile{}, err
+  }
+
   return domain.Profile{
-    Id:        wrapper.DropError(types.IdFromString(p.UserId)),
+    Id:        userId,
     FirstName: p.FirstName,
     LastName:  p.LastName,
+    PhotoId:   photoId,
     PhotoURL:  types.FilePathFromString(p.PhotoURL),
     Bio:       p.Bio,
-  }
+  }, nil
 }

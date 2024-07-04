@@ -21,12 +21,12 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	MailerService_Find_FullMethodName      = "/nexa.proto.generated.mailer.v1.MailerService/Find"
-	MailerService_FindByIds_FullMethodName = "/nexa.proto.generated.mailer.v1.MailerService/FindByIds"
-	MailerService_FindByTag_FullMethodName = "/nexa.proto.generated.mailer.v1.MailerService/FindByTag"
-	MailerService_Send_FullMethodName      = "/nexa.proto.generated.mailer.v1.MailerService/Send"
-	MailerService_Update_FullMethodName    = "/nexa.proto.generated.mailer.v1.MailerService/Update"
-	MailerService_Remove_FullMethodName    = "/nexa.proto.generated.mailer.v1.MailerService/Remove"
+	MailerService_Find_FullMethodName      = "/nexa.mailer.v1.MailerService/Find"
+	MailerService_FindByIds_FullMethodName = "/nexa.mailer.v1.MailerService/FindByIds"
+	MailerService_FindByTag_FullMethodName = "/nexa.mailer.v1.MailerService/FindByTag"
+	MailerService_Send_FullMethodName      = "/nexa.mailer.v1.MailerService/Send"
+	MailerService_Update_FullMethodName    = "/nexa.mailer.v1.MailerService/Update"
+	MailerService_Remove_FullMethodName    = "/nexa.mailer.v1.MailerService/Remove"
 )
 
 // MailerServiceClient is the client API for MailerService service.
@@ -267,7 +267,7 @@ func _MailerService_Remove_Handler(srv interface{}, ctx context.Context, dec fun
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var MailerService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "nexa.proto.generated.mailer.v1.MailerService",
+	ServiceName: "nexa.mailer.v1.MailerService",
 	HandlerType: (*MailerServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

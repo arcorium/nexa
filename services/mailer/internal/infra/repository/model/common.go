@@ -3,13 +3,13 @@ package model
 import (
   "context"
   "github.com/uptrace/bun"
-  "nexa/shared/util"
+  "nexa/shared/types"
 )
 
 var models = []any{
-  util.Nil[Tag](),
-  util.Nil[Mail](),
-  util.Nil[MailTag](),
+  types.Nil[Tag](),
+  types.Nil[Mail](),
+  types.Nil[MailTag](),
 }
 
 func RegisterBunModels(db *bun.DB) {

@@ -7,17 +7,20 @@ import (
   "nexa/services/authorization/internal/domain/entity"
   "nexa/services/authorization/internal/domain/repository"
   "nexa/services/authorization/internal/domain/service"
-  "nexa/shared/auth"
+  "nexa/services/authorization/util"
   sharedErr "nexa/shared/errors"
   sharedJwt "nexa/shared/jwt"
-  spanUtil "nexa/shared/span"
   "nexa/shared/status"
-  "nexa/shared/types"
   sharedUtil "nexa/shared/util"
+  "nexa/shared/util/auth"
+  spanUtil "nexa/shared/util/span"
 )
 
-func NewAuthorization() service.IAuthorization {
-  return &authorizationService{}
+func NewAuthorization(roleRepo repository.IRole) service.IAuthorization {
+  return &authorizationService{
+    roleRepo: roleRepo,
+    tracer:   util.GetTracer(),
+  }
 }
 
 type authorizationService struct {
@@ -29,13 +32,7 @@ func (a *authorizationService) IsAuthorized(ctx context.Context, authDto *dto.Is
   ctx, span := a.tracer.Start(ctx, "AuthorizationService.IsAuthorized")
   defer span.End()
 
-  id, err := types.IdFromString(authDto.UserId)
-  if err != nil {
-    spanUtil.RecordError(err, span)
-    return status.ErrBadRequest(err)
-  }
-
-  roles, err := a.roleRepo.FindByUserId(ctx, id)
+  roles, err := a.roleRepo.FindByUserId(ctx, authDto.UserId)
   if err != nil {
     spanUtil.RecordError(err, span)
     return status.FromRepository(err, status.NullCode)

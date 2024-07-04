@@ -2,6 +2,7 @@ package service
 
 import (
   "context"
+  "database/sql"
   "go.opentelemetry.io/otel/trace"
   "nexa/services/authentication/internal/domain/dto"
   "nexa/services/authentication/internal/domain/entity"
@@ -10,10 +11,9 @@ import (
   "nexa/services/authentication/internal/domain/service"
   "nexa/services/authentication/util"
   "nexa/services/authentication/util/errors"
-  sharedErr "nexa/shared/errors"
-  spanUtil "nexa/shared/span"
   "nexa/shared/status"
-  sharedUtil "nexa/shared/util"
+  "nexa/shared/types"
+  spanUtil "nexa/shared/util/span"
   "time"
 )
 
@@ -37,75 +37,61 @@ type tokenService struct {
 }
 
 func (t *tokenService) Request(ctx context.Context, req *dto.TokenCreateDTO) (dto.TokenResponseDTO, status.Object) {
-  type Null = dto.TokenResponseDTO
-
   ctx, span := t.tracer.Start(ctx, "TokenService.Request")
   defer span.End()
 
-  // Input validation
   var expiryDuration time.Duration
-  if req.Usage == entity.TokenUsageVerification.Underlying() {
+  if req.Usage == entity.TokenUsageVerification {
     expiryDuration = t.config.VerificationTokenExpiration
-  } else if req.Usage == entity.TokenUsageResetPassword.Underlying() {
+  } else if req.Usage == entity.TokenUsageResetPassword {
     expiryDuration = t.config.ResetTokenExpiration
-  } else {
-    err := sharedErr.ErrEnumOutOfBounds
-    spanUtil.RecordError(err, span)
-    return Null{}, status.ErrBadRequest(err)
   }
+  // NOTE: Doesn't need else, because its already handled by handler
 
-  domain, err := req.ToDomain(expiryDuration)
+  domain := req.ToDomain(expiryDuration)
+
+  err := t.tokenRepo.Create(ctx, &domain)
   if err != nil {
     spanUtil.RecordError(err, span)
-    return Null{}, status.ErrBadRequest(err)
-  }
-
-  err = t.tokenRepo.Create(ctx, &domain)
-  if err != nil {
-    spanUtil.RecordError(err, span)
-    return Null{}, status.FromRepository(err, status.NullCode)
+    return dto.TokenResponseDTO{}, status.FromRepository(err, status.NullCode)
   }
 
   responseDTO := mapper.ToTokenResponseDTO(&domain)
   return responseDTO, status.Created()
 }
 
-func (t *tokenService) Verify(ctx context.Context, dto *dto.TokenVerifyDTO) status.Object {
+func (t *tokenService) Verify(ctx context.Context, verifyDTO *dto.TokenVerifyDTO) (types.Id, status.Object) {
   ctx, span := t.tracer.Start(ctx, "TokenService.Verify")
   defer span.End()
 
-  // Input validation
-  if err := sharedUtil.ValidateStructCtx(ctx, &dto); err != nil {
-    spanUtil.RecordError(err, span)
-    return status.ErrBadRequest(err)
-  }
-
   // Get the token
-  token, err := t.tokenRepo.Find(ctx, dto.Token)
+  token, err := t.tokenRepo.Find(ctx, verifyDTO.Token)
   if err != nil {
     spanUtil.RecordError(err, span)
-    return status.FromRepository(err, status.NullCode)
+    if err == sql.ErrNoRows {
+      return types.NullId(), status.ErrBadRequest(errors.ErrTokenNotFound)
+    }
+    return types.NullId(), status.FromRepository(err, status.NullCode)
   }
 
   // Check the usage
-  if token.Usage.Underlying() == dto.Usage {
+  if token.Usage == verifyDTO.Usage {
     spanUtil.RecordError(errors.ErrTokenDifferentUsage, span)
-    return status.ErrBadRequest(errors.ErrTokenDifferentUsage)
+    return types.NullId(), status.ErrBadRequest(errors.ErrTokenDifferentUsage)
   }
 
   // Remove from database
   err = t.tokenRepo.Delete(ctx, token.Token)
   if err != nil {
-    //return status.FromRepository(err, status.NullCode)
     spanUtil.RecordError(err, span)
-    return status.ErrInternal(err)
+    return types.NullId(), status.FromRepository(err, status.NullCode)
   }
 
   // Check expiration time
   if token.IsExpired() {
     spanUtil.RecordError(errors.ErrTokenExpired, span)
-    return status.ErrBadRequest(errors.ErrTokenExpired)
+    return types.NullId(), status.ErrBadRequest(errors.ErrTokenExpired)
   }
 
-  return status.Success()
+  return token.UserId, status.Success()
 }

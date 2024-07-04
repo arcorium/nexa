@@ -19,7 +19,7 @@ type IUser interface {
   // FindByEmails get all users based on specified emails
   FindByEmails(ctx context.Context, emails ...types.Email) ([]entity.User, error)
   // FindAllUsers get all registered users
-  FindAllUsers(ctx context.Context, query repo.QueryParameter) (repo.PaginatedResult[entity.User], error)
+  Get(ctx context.Context, query repo.QueryParameter) (repo.PaginatedResult[entity.User], error)
   // Delete delete user based on the id
   Delete(ctx context.Context, ids ...types.Id) error
 }

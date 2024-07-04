@@ -8,7 +8,7 @@ import (
 type FileMetadata struct {
   Id       types.Id
   Name     string
-  Type     FileType
+  MimeType string
   Size     uint64
   IsPublic bool
 

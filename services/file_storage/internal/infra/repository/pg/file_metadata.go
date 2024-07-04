@@ -11,6 +11,7 @@ import (
   "nexa/shared/types"
   sharedUtil "nexa/shared/util"
   "nexa/shared/util/repo"
+  spanUtil "nexa/shared/util/span"
   "time"
 )
 
@@ -31,21 +32,21 @@ func (f metadataRepository) FindByIds(ctx context.Context, ids ...types.Id) ([]d
   ctx, span := f.tracer.Start(ctx, "FileRepository.FindByIds")
   defer span.End()
 
-  uuids := sharedUtil.CastSlice(ids, func(from types.Id) string {
-    return from.Underlying().String()
-  })
+  metadataIds := sharedUtil.CastSlice(ids, sharedUtil.ToString[types.Id])
 
   var models []model.FileMetadata
 
   err := f.db.NewSelect().
     Model(&models).
-    Where("id IN (?)", bun.In(uuids)).
+    Where("id IN (?)", bun.In(metadataIds)).
     Scan(ctx)
 
   res := repo.CheckSliceResultWithSpan(models, err, span)
-  result := sharedUtil.CastSliceP(res.Data, func(from *model.FileMetadata) domain.FileMetadata {
-    return from.ToDomain()
-  })
+  result, ierr := sharedUtil.CastSliceErrsP(res.Data, repo.ToDomainErr[*model.FileMetadata, domain.FileMetadata])
+  if !ierr.IsNil() {
+    spanUtil.RecordError(err, span)
+    return nil, ierr
+  }
 
   return result, res.Err
 }
@@ -62,9 +63,11 @@ func (f metadataRepository) FindByNames(ctx context.Context, names ...string) ([
     Scan(ctx)
 
   res := repo.CheckSliceResultWithSpan(models, err, span)
-  result := sharedUtil.CastSliceP(res.Data, func(from *model.FileMetadata) domain.FileMetadata {
-    return from.ToDomain()
-  })
+  result, ierr := sharedUtil.CastSliceErrsP(res.Data, repo.ToDomainErr[*model.FileMetadata, domain.FileMetadata])
+  if !ierr.IsNil() {
+    spanUtil.RecordError(err, span)
+    return nil, ierr
+  }
 
   return result, res.Err
 }
@@ -108,8 +111,8 @@ func (f metadataRepository) DeleteById(ctx context.Context, id types.Id) error {
   defer span.End()
 
   res, err := f.db.NewDelete().
-    Model(sharedUtil.Nil[model.FileMetadata]()).
-    Where("id = ?", id.Underlying().String()).
+    Model(types.Nil[model.FileMetadata]()).
+    Where("id = ?", id.String()).
     Exec(ctx)
 
   return repo.CheckResultWithSpan(res, err, span)
@@ -120,7 +123,7 @@ func (f metadataRepository) DeleteByName(ctx context.Context, name string) error
   defer span.End()
 
   res, err := f.db.NewDelete().
-    Model(sharedUtil.Nil[model.FileMetadata]()).
+    Model(types.Nil[model.FileMetadata]()).
     Where("id = ?", name).
     Exec(ctx)
 

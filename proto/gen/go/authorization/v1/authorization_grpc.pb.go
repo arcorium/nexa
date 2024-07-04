@@ -20,7 +20,7 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	AuthorizationService_CheckUserPermission_FullMethodName = "/nexa.proto.generated.authorization.v1.AuthorizationService/CheckUserPermission"
+	AuthorizationService_CheckUserPermission_FullMethodName = "/nexa.authorization.v1.AuthorizationService/CheckUserPermission"
 )
 
 // AuthorizationServiceClient is the client API for AuthorizationService service.
@@ -97,7 +97,7 @@ func _AuthorizationService_CheckUserPermission_Handler(srv interface{}, ctx cont
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var AuthorizationService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "nexa.proto.generated.authorization.v1.AuthorizationService",
+	ServiceName: "nexa.authorization.v1.AuthorizationService",
 	HandlerType: (*AuthorizationServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

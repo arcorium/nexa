@@ -1,5 +1,5 @@
 syntax = "proto3";
-package nexa.proto.generated.user.v1;
+package nexa.user.v1;
 option go_package = "nexa/proto/generated/golang/user/v1";
 
 import "google/protobuf/empty.proto";

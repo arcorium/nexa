@@ -8,7 +8,7 @@ import (
 
 func ToRoleResponseDTO(role *entity.Role) dto.RoleResponseDTO {
   return dto.RoleResponseDTO{
-    Id:          role.Id.String(),
+    Id:          role.Id,
     Name:        role.Name,
     Description: role.Description,
     Permissions: util.CastSliceP(role.Permissions, ToPermissionResponseDTO),

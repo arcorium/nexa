@@ -8,12 +8,14 @@ import (
 
 type Server struct {
   sharedConf.Server
-  TokenExpiration    time.Duration
-  JWTTokenExpiration time.Duration
-  JWTSigningMethod   string
-  JWTSecretKey       string
+  TokenExpiration           time.Duration
+  JWTAccessTokenExpiration  time.Duration
+  JWTRefreshTokenExpiration time.Duration
+  JWTSigningMethod          string
+  JWTSecretKey              string
 
-  UserServiceName string
+  AuthorizationClientAddress string
+  UserClientAddress          string
 
   signingMethod jwt.SigningMethod
 }

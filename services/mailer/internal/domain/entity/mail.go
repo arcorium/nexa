@@ -2,6 +2,7 @@ package entity
 
 import (
   "nexa/shared/types"
+  "time"
 )
 
 type MailBodyType uint8
@@ -9,6 +10,7 @@ type MailBodyType uint8
 const (
   BodyTypeHTML MailBodyType = iota
   BodyTypePlain
+  BodyTypeUnknown
 )
 
 func (m MailBodyType) String() string {
@@ -18,7 +20,7 @@ func (m MailBodyType) String() string {
   case BodyTypePlain:
     return "text/plain"
   }
-  return "text/plain"
+  return "text/unknown"
 }
 
 type Mail struct {
@@ -31,5 +33,9 @@ type Mail struct {
   Body     string
 
   Status Status
-  Tags   []Tag
+
+  SentAt      time.Time
+  DeliveredAt time.Time
+
+  Tags []Tag
 }

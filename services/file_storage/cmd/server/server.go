@@ -2,6 +2,7 @@ package main
 
 import (
   "context"
+  "errors"
   promProv "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
   "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
   "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery"
@@ -13,40 +14,36 @@ import (
   "go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
   "go.opentelemetry.io/otel"
   "go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
-  "go.opentelemetry.io/otel/exporters/stdout/stdoutmetric"
-  "go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
   "go.opentelemetry.io/otel/propagation"
-  "go.opentelemetry.io/otel/sdk/metric"
   "go.opentelemetry.io/otel/sdk/resource"
   sdktrace "go.opentelemetry.io/otel/sdk/trace"
   semconv "go.opentelemetry.io/otel/semconv/v1.25.0"
   "go.opentelemetry.io/otel/trace"
-  "go.uber.org/zap"
   "google.golang.org/grpc"
   "google.golang.org/grpc/reflection"
-  "log"
   "net"
   "net/http"
   "nexa/services/file_storage/config"
   "nexa/services/file_storage/constant"
   "nexa/services/file_storage/internal/api/grpc/handler"
+  inter "nexa/services/file_storage/internal/api/grpc/interceptor"
   "nexa/services/file_storage/internal/app/service"
-  "nexa/services/file_storage/internal/infra/external/storage"
+  pgUow "nexa/services/file_storage/internal/app/uow/pg"
+  domainExt "nexa/services/file_storage/internal/domain/external"
+  "nexa/services/file_storage/internal/infra/external"
   "nexa/services/file_storage/internal/infra/repository/model"
-  "nexa/services/file_storage/internal/infra/repository/pg"
-  sharedConf "nexa/shared/config"
   "nexa/shared/database"
   "nexa/shared/grpc/interceptor"
-  "nexa/shared/util"
+  "nexa/shared/logger"
+  sharedUtil "nexa/shared/util"
   "nexa/shared/wrapper"
   "os"
   "os/signal"
   "sync"
   "syscall"
-  "time"
 )
 
-func NewServer(dbConfig *sharedConf.Database, serverConfig *config.Server) (*Server, error) {
+func NewServer(dbConfig *config.Database, serverConfig *config.Server) (*Server, error) {
   svr := &Server{
     dbConfig:     dbConfig,
     serverConfig: serverConfig,
@@ -57,13 +54,14 @@ func NewServer(dbConfig *sharedConf.Database, serverConfig *config.Server) (*Ser
 }
 
 type Server struct {
-  dbConfig     *sharedConf.Database
-  serverConfig *config.Server
-  db           *bun.DB
+  dbConfig      *config.Database
+  serverConfig  *config.Server
+  db            *bun.DB
+  storageClient domainExt.IStorage
 
   grpcServer     *grpc.Server
   metricServer   *http.Server
-  logger         *zap.Logger
+  logger         logger.ILogger
   exporter       sdktrace.SpanExporter
   tracerProvider *sdktrace.TracerProvider
 
@@ -71,57 +69,12 @@ type Server struct {
 }
 
 func (s *Server) validationSetup() {
-  wrapper.RegisterDefaultNullableValidations(util.GetValidator())
+  validator := sharedUtil.GetValidator()
+  wrapper.RegisterDefaultNullableValidations(validator)
 }
 
-func (s *Server) createPropagator() propagation.TextMapPropagator {
-  return propagation.NewCompositeTextMapPropagator(
-    propagation.TraceContext{},
-    propagation.Baggage{},
-  )
-}
-
-func (s *Server) setupOtel() error {
-  // Create propagator
-  propagator := s.createPropagator()
-  otel.SetTextMapPropagator(propagator)
-
-  // Create Trace
-  // - Create exporter
-  traceExporter, err := stdouttrace.New(stdouttrace.WithPrettyPrint())
-  if err != nil {
-    return err
-  }
-
-  tp := sdktrace.NewTracerProvider(sdktrace.WithBatcher(traceExporter))
-  otel.SetTracerProvider(tp)
-
-  // Create Meter (metric) Provider
-  metricExporter, err := stdoutmetric.New(stdoutmetric.WithPrettyPrint())
-  if err != nil {
-    return err
-  }
-
-  // Create Logger provider
-  mp := metric.NewMeterProvider(
-    metric.WithReader(
-      metric.NewPeriodicReader(metricExporter, metric.WithInterval(time.Second*3)),
-    ),
-  )
-  otel.SetMeterProvider(mp)
-
-  return nil
-}
-
-func (s *Server) grpcServerSetup() error {
+func (s *Server) setupOtel() (*promProv.ServerMetrics, *prometheus.Registry, error) {
   var err error
-  s.logger, err = zap.NewDevelopment()
-  if err != nil {
-    log.Fatalln(err)
-  }
-  // Log
-  zapLogger := interceptor.ZapLogger(s.logger)
-
   // Metrics
   metrics := promProv.NewServerMetrics(
     promProv.WithServerHandlingTimeHistogram(
@@ -131,12 +84,6 @@ func (s *Server) grpcServerSetup() error {
 
   reg := prometheus.NewRegistry()
   reg.MustRegister(metrics)
-  exemplarFromCtx := func(ctx context.Context) prometheus.Labels {
-    if span := trace.SpanContextFromContext(ctx); span.IsSampled() {
-      return prometheus.Labels{"traceID": span.TraceID().String()}
-    }
-    return nil
-  }
 
   // Trace
   // Exporter
@@ -145,7 +92,7 @@ func (s *Server) grpcServerSetup() error {
     otlptracegrpc.WithEndpoint(s.serverConfig.OTLPGRPCCollectorAddress),
   )
   if err != nil {
-    return err
+    return nil, nil, err
   }
 
   // Resource
@@ -167,16 +114,41 @@ func (s *Server) grpcServerSetup() error {
     propagation.TraceContext{}, propagation.Baggage{},
   ))
 
+  return metrics, reg, nil
+}
+
+func (s *Server) grpcServerSetup() error {
+  // Log
+  zaplogger, ok := s.logger.(*logger.ZapLogger)
+  if !ok {
+    return errors.New("logger is not of expected type, expected zap")
+  }
+  zapLogger := interceptor.ZapLogger(zaplogger.Internal)
+
+  metrics, reg, err := s.setupOtel()
+  if err != nil {
+    return err
+  }
+
+  exemplarFromCtx := func(ctx context.Context) prometheus.Labels {
+    if span := trace.SpanContextFromContext(ctx); span.IsSampled() {
+      return prometheus.Labels{"traceID": span.TraceID().String()}
+    }
+    return nil
+  }
+
   s.grpcServer = grpc.NewServer(
     grpc.StatsHandler(otelgrpc.NewServerHandler()), // tracing
     grpc.ChainUnaryInterceptor(
       recovery.UnaryServerInterceptor(),
       logging.UnaryServerInterceptor(zapLogger), // logging
+      interceptor.UnaryServerAuth(inter.Auth, inter.AuthSelector),
       metrics.UnaryServerInterceptor(promProv.WithExemplarFromContext(exemplarFromCtx)),
     ),
     grpc.ChainStreamInterceptor(
       recovery.StreamServerInterceptor(),
       logging.StreamServerInterceptor(zapLogger), // logging
+      interceptor.StreamServerAuth(inter.Auth, inter.AuthSelector),
       metrics.StreamServerInterceptor(promProv.WithExemplarFromContext(exemplarFromCtx)),
     ),
   )
@@ -201,9 +173,9 @@ func (s *Server) grpcServerSetup() error {
 }
 
 func (s *Server) databaseSetup() error {
-  // Database
+  // Token Database
   var err error
-  s.db, err = database.OpenPostgres(s.dbConfig, true)
+  s.db, err = database.OpenPostgres(&s.dbConfig.Database, true)
   if err != nil {
     return err
   }
@@ -218,6 +190,7 @@ func (s *Server) databaseSetup() error {
 
 func (s *Server) setup() error {
   s.validationSetup()
+
   if err := s.grpcServerSetup(); err != nil {
     return err
   }
@@ -225,44 +198,57 @@ func (s *Server) setup() error {
     return err
   }
 
-  repo := pg.NewFileMetadataRepository(s.db)
-  store, err := storage.NewMinIO(false, constant.STORAGE_BUCKET_NAME, &storage.MinIOClientConfig{
-    Address:         s.serverConfig.MinIOAddress,
-    AccessKeyID:     s.serverConfig.MinIOAccessKey,
-    SecretAccessKey: s.serverConfig.MinIOSecretKey,
-  })
-  if err != nil {
-    return err
+  // External client
+  {
+    storageClient, err := external.NewMinIOStorage(false, "public", &external.MinIOClientConfig{
+      Address:         s.serverConfig.MinIOAddress,
+      AccessKeyID:     s.serverConfig.MinIOAccessKey,
+      SecretAccessKey: s.serverConfig.MinIOSecretKey,
+    })
+    if err != nil {
+      return err
+    }
+    s.storageClient = storageClient
   }
 
-  fileService := service.NewFileStorage(repo, store)
-  fileHandler := handler.NewFileStorage(fileService)
-  fileHandler.Register(s.grpcServer)
+  // Repository
+  storageUOW := pgUow.NewStorageUOW(s.db)
+
+  // Service
+  fileStorageService := service.NewFileStorage(storageUOW, s.storageClient)
+
+  // GRPC Handler
+  storageHandler := handler.NewFileStorage(fileStorageService)
+  storageHandler.Register(s.grpcServer)
 
   return nil
 }
 
 func (s *Server) shutdown() {
+  ctx := context.Background()
+
   s.grpcServer.GracefulStop()
-  s.metricServer.Shutdown(context.Background())
+  s.metricServer.Shutdown(ctx)
   s.wg.Wait()
 
-  // GRPC thingies
-  s.exporter.Shutdown(context.Background())
+  // OTEL
+  s.exporter.Shutdown(ctx)
 
+  if err := s.tracerProvider.Shutdown(ctx); err != nil {
+    logger.Warn(err.Error())
+  }
+
+  // External
+  if err := s.storageClient.Close(ctx); err != nil {
+    logger.Warn(err.Error())
+  }
+
+  // Database
   if err := s.db.Close(); err != nil {
-    log.Println(err)
+    logger.Warn(err.Error())
   }
 
-  if err := s.logger.Sync(); err != nil {
-    log.Println(err)
-  }
-
-  if err := s.tracerProvider.Shutdown(context.Background()); err != nil {
-    log.Println(err)
-  }
-
-  log.Println("Server Stopped!")
+  logger.Info("Server Stopped!")
 }
 
 func (s *Server) Run() error {
@@ -276,23 +262,24 @@ func (s *Server) Run() error {
     s.wg.Add(1)
     defer s.wg.Done()
 
-    log.Println("Server Listening on ", s.serverConfig.Address())
+    logger.Infof("Server Listening on %s", s.serverConfig.Address())
+
     err = s.grpcServer.Serve(listener)
-    log.Println("Server Stopping ")
+    logger.Info("Server Stopping ")
     if err != nil {
-      log.Println("Server failed to serve:", err)
+      logger.Warnf("Server failed to serve: %s", err)
     }
   }()
 
   go func() {
     s.wg.Add(1)
     defer s.wg.Done()
-    log.Println("Metrics Server Listening on ", s.serverConfig.MetricAddress())
+    logger.Infof("Metrics Server Listening on %s", s.serverConfig.MetricAddress())
 
     err = s.metricServer.ListenAndServe()
-    log.Println("Metrics Server Stopping")
+    logger.Info("Metrics Server Stopping")
     if err != nil {
-      log.Println("Metrics server failed to serve:", err)
+      logger.Warnf("Metrics server failed to serve: %s", err)
     }
   }()
 

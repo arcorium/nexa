@@ -11,6 +11,7 @@ import (
   "nexa/shared/types"
   "nexa/shared/util"
   "nexa/shared/util/repo"
+  spanUtil "nexa/shared/util/span"
   "time"
 )
 
@@ -57,9 +58,12 @@ func (p profileRepository) FindByIds(ctx context.Context, userIds ...types.Id) (
     Scan(ctx)
 
   result := repo.CheckSliceResultWithSpan(dbModel, err, span)
-  profiles := util.CastSliceP(result.Data, func(from *model.Profile) entity.Profile {
-    return from.ToDomain()
-  })
+  profiles, ierr := util.CastSliceErrsP(result.Data, repo.ToDomainErr[*model.Profile, entity.Profile])
+  if !ierr.IsNil() {
+    spanUtil.RecordError(ierr, span)
+    return nil, ierr
+  }
+
   return profiles, result.Err
 }
 

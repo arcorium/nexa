@@ -2,6 +2,7 @@ package entity
 
 import (
   sharedErr "nexa/shared/errors"
+  sharedJwt "nexa/shared/jwt"
   "nexa/shared/types"
   "time"
 )
@@ -13,6 +14,20 @@ const (
 
 type TokenUsage uint8
 
+const (
+  TokenUsageVerification TokenUsage = iota
+  TokenUsageResetPassword
+  TokenUsageUnknown
+)
+
+func NewTokenUsage(val uint8) (TokenUsage, error) {
+  usage := TokenUsage(val)
+  if !usage.Valid() {
+    return usage, sharedErr.ErrEnumOutOfBounds
+  }
+  return usage, nil
+}
+
 func UsageFromString(s string) (TokenUsage, error) {
   switch s {
   case UsageVerifStr:
@@ -23,14 +38,12 @@ func UsageFromString(s string) (TokenUsage, error) {
   return TokenUsageUnknown, sharedErr.ErrEnumOutOfBounds
 }
 
-const (
-  TokenUsageVerification TokenUsage = iota
-  TokenUsageResetPassword
-  TokenUsageUnknown
-)
-
 func (u TokenUsage) Underlying() uint8 {
   return uint8(u)
+}
+
+func (u TokenUsage) Valid() bool {
+  return u.Underlying() < TokenUsageUnknown.Underlying()
 }
 
 func (u TokenUsage) String() string {
@@ -41,6 +54,15 @@ func (u TokenUsage) String() string {
     return UsageResetStr
   }
   return "unknown"
+}
+
+func NewToken(userId types.Id, usage TokenUsage, expiryTime time.Duration) Token {
+  return Token{
+    Token:     sharedJwt.GenerateRefreshToken(),
+    UserId:    userId,
+    Usage:     usage,
+    ExpiredAt: time.Now().UTC().Add(expiryTime),
+  }
 }
 
 type Token struct {

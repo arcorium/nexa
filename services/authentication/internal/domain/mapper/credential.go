@@ -7,7 +7,7 @@ import (
 
 func ToCredentialResponseDTO(credential *entity.Credential) dto.CredentialResponseDTO {
   return dto.CredentialResponseDTO{
-    Id:     credential.Id.Underlying().String(),
+    Id:     credential.Id,
     Device: credential.Device.Name,
     // TODO: Add created and last refreshed
   }

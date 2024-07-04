@@ -12,18 +12,18 @@ import (
   "nexa/services/mailer/internal/domain/service"
   "nexa/services/mailer/util"
   sharedDto "nexa/shared/dto"
-  spanUtil "nexa/shared/span"
   "nexa/shared/status"
   "nexa/shared/types"
   sharedUOW "nexa/shared/uow"
   sharedUtil "nexa/shared/util"
-  "nexa/shared/wrapper"
+  spanUtil "nexa/shared/util/span"
   "sync/atomic"
+  "time"
 )
 
-func NewMail(work sharedUOW.IUnitOfWork[uow.MailStorage], mailExt external.IMail) service.IMail {
+func NewMail(unit sharedUOW.IUnitOfWork[uow.MailStorage], mailExt external.IMail) service.IMail {
   return &mailService{
-    mailUow: work,
+    mailUow: unit,
     mailExt: mailExt,
     tracer:  util.GetTracer(),
   }
@@ -48,9 +48,7 @@ func (m *mailService) Find(ctx context.Context, pagedDTO *sharedDto.PagedElement
     return nil, status.FromRepository(err, status.NullCode)
   }
 
-  mails := sharedUtil.CastSliceP(result.Data, func(mail *domain.Mail) dto.MailResponseDTO {
-    return mapper.ToMailResponseDTO(mail)
-  })
+  mails := sharedUtil.CastSliceP(result.Data, mapper.ToMailResponseDTO)
 
   pagedResult := sharedDto.NewPagedElementResult2(mails, pagedDTO, result.Total)
   return &pagedResult, status.Success()
@@ -67,10 +65,7 @@ func (m *mailService) FindByIds(ctx context.Context, mailIds ...types.Id) ([]dto
     return nil, status.FromRepository(err, status.NullCode)
   }
 
-  mailResponses := sharedUtil.CastSliceP(mails, func(mail *domain.Mail) dto.MailResponseDTO {
-    return mapper.ToMailResponseDTO(mail)
-  })
-
+  mailResponses := sharedUtil.CastSliceP(mails, mapper.ToMailResponseDTO)
   return mailResponses, status.Success()
 }
 
@@ -85,10 +80,7 @@ func (m *mailService) FindByTag(ctx context.Context, tagId types.Id) ([]dto.Mail
     return nil, status.FromRepository(err, status.NullCode)
   }
 
-  mailResponses := sharedUtil.CastSliceP(mails, func(mail *domain.Mail) dto.MailResponseDTO {
-    return mapper.ToMailResponseDTO(mail)
-  })
-
+  mailResponses := sharedUtil.CastSliceP(mails, mapper.ToMailResponseDTO)
   return mailResponses, status.Success()
 }
 
@@ -96,13 +88,18 @@ func (m *mailService) Send(ctx context.Context, mailDTO *dto.SendMailDTO) ([]typ
   ctx, span := m.tracer.Start(ctx, "MailService.Send")
   defer span.End()
 
-  mails := mapper.MapSendMailDTO(mailDTO)
+  mails, err := mailDTO.ToDomain()
+  if err != nil {
+    spanUtil.RecordError(err, span)
+    return nil, status.ErrBadRequest(err)
+  }
 
   // Save metadata
-  err := m.mailUow.DoTx(ctx, func(ctx context.Context, storage uow.MailStorage) error {
+  err = m.mailUow.DoTx(ctx, func(ctx context.Context, storage uow.MailStorage) error {
     ctx, txSpan := m.tracer.Start(ctx, "UOW.Send")
     defer txSpan.End()
 
+    // Create pending mail metadata
     err := storage.Mail().Create(ctx, mails...)
     if err != nil {
       spanUtil.RecordError(err, txSpan)
@@ -144,8 +141,9 @@ func (m *mailService) Send(ctx context.Context, mailDTO *dto.SendMailDTO) ([]typ
       repos := m.mailUow.Repositories()
 
       newMail := domain.Mail{
-        Id:     mail.Id,
-        Status: stat,
+        Id:          mail.Id,
+        Status:      stat,
+        DeliveredAt: time.Now(),
       }
 
       err = repos.Mail().Patch(ctx, &newMail)
@@ -166,23 +164,13 @@ func (m *mailService) Update(ctx context.Context, mailDTO *dto.UpdateMailDTO) st
   ctx, span := m.tracer.Start(ctx, "MailService.Update")
   defer span.End()
 
-  mailId := wrapper.DropError(types.IdFromString(mailDTO.Id))
-
-  addedTagIds := sharedUtil.CastSlice(mailDTO.AddedTagIds, func(from string) types.Id {
-    return wrapper.DropError(types.IdFromString(from))
-  })
-
-  removedTagIds := sharedUtil.CastSlice(mailDTO.RemovedTagIds, func(from string) types.Id {
-    return wrapper.DropError(types.IdFromString(from))
-  })
-
   err := m.mailUow.DoTx(ctx, func(ctx context.Context, storage uow.MailStorage) error {
     ctx, txSpan := m.tracer.Start(ctx, "UOW.Update")
     defer txSpan.End()
 
     // Append Tags
-    if len(addedTagIds) > 0 {
-      err := storage.Mail().AppendTags(ctx, mailId, addedTagIds)
+    if len(mailDTO.AddedTagIds) > 0 {
+      err := storage.Mail().AppendTags(ctx, mailDTO.Id, mailDTO.AddedTagIds)
       if err != nil {
         spanUtil.RecordError(err, span)
         return err
@@ -190,8 +178,8 @@ func (m *mailService) Update(ctx context.Context, mailDTO *dto.UpdateMailDTO) st
     }
 
     // Remove Tags
-    if len(removedTagIds) > 0 {
-      err := storage.Mail().RemoveTags(ctx, mailId, removedTagIds)
+    if len(mailDTO.RemovedTagIds) > 0 {
+      err := storage.Mail().RemoveTags(ctx, mailDTO.Id, mailDTO.RemovedTagIds)
       if err != nil {
         spanUtil.RecordError(err, span)
         return err

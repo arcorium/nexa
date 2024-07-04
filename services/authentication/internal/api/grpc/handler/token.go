@@ -4,16 +4,17 @@ import (
   "context"
   "go.opentelemetry.io/otel/trace"
   "google.golang.org/grpc"
-  "google.golang.org/protobuf/types/known/emptypb"
   authNv1 "nexa/proto/gen/go/authentication/v1"
   "nexa/services/authentication/internal/api/grpc/mapper"
   "nexa/services/authentication/internal/domain/service"
-  spanUtil "nexa/shared/span"
+  "nexa/services/authentication/util"
+  spanUtil "nexa/shared/util/span"
 )
 
 func NewToken(token service.IToken) TokenHandler {
   return TokenHandler{
     tokenSvc: token,
+    tracer:   util.GetTracer(),
   }
 }
 
@@ -21,6 +22,7 @@ type TokenHandler struct {
   authNv1.UnimplementedTokenServiceServer
 
   tokenSvc service.IToken
+  tracer   trace.Tracer
 }
 
 func (t *TokenHandler) RegisterHandler(server *grpc.Server) {
@@ -28,10 +30,16 @@ func (t *TokenHandler) RegisterHandler(server *grpc.Server) {
 }
 
 func (t *TokenHandler) Create(ctx context.Context, req *authNv1.TokenCreateRequest) (*authNv1.Token, error) {
-  span := trace.SpanFromContext(ctx)
+  ctx, span := t.tracer.Start(ctx, "TokenHandler.Create")
+  defer span.End()
 
-  dto := mapper.ToCreateTokenDTO(req)
-  result, stats := t.tokenSvc.Request(ctx, &dto)
+  dtos, err := mapper.ToCreateTokenDTO(req)
+  if err != nil {
+    spanUtil.RecordError(err, span)
+    return nil, err
+  }
+
+  result, stats := t.tokenSvc.Request(ctx, &dtos)
   if stats.IsError() {
     spanUtil.RecordError(stats.Error, span)
     return nil, stats.ToGRPCError()
@@ -39,15 +47,21 @@ func (t *TokenHandler) Create(ctx context.Context, req *authNv1.TokenCreateReque
   return mapper.ToProtoToken(&result), nil
 }
 
-func (t *TokenHandler) Verify(ctx context.Context, req *authNv1.TokenVerifyRequest) (*emptypb.Empty, error) {
-  span := trace.SpanFromContext(ctx)
+func (t *TokenHandler) Verify(ctx context.Context, req *authNv1.TokenVerifyRequest) (*authNv1.TokenVerifyResponse, error) {
+  ctx, span := t.tracer.Start(ctx, "TokenHandler.Verify")
+  defer span.End()
 
-  dto := mapper.ToTokenVerifyDTO(req)
-  stats := t.tokenSvc.Verify(ctx, &dto)
+  dtos, err := mapper.ToTokenVerifyDTO(req)
+  if err != nil {
+    spanUtil.RecordError(err, span)
+    return nil, err
+  }
+
+  userId, stats := t.tokenSvc.Verify(ctx, &dtos)
   if stats.IsError() {
     spanUtil.RecordError(stats.Error, span)
     return nil, stats.ToGRPCError()
   }
 
-  return &emptypb.Empty{}, nil
+  return &authNv1.TokenVerifyResponse{UserId: userId.String()}, nil
 }

@@ -57,7 +57,7 @@ func (n Nullable[T]) ValueOr(val T) T {
   return val
 }
 
-// Value2 Works like Value, but it will copy except for data type that has pointer as underlying, for example string, slice, map
+// RawValue Works like Value, but it will copy except for data type that has pointer as underlying, for example string, slice, map
 func (n Nullable[T]) RawValue() T {
   return *n.Value()
 }

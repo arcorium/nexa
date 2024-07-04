@@ -6,43 +6,54 @@ import (
   "google.golang.org/grpc"
   "google.golang.org/protobuf/types/known/emptypb"
   "io"
-  protoV1 "nexa/proto/generated/golang/file_storage/v1"
+  storagev1 "nexa/proto/gen/go/file_storage/v1"
   "nexa/services/file_storage/internal/api/grpc/mapper"
   "nexa/services/file_storage/internal/domain/dto"
   "nexa/services/file_storage/internal/domain/service"
-  spanUtil "nexa/shared/span"
-  "nexa/shared/status"
+  "nexa/services/file_storage/util"
+  sharedErr "nexa/shared/errors"
+  "nexa/shared/grpc/interceptor"
+  "nexa/shared/logger"
   "nexa/shared/types"
   sharedUtil "nexa/shared/util"
+  spanUtil "nexa/shared/util/span"
 )
 
 func NewFileStorage(file service.IFileStorage) StorageHandler {
   return StorageHandler{
     fileService: file,
+    tracer:      util.GetTracer(),
   }
 }
 
 type StorageHandler struct {
-  protoV1.UnimplementedFileStorageServiceServer
-
+  storagev1.FileStorageServiceServer
   fileService service.IFileStorage
+
+  tracer trace.Tracer
 }
 
 func (s *StorageHandler) Register(server *grpc.Server) {
-  protoV1.RegisterFileStorageServiceServer(server, s)
+  storagev1.RegisterFileStorageServiceServer(server, s)
 }
 
-func (s *StorageHandler) Find(request *protoV1.FindFileRequest, server protoV1.FileStorageService_FindServer) error {
-  span := trace.SpanFromContext(server.Context())
+func (s *StorageHandler) Find(request *storagev1.FindFileRequest, server storagev1.FileStorageService_FindServer) error {
+  stream, err := interceptor.GetWrappedServerStream(server)
+  if err != nil {
+    logger.Fatal(err.Error())
+    return err
+  }
+
+  ctx, span := s.tracer.Start(stream.WrappedContext, "StorageHandler.Find")
+  defer span.End()
 
   id, err := types.IdFromString(request.FileId)
   if err != nil {
     spanUtil.RecordError(err, span)
-    stat := status.ErrBadRequest(err)
-    return stat.ToGRPCError()
+    return sharedErr.NewFieldError("file_id", err).ToGrpcError()
   }
 
-  file, stat := s.fileService.Find(server.Context(), id)
+  file, stat := s.fileService.Find(ctx, id)
   if stat.IsError() {
     spanUtil.RecordError(stat.Error, span)
     return stat.ToGRPCError()
@@ -50,7 +61,7 @@ func (s *StorageHandler) Find(request *protoV1.FindFileRequest, server protoV1.F
 
   // TODO: Split bytes into several chunks for large file
   for {
-    err = server.Send(&protoV1.FindFileResponse{
+    err = server.Send(&storagev1.FindFileResponse{
       Filename: file.Name,
       Chunk:    file.Data,
     })
@@ -65,28 +76,35 @@ func (s *StorageHandler) Find(request *protoV1.FindFileRequest, server protoV1.F
   return nil
 }
 
-func (s *StorageHandler) FindMetadata(ctx context.Context, request *protoV1.FindFileMetadataRequest) (*protoV1.FindFileMetadataResponse, error) {
-  span := trace.SpanFromContext(ctx)
+func (s *StorageHandler) FindMetadata(ctx context.Context, request *storagev1.FindFileMetadataRequest) (*storagev1.FindFileMetadataResponse, error) {
+  ctx, span := s.tracer.Start(ctx, "StorageHandler.FindMetadata")
+  defer span.End()
 
-  id, err := types.IdFromString(request.FileId)
+  fileId, err := types.IdFromString(request.FileId)
   if err != nil {
     spanUtil.RecordError(err, span)
-    stat := status.ErrBadRequest(err)
-    return nil, stat.ToGRPCError()
+    return nil, sharedErr.NewFieldError("file_id", err).ToGrpcError()
   }
 
-  metadata, stat := s.fileService.FindMetadata(ctx, id)
+  metadata, stat := s.fileService.FindMetadata(ctx, fileId)
   if stat.IsError() {
     spanUtil.RecordError(stat.Error, span)
     return nil, stat.ToGRPCError()
   }
 
-  response := &protoV1.FindFileMetadataResponse{File: mapper.ToProtoFile(metadata)}
+  response := &storagev1.FindFileMetadataResponse{File: mapper.ToProtoFile(metadata)}
   return response, nil
 }
 
-func (s *StorageHandler) Store(server protoV1.FileStorageService_StoreServer) error {
-  span := trace.SpanFromContext(server.Context())
+func (s *StorageHandler) Store(server storagev1.FileStorageService_StoreServer) error {
+  stream, err := interceptor.GetWrappedServerStream(server)
+  if err != nil {
+    logger.Fatal(err.Error())
+    return err
+  }
+
+  ctx, span := s.tracer.Start(stream.WrappedContext, "StorageHandler.FindMetadata")
+  defer span.End()
 
   storeDto := dto.FileStoreDTO{}
   for {
@@ -101,47 +119,47 @@ func (s *StorageHandler) Store(server protoV1.FileStorageService_StoreServer) er
     storeDto.Name = req.Filename
     storeDto.Data = append(storeDto.Data, req.Chunk...)
   }
-  id, stat := s.fileService.Store(server.Context(), &storeDto)
+
+  // Validate
+  err = sharedUtil.ValidateStruct(&storeDto)
+  if err != nil {
+    spanUtil.RecordError(err, span)
+    return err
+  }
+
+  id, stat := s.fileService.Store(ctx, &storeDto)
   if stat.IsError() {
     spanUtil.RecordError(stat.Error, span)
     server.SendAndClose(nil)
     return stat.ToGRPCError()
   }
-  return server.SendAndClose(&protoV1.StoreFileResponse{FileId: id})
+  return server.SendAndClose(&storagev1.StoreFileResponse{FileId: id.String()})
 }
 
-func (s *StorageHandler) UpdateMetadata(ctx context.Context, request *protoV1.UpdateFileMetadataRequest) (*emptypb.Empty, error) {
-  span := trace.SpanFromContext(ctx)
+func (s *StorageHandler) Update(ctx context.Context, request *storagev1.UpdateFileRequest) (*emptypb.Empty, error) {
+  ctx, span := s.tracer.Start(ctx, "StorageHandler.UpdateMetadata")
+  defer span.End()
 
-  input := mapper.ToUpdateMetadataDTO(request)
-  err := sharedUtil.ValidateStructCtx(ctx, &input)
+  dtos, err := mapper.ToUpdateMetadataDTO(request)
   if err != nil {
     spanUtil.RecordError(err, span)
     return nil, err
   }
 
-  stat := s.fileService.UpdateMetadata(ctx, &input)
-  if stat.IsError() {
-    spanUtil.RecordError(stat.Error, span)
-    return nil, stat.ToGRPCError()
-  }
-  return &emptypb.Empty{}, stat.ToGRPCError()
+  stat := s.fileService.UpdateMetadata(ctx, &dtos)
+  return nil, stat.ToGRPCErrorWithSpan(span)
 }
 
-func (s *StorageHandler) Delete(ctx context.Context, request *protoV1.DeleteFileRequest) (*emptypb.Empty, error) {
-  span := trace.SpanFromContext(ctx)
+func (s *StorageHandler) Delete(ctx context.Context, request *storagev1.DeleteFileRequest) (*emptypb.Empty, error) {
+  ctx, span := s.tracer.Start(ctx, "StorageHandler.Delete")
+  defer span.End()
 
   id, err := types.IdFromString(request.FileId)
   if err != nil {
     spanUtil.RecordError(err, span)
-    stat := status.ErrBadRequest(err)
-    return nil, stat.ToGRPCError()
+    return nil, sharedErr.NewFieldError("file_id", err).ToGrpcError()
   }
 
   stat := s.fileService.Delete(ctx, id)
-  if stat.IsError() {
-    spanUtil.RecordError(err, span)
-    return nil, stat.ToGRPCError()
-  }
-  return &emptypb.Empty{}, nil
+  return nil, stat.ToGRPCErrorWithSpan(span)
 }

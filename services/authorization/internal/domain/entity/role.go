@@ -19,7 +19,7 @@ func (r *Role) ToJWT() sharedJwt.Role {
     Id:   r.Id.String(),
     Role: r.Name,
     Permissions: sharedUtil.CastSliceP(r.Permissions, func(perm *Permission) string {
-      return perm.Code
+      return perm.Encode()
     }),
   }
 }

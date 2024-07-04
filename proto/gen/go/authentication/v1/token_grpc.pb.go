@@ -11,7 +11,6 @@ import (
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
-	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -20,8 +19,8 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	TokenService_Create_FullMethodName = "/nexa.proto.generated.authentication.v1.TokenService/Create"
-	TokenService_Verify_FullMethodName = "/nexa.proto.generated.authentication.v1.TokenService/Verify"
+	TokenService_Create_FullMethodName = "/nexa.authentication.v1.TokenService/Create"
+	TokenService_Verify_FullMethodName = "/nexa.authentication.v1.TokenService/Verify"
 )
 
 // TokenServiceClient is the client API for TokenService service.
@@ -29,7 +28,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type TokenServiceClient interface {
 	Create(ctx context.Context, in *TokenCreateRequest, opts ...grpc.CallOption) (*Token, error)
-	Verify(ctx context.Context, in *TokenVerifyRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	Verify(ctx context.Context, in *TokenVerifyRequest, opts ...grpc.CallOption) (*TokenVerifyResponse, error)
 }
 
 type tokenServiceClient struct {
@@ -49,8 +48,8 @@ func (c *tokenServiceClient) Create(ctx context.Context, in *TokenCreateRequest,
 	return out, nil
 }
 
-func (c *tokenServiceClient) Verify(ctx context.Context, in *TokenVerifyRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	out := new(emptypb.Empty)
+func (c *tokenServiceClient) Verify(ctx context.Context, in *TokenVerifyRequest, opts ...grpc.CallOption) (*TokenVerifyResponse, error) {
+	out := new(TokenVerifyResponse)
 	err := c.cc.Invoke(ctx, TokenService_Verify_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -63,7 +62,7 @@ func (c *tokenServiceClient) Verify(ctx context.Context, in *TokenVerifyRequest,
 // for forward compatibility
 type TokenServiceServer interface {
 	Create(context.Context, *TokenCreateRequest) (*Token, error)
-	Verify(context.Context, *TokenVerifyRequest) (*emptypb.Empty, error)
+	Verify(context.Context, *TokenVerifyRequest) (*TokenVerifyResponse, error)
 	mustEmbedUnimplementedTokenServiceServer()
 }
 
@@ -74,7 +73,7 @@ type UnimplementedTokenServiceServer struct {
 func (UnimplementedTokenServiceServer) Create(context.Context, *TokenCreateRequest) (*Token, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Create not implemented")
 }
-func (UnimplementedTokenServiceServer) Verify(context.Context, *TokenVerifyRequest) (*emptypb.Empty, error) {
+func (UnimplementedTokenServiceServer) Verify(context.Context, *TokenVerifyRequest) (*TokenVerifyResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Verify not implemented")
 }
 func (UnimplementedTokenServiceServer) mustEmbedUnimplementedTokenServiceServer() {}
@@ -130,7 +129,7 @@ func _TokenService_Verify_Handler(srv interface{}, ctx context.Context, dec func
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var TokenService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "nexa.proto.generated.authentication.v1.TokenService",
+	ServiceName: "nexa.authentication.v1.TokenService",
 	HandlerType: (*TokenServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

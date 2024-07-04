@@ -8,8 +8,8 @@ import (
   "nexa/services/authentication/internal/domain/dto"
   "nexa/services/authentication/internal/domain/external"
   "nexa/services/authentication/util"
-  spanUtil "nexa/shared/span"
   "nexa/shared/types"
+  spanUtil "nexa/shared/util/span"
 )
 
 func NewUserClient(conn grpc.ClientConnInterface) external.IUserClient {
@@ -20,24 +20,26 @@ func NewUserClient(conn grpc.ClientConnInterface) external.IUserClient {
 }
 
 type userClient struct {
+  external.IUserClient
   client userv1.UserServiceClient
 
   trace trace.Tracer
 }
 
-func (u *userClient) Validate(ctx context.Context, email types.Email, password string) (dto.UserValidateResponseDTO, error) {
+func (u *userClient) Validate(ctx context.Context, email types.Email, password types.Password) (dto.UserResponseDTO, error) {
   ctx, span := u.trace.Start(ctx, "UserClient.Validate")
   defer span.End()
 
   // Call
   dtos := userv1.ValidateUserRequest{
     Email:    email.String(),
-    Password: password,
+    Password: password.String(),
   }
+
   response, err := u.client.Validate(ctx, &dtos)
   if err != nil {
     spanUtil.RecordError(err, span)
-    return dto.UserValidateResponseDTO{}, err
+    return dto.UserResponseDTO{}, err
   }
 
   // Map to response DTO
@@ -45,10 +47,10 @@ func (u *userClient) Validate(ctx context.Context, email types.Email, password s
   id, err := types.IdFromString(user.Id)
   if err != nil {
     spanUtil.RecordError(err, span)
-    return dto.UserValidateResponseDTO{}, err
+    return dto.UserResponseDTO{}, err
   }
 
-  responseDTO := dto.UserValidateResponseDTO{
+  responseDTO := dto.UserResponseDTO{
     UserId:   id,
     Username: user.Username,
   }
@@ -56,23 +58,30 @@ func (u *userClient) Validate(ctx context.Context, email types.Email, password s
   return responseDTO, nil
 }
 
-func (u *userClient) Create(ctx context.Context, request *dto.RegisterDTO) error {
+func (u *userClient) Create(ctx context.Context, request *dto.RegisterDTO) (types.Id, error) {
   ctx, span := u.trace.Start(ctx, "UserClient.Create")
   defer span.End()
 
   dtos := userv1.CreateUserRequest{
     Username:  request.Username,
-    Email:     request.Email,
-    Password:  request.Password,
+    Email:     request.Email.String(),
+    Password:  request.Password.String(),
     FirstName: request.FirstName,
     LastName:  request.LastName.Value(),
     Bio:       request.Bio.Value(),
   }
 
-  _, err := u.client.Create(ctx, &dtos)
+  res, err := u.client.Create(ctx, &dtos)
   if err != nil {
     spanUtil.RecordError(err, span)
-    return err
+    return types.NullId(), err
   }
-  return nil
+
+  userId, err := types.IdFromString(res.Id)
+  if err != nil {
+    spanUtil.RecordError(err, span)
+    return types.NullId(), err
+  }
+
+  return userId, nil
 }

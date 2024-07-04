@@ -3,7 +3,9 @@ package util
 import (
   "context"
   "github.com/go-playground/validator/v10"
+  "golang.org/x/exp/constraints"
   sharedErr "nexa/shared/errors"
+  "nexa/shared/types"
   "sync"
 )
 
@@ -41,4 +43,37 @@ func ValidateStruct[T any](strct *T) error {
     return err
   }
   return sharedErr.GrpcFieldValidationErrors(verr)
+}
+
+func StringEmptyValidates(fields ...types.Field[string]) sharedErr.EmptyFieldError {
+  var errs []sharedErr.FieldError
+
+  for _, field := range fields {
+    if len(field.Val) == 0 {
+      errs = append(errs, sharedErr.NewFieldError(field.Name, sharedErr.ErrFieldEmpty))
+    }
+  }
+  return sharedErr.EmptyFieldError{Errs: errs}
+}
+
+func ZeroIntegerValidates[T constraints.Integer](fields ...types.Field[T]) sharedErr.EmptyFieldError {
+  var errs []sharedErr.FieldError
+
+  for _, field := range fields {
+    if field.Val == 0 {
+      errs = append(errs, sharedErr.NewFieldError(field.Name, sharedErr.ErrZeroEmpty))
+    }
+  }
+  return sharedErr.EmptyFieldError{Errs: errs}
+}
+
+func ZeroFloatValidates[T constraints.Float](fields ...types.Field[T]) sharedErr.EmptyFieldError {
+  var errs []sharedErr.FieldError
+
+  for _, field := range fields {
+    if field.Val == 0.0 {
+      errs = append(errs, sharedErr.NewFieldError(field.Name, sharedErr.ErrZeroEmpty))
+    }
+  }
+  return sharedErr.EmptyFieldError{Errs: errs}
 }

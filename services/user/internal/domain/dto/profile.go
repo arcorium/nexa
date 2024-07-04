@@ -1,15 +1,17 @@
 package dto
 
 import (
+  "nexa/services/user/internal/domain/entity"
+  "nexa/shared/types"
   "nexa/shared/wrapper"
 )
 
 type ProfileResponseDTO struct {
   //UserId    string `json:"user_id"`
-  FirstName string `json:"first_name"`
-  LastName  string `json:"last_name"`
-  Bio       string `json:"bio"`
-  PhotoURL  string `json:"photo_url"`
+  FirstName string
+  LastName  string
+  Bio       string
+  PhotoURL  string
 }
 
 //type ProfileCreateInput struct {
@@ -20,15 +22,26 @@ type ProfileResponseDTO struct {
 //}
 
 type ProfileUpdateDTO struct {
-  UserId    string                   `json:"user_id" validate:"uuid4"`
-  FirstName wrapper.Nullable[string] `json:"first_name" validate:""`
-  LastName  wrapper.Nullable[string] `json:"last_name" validate:""`
-  Bio       wrapper.Nullable[string] `json:"bio" validate:""`
+  UserId    types.Id
+  FirstName wrapper.Nullable[string]
+  LastName  wrapper.Nullable[string]
+  Bio       wrapper.Nullable[string]
 }
 
-// TODO: Implement Upload file which is received from api gateway
-type ProfilePictureUpdateDTO struct {
-  UserId   string `json:"user_id" validate:"uuid4"`
-  Filename string `json:"filename" validate:"required"`
-  Bytes    []byte `validate:"required,image"`
+func (p *ProfileUpdateDTO) ToDomain() entity.Profile {
+  profile := entity.Profile{
+    Id: p.UserId,
+  }
+
+  wrapper.SetOnNonNull(&profile.FirstName, p.FirstName)
+  wrapper.SetOnNonNull(&profile.LastName, p.LastName)
+  wrapper.SetOnNonNull(&profile.Bio, p.Bio)
+
+  return profile
+}
+
+type ProfileAvatarUpdateDTO struct {
+  UserId   types.Id
+  Filename string `validate:"required"`
+  Bytes    []byte `validate:"required"`
 }

@@ -7,6 +7,6 @@ import (
 )
 
 type IUserClient interface {
-  Validate(ctx context.Context, email types.Email, password string) (dto.UserValidateResponseDTO, error)
-  Create(ctx context.Context, request *dto.RegisterDTO) error
+  Validate(ctx context.Context, email types.Email, password types.Password) (dto.UserResponseDTO, error)
+  Create(ctx context.Context, request *dto.RegisterDTO) (types.Id, error)
 }

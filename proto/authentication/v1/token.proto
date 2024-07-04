@@ -1,5 +1,5 @@
 syntax = "proto3";
-package nexa.proto.generated.authentication.v1;
+package nexa.authentication.v1;
 option go_package = "nexa/proto/gen/go/authentication/v1";
 
 import "google/protobuf/empty.proto";
@@ -8,7 +8,7 @@ import "common/paged.proto";
 
 service TokenService {
   rpc Create(TokenCreateRequest) returns (Token);
-  rpc Verify(TokenVerifyRequest) returns (google.protobuf.Empty);
+  rpc Verify(TokenVerifyRequest) returns (TokenVerifyResponse);
 //  rpc AddUsage(AddUsageInput) returns (AddUsageOutput);
 //  rpc RemoveUsage(RemoveUsageInput) returns (google.protobuf.Empty);
 //  rpc UpdateUsage(UpdateUsageInput) returns (google.protobuf.Empty);
@@ -35,4 +35,8 @@ message TokenCreateRequest {
 message TokenVerifyRequest {
   string token = 1;
   TokenUsage usage = 2;
+}
+
+message TokenVerifyResponse {
+  string user_id = 1;
 }

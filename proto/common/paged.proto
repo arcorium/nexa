@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package nexa.proto.generated.common;
+package nexa.common;
 
 option go_package = "nexa/proto/generated/golang/common";
 

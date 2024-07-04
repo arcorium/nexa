@@ -7,12 +7,13 @@ import (
   mailerv1 "nexa/proto/gen/go/mailer/v1"
   "nexa/services/user/internal/domain/dto"
   "nexa/services/user/internal/domain/external"
+  "nexa/services/user/util"
 )
 
-func NewMailerClient(conn grpc.ClientConnInterface, tracer trace.Tracer) external.IMailerClient {
+func NewMailerClient(conn grpc.ClientConnInterface) external.IMailerClient {
   return &mailerClient{
     client: mailerv1.NewMailerServiceClient(conn),
-    tracer: tracer,
+    tracer: util.GetTracer(),
   }
 }
 
@@ -32,7 +33,7 @@ func (m *mailerClient) SendEmailVerification(ctx context.Context, dto *dto.SendE
   defer span.End()
 
   request := mailerv1.SendMailRequest{
-    Recipients: []string{dto.Recipient},
+    Recipients: []string{dto.Recipient.String()},
     Subject:    "Email Verification",
     BodyType:   mailerv1.BodyType_BODY_TYPE_PLAIN,
     Body:       "Verification Token: " + dto.Token,
@@ -47,7 +48,7 @@ func (m *mailerClient) SendForgotPassword(ctx context.Context, passwordDTO *dto.
   defer span.End()
 
   request := mailerv1.SendMailRequest{
-    Recipients: []string{passwordDTO.Recipient},
+    Recipients: []string{passwordDTO.Recipient.String()},
     Subject:    "Email Verification",
     BodyType:   mailerv1.BodyType_BODY_TYPE_PLAIN,
     Body:       "Verification Token: " + passwordDTO.Token,

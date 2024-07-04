@@ -20,12 +20,12 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	CredentialService_Login_FullMethodName          = "/nexa.proto.generated.authentication.v1.CredentialService/Login"
-	CredentialService_Register_FullMethodName       = "/nexa.proto.generated.authentication.v1.CredentialService/Register"
-	CredentialService_RefreshToken_FullMethodName   = "/nexa.proto.generated.authentication.v1.CredentialService/RefreshToken"
-	CredentialService_GetCredentials_FullMethodName = "/nexa.proto.generated.authentication.v1.CredentialService/GetCredentials"
-	CredentialService_Logout_FullMethodName         = "/nexa.proto.generated.authentication.v1.CredentialService/Logout"
-	CredentialService_LogoutAll_FullMethodName      = "/nexa.proto.generated.authentication.v1.CredentialService/LogoutAll"
+	CredentialService_Login_FullMethodName          = "/nexa.authentication.v1.CredentialService/Login"
+	CredentialService_Register_FullMethodName       = "/nexa.authentication.v1.CredentialService/Register"
+	CredentialService_RefreshToken_FullMethodName   = "/nexa.authentication.v1.CredentialService/RefreshToken"
+	CredentialService_GetCredentials_FullMethodName = "/nexa.authentication.v1.CredentialService/GetCredentials"
+	CredentialService_Logout_FullMethodName         = "/nexa.authentication.v1.CredentialService/Logout"
+	CredentialService_LogoutAll_FullMethodName      = "/nexa.authentication.v1.CredentialService/LogoutAll"
 )
 
 // CredentialServiceClient is the client API for CredentialService service.
@@ -262,7 +262,7 @@ func _CredentialService_LogoutAll_Handler(srv interface{}, ctx context.Context, 
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var CredentialService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "nexa.proto.generated.authentication.v1.CredentialService",
+	ServiceName: "nexa.authentication.v1.CredentialService",
 	HandlerType: (*CredentialServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

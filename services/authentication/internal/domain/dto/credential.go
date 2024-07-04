@@ -8,9 +8,9 @@ import (
 )
 
 type LoginDTO struct {
-  Email      string `json:"email" validate:"required,email"`
-  Password   string `json:"password" validate:"required"`
-  DeviceName string `json:"device_name" validate:"required"`
+  Email      types.Email
+  Password   types.Password
+  DeviceName string `validate:"required"`
 }
 
 func (d *LoginDTO) ToDomain(userId, accessTokenId types.Id, refreshToken *domain.JWTToken, expiryTime time.Duration) domain.Credential {
@@ -25,22 +25,22 @@ func (d *LoginDTO) ToDomain(userId, accessTokenId types.Id, refreshToken *domain
 }
 
 type LoginResponseDTO struct {
-  TokenType string `json:"token_type"`
-  Token     string `json:"token"`
+  TokenType string
+  Token     string
 }
 
 type RegisterDTO struct {
   Username  string `validate:"required,gte=6"`
-  Email     string `validate:"required,email"`
-  Password  string `validate:"required,gte=6"`
+  Email     types.Email
+  Password  types.Password
   FirstName string `validate:"required"`
   LastName  wrapper.NullableString
   Bio       wrapper.NullableString
 }
 
 type RefreshTokenDTO struct {
-  TokenType   string `json:"token_type" validate:"required"`
-  AccessToken string `json:"access_token" validate:"required"`
+  TokenType   string `validate:"required"`
+  AccessToken string `validate:"required,jwt"`
 }
 
 func (r *RefreshTokenDTO) ToDomain(refreshTokenId, accessTokenId types.Id) domain.Credential {
@@ -51,16 +51,16 @@ func (r *RefreshTokenDTO) ToDomain(refreshTokenId, accessTokenId types.Id) domai
 }
 
 type RefreshTokenResponseDTO struct {
-  TokenType   string `json:"token_type"`
-  AccessToken string `json:"token"`
+  TokenType   string
+  AccessToken string
 }
 
 type CredentialResponseDTO struct {
-  Id     string `json:"id"`
-  Device string `json:"device"`
+  Id     types.Id
+  Device string
 }
 
 type LogoutDTO struct {
-  UserId        string   `validate:"required,uuid4"`
-  CredentialIds []string `validate:"required,dive,uuid4"`
+  UserId        wrapper.Nullable[types.Id]
+  CredentialIds []types.Id
 }

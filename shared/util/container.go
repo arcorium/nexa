@@ -1,6 +1,8 @@
 package util
 
-import "nexa/shared/errors"
+import (
+  sharedErr "nexa/shared/errors"
+)
 
 func CastSliceP[From, To any](slice []From, f func(*From) To) []To {
   if slice == nil || len(slice) == 0 {
@@ -26,9 +28,21 @@ func CastSlice[From, To any](slice []From, f func(From) To) []To {
   return result
 }
 
+func MapToSlice[KFrom comparable, VFrom, To any](maps map[KFrom]VFrom, f func(KFrom, VFrom) To) []To {
+  if maps == nil || len(maps) == 0 {
+    return nil
+  }
+
+  result := make([]To, 0, len(maps))
+  for key, val := range maps {
+    result = append(result, f(key, val))
+  }
+  return result
+}
+
 func CastSliceErrP[From, To any](slice []From, f func(*From) (To, error)) ([]To, error) {
   if slice == nil || len(slice) == 0 {
-    return nil, errors.ErrEmptySlice
+    return nil, sharedErr.ErrEmptySlice
   }
 
   result := make([]To, 0, len(slice))
@@ -43,43 +57,43 @@ func CastSliceErrP[From, To any](slice []From, f func(*From) (To, error)) ([]To,
 }
 
 // CastSliceErrsP cast slice with skipping error. when the function return error it will not stop like what CastSliceErrP do.
-// instead, it will skip the element and continue to process next element. element that error when processed will be returned as the
-// id along with the error object
-func CastSliceErrsP[From, To any](slice []From, f func(*From) (To, error)) ([]To, errors.IndicesError) {
+// instead, it will skip the element and continue to process next element. element with an error will be returned as the
+// index along with the error object and not appended on returned slice
+func CastSliceErrsP[From, To any](slice []From, f func(*From) (To, error)) ([]To, sharedErr.IndicesError) {
   if slice == nil || len(slice) == 0 {
-    return nil, errors.IndicesError{}
+    return nil, sharedErr.IndicesError{Errs: []sharedErr.IndexedError{{-1, sharedErr.ErrEmptySlice}}}
   }
 
   result := make([]To, 0, len(slice))
-  var errs []errors.IndexedError
+  var errs []sharedErr.IndexedError
   for i, val := range slice {
     res, err := f(&val)
     if err != nil {
-      errs = append(errs, errors.IndexedError{Index: i, Err: err})
+      errs = append(errs, sharedErr.IndexedError{Index: i, Err: err})
       continue
     }
     result = append(result, res)
   }
 
-  return result, errors.IndicesError{Errs: errs}
+  return result, sharedErr.IndicesError{Errs: errs}
 }
 
 // CastSliceErrs works like CastSliceErrsP, but it takes non-pointer
-func CastSliceErrs[From, To any](slice []From, f func(From) (To, error)) ([]To, errors.IndicesError) {
+func CastSliceErrs[From, To any](slice []From, f func(From) (To, error)) ([]To, sharedErr.IndicesError) {
   if slice == nil || len(slice) == 0 {
-    return nil, errors.IndicesError{}
+    return nil, sharedErr.IndicesError{Errs: []sharedErr.IndexedError{{-1, sharedErr.ErrEmptySlice}}}
   }
 
   result := make([]To, 0, len(slice))
-  var errs []errors.IndexedError
+  var errs []sharedErr.IndexedError
   for i, val := range slice {
     res, err := f(val)
     if err != nil {
-      errs = append(errs, errors.IndexedError{Index: i, Err: err})
+      errs = append(errs, sharedErr.IndexedError{Index: i, Err: err})
       continue
     }
     result = append(result, res)
   }
 
-  return result, errors.IndicesError{Errs: errs}
+  return result, sharedErr.IndicesError{Errs: errs}
 }

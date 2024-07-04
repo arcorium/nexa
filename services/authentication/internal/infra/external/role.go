@@ -8,9 +8,9 @@ import (
   "nexa/services/authentication/internal/domain/dto"
   "nexa/services/authentication/internal/domain/external"
   "nexa/services/authentication/util"
-  spanUtil "nexa/shared/span"
   "nexa/shared/types"
   sharedUtil "nexa/shared/util"
+  spanUtil "nexa/shared/util/span"
 )
 
 func NewRoleClient(conn grpc.ClientConnInterface) external.IRoleClient {
@@ -35,7 +35,7 @@ func (r roleClient) GetUserRoles(ctx context.Context, userId types.Id) ([]dto.Ro
     IncludePermission: true,
   }
 
-  roles, err := r.client.GetUser(ctx, &dtos)
+  roles, err := r.client.GetUsers(ctx, &dtos)
   if err != nil {
     spanUtil.RecordError(err, span)
     return nil, err

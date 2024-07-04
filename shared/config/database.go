@@ -2,19 +2,12 @@ package config
 
 import (
   "fmt"
-  "github.com/caarlos0/env/v10"
   "sync"
   "time"
 )
 
 func LoadDatabase() (*Database, error) {
-  config := &Database{}
-  err := env.Parse(config)
-  if err != nil {
-    return nil, err
-  }
-
-  return config, nil
+  return Load[Database]()
 }
 
 type Database struct {

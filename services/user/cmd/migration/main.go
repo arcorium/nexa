@@ -35,4 +35,8 @@ func main() {
   if err = model.CreateTables(db); err != nil {
     log.Fatalln(err)
   }
+
+  // TODO: Seed admin
+
+  // TODO: Seed permissions into authorization service
 }

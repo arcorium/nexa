@@ -84,7 +84,7 @@ func (f *fileMetadataTestSuite) SetupSuite() {
   model.RegisterBunModels(db)
   err = model.CreateTables(db)
   f.Require().NoError(err)
-  err = model.SeedDatabase(db, dataSeed...)
+  err = model.SeedFromDomain(db, dataSeed...)
   f.Require().NoError(err)
 }
 
@@ -428,7 +428,7 @@ func (f *fileMetadataTestSuite) Test_metadataRepository_Update() {
         metadata: &domain.FileMetadata{
           Id:       dataSeed[0].Id,
           Name:     "something.jpg",
-          Type:     domain.FileTypeImage,
+          MimeType: domain.FileTypeImage,
           Provider: domain.StorageProviderMinIO,
           IsPublic: !dataSeed[0].IsPublic,
         },
@@ -491,7 +491,7 @@ func (f *fileMetadataTestSuite) Test_metadataRepository_Update() {
 
       if result[0].Name != tt.args.metadata.Name ||
           result[0].IsPublic != tt.args.metadata.IsPublic ||
-          result[0].Type != tt.args.metadata.Type ||
+          result[0].MimeType != tt.args.metadata.MimeType ||
           result[0].Provider != tt.args.metadata.Provider {
 
         t.Errorf("Update() got = %v, want %v", result[0], tt.args.metadata)
@@ -512,7 +512,7 @@ func generateRandomFileMetadata(id optional.Object[types.Id]) domain.FileMetadat
   return domain.FileMetadata{
     Id:           id.ValueOr(types.NewId2()),
     Name:         gofakeit.AppName(),
-    Type:         domain.FileType(rand2.UintN(uint(domain.FileTypeOther.Underlying() + 1))),
+    MimeType:     domain.FileType(rand2.UintN(uint(domain.FileTypeOther.Underlying() + 1))),
     Size:         gofakeit.Uint64(),
     IsPublic:     gofakeit.Bool(),
     Provider:     domain.StorageProvider(rand2.UintN(uint(domain.StorageProviderAWSS3.Underlying() + 1))),

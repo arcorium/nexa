@@ -6,12 +6,8 @@ import (
 )
 
 // PasswordFromString create password by hashing the parameter with bcrypt.DefaultCost
-func PasswordFromString(password string) (Password, error) {
-  hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-  if err != nil {
-    return "", ErrHashPlainString
-  }
-  return Password(hashed), nil
+func PasswordFromString(password string) Password {
+  return Password(password)
 }
 
 // Password hashed string
@@ -21,7 +17,29 @@ func (h Password) Underlying() string {
   return string(h)
 }
 
-func (h Password) Equal(plainPassword string) error {
+func (h Password) String() string {
+  return h.Underlying()
+}
+
+func (h Password) Hash() (HashedPassword, error) {
+  hashed, err := bcrypt.GenerateFromPassword([]byte(h.Underlying()), bcrypt.DefaultCost)
+  if err != nil {
+    return "", ErrHashPlainString
+  }
+  return HashedPassword(hashed), nil
+}
+
+type HashedPassword string
+
+func (h HashedPassword) Underlying() string {
+  return string(h)
+}
+
+func (h HashedPassword) String() string {
+  return h.Underlying()
+}
+
+func (h HashedPassword) Equal(plainPassword string) error {
   if bcrypt.CompareHashAndPassword([]byte(h.Underlying()), []byte(plainPassword)) != nil {
     return ErrPasswordDifferent
   }

@@ -4,16 +4,15 @@ import (
   "context"
   "go.opentelemetry.io/otel/trace"
   "nexa/services/mailer/internal/domain/dto"
-  domain "nexa/services/mailer/internal/domain/entity"
   "nexa/services/mailer/internal/domain/mapper"
   "nexa/services/mailer/internal/domain/repository"
   "nexa/services/mailer/internal/domain/service"
   "nexa/services/mailer/util"
   sharedDto "nexa/shared/dto"
-  spanUtil "nexa/shared/span"
   "nexa/shared/status"
   "nexa/shared/types"
   sharedUtil "nexa/shared/util"
+  spanUtil "nexa/shared/util/span"
 )
 
 func NewTag(repo repository.ITag) service.ITag {
@@ -38,28 +37,23 @@ func (t *tagService) Find(ctx context.Context, elementDTO *sharedDto.PagedElemen
     return nil, status.FromRepository(err, status.NullCode)
   }
 
-  tags := sharedUtil.CastSliceP(result.Data, func(tag *domain.Tag) dto.TagResponseDTO {
-    return mapper.ToResponseDTO(tag)
-  })
+  tags := sharedUtil.CastSliceP(result.Data, mapper.ToTagResponseDTO)
 
   res := sharedDto.NewPagedElementResult2(tags, elementDTO, result.Total)
   return &res, status.Success()
 }
 
-func (t *tagService) FindByIds(ctx context.Context, ids ...types.Id) ([]dto.TagResponseDTO, status.Object) {
+func (t *tagService) FindByIds(ctx context.Context, tagIds ...types.Id) ([]dto.TagResponseDTO, status.Object) {
   ctx, span := t.tracer.Start(ctx, "TagService.FindByIds")
   defer span.End()
 
-  result, err := t.tagRepo.FindByIds(ctx, ids...)
+  result, err := t.tagRepo.FindByIds(ctx, tagIds...)
   if err != nil {
     spanUtil.RecordError(err, span)
     return nil, status.FromRepository(err, status.NullCode)
   }
 
-  tags := sharedUtil.CastSliceP(result, func(tag *domain.Tag) dto.TagResponseDTO {
-    return mapper.ToResponseDTO(tag)
-  })
-
+  tags := sharedUtil.CastSliceP(result, mapper.ToTagResponseDTO)
   return tags, status.Success()
 }
 
@@ -73,16 +67,20 @@ func (t *tagService) FindByName(ctx context.Context, name string) (dto.TagRespon
     return dto.TagResponseDTO{}, status.FromRepository(err, status.NullCode)
   }
 
-  return mapper.ToResponseDTO(result), status.Success()
+  return mapper.ToTagResponseDTO(result), status.Success()
 }
 
-func (t *tagService) Create(ctx context.Context, dto *dto.CreateTagDTO) (types.Id, status.Object) {
+func (t *tagService) Create(ctx context.Context, createDto *dto.CreateTagDTO) (types.Id, status.Object) {
   ctx, span := t.tracer.Start(ctx, "TagService.Create")
   defer span.End()
 
-  tag := mapper.MapCreateTagDTO(dto)
+  tag, err := createDto.ToDomain()
+  if err != nil {
+    spanUtil.RecordError(err, span)
+    return types.NullId(), status.ErrInternal(err)
+  }
 
-  err := t.tagRepo.Create(ctx, &tag)
+  err = t.tagRepo.Create(ctx, &tag)
   if err != nil {
     spanUtil.RecordError(err, span)
     return types.NullId(), status.FromRepository(err, status.NullCode)
@@ -91,11 +89,11 @@ func (t *tagService) Create(ctx context.Context, dto *dto.CreateTagDTO) (types.I
   return tag.Id, status.Created()
 }
 
-func (t *tagService) Update(ctx context.Context, tagDto *dto.UpdateTagDTO) status.Object {
+func (t *tagService) Update(ctx context.Context, updateDto *dto.UpdateTagDTO) status.Object {
   ctx, span := t.tracer.Start(ctx, "TagService.Update")
   defer span.End()
 
-  tag := mapper.MapUpdateTagDTO(tagDto)
+  tag := updateDto.ToDomain()
   err := t.tagRepo.Patch(ctx, &tag)
   if err != nil {
     spanUtil.RecordError(err, span)

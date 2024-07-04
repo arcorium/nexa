@@ -10,7 +10,15 @@ import (
   "log"
 )
 
-type FieldError struct {
+func GrpcFieldErrors2(details ...FieldError) error {
+  var casted []*errdetails.BadRequest_FieldViolation
+  for _, fe := range details {
+    casted = append(casted, &errdetails.BadRequest_FieldViolation{
+      Field:       fe.Name,
+      Description: fe.Description.Error(),
+    })
+  }
+  return GrpcFieldErrors(casted...)
 }
 
 func GrpcFieldErrors(details ...*errdetails.BadRequest_FieldViolation) error {

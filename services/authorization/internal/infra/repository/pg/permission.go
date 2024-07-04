@@ -6,12 +6,12 @@ import (
   "go.opentelemetry.io/otel/trace"
   "nexa/services/authorization/internal/domain/entity"
   "nexa/services/authorization/internal/domain/repository"
-  "nexa/services/authorization/internal/infra/model"
+  "nexa/services/authorization/internal/infra/repository/model"
   "nexa/services/authorization/util"
-  spanUtil "nexa/shared/span"
   "nexa/shared/types"
   sharedUtil "nexa/shared/util"
   "nexa/shared/util/repo"
+  spanUtil "nexa/shared/util/span"
   "time"
 )
 
@@ -31,9 +31,7 @@ func (p *permissionRepository) FindByIds(ctx context.Context, ids ...types.Id) (
   ctx, span := p.tracer.Start(ctx, "PermissionRepository.FindById")
   defer span.End()
 
-  permIds := sharedUtil.CastSlice(ids, func(permId types.Id) string {
-    return permId.String()
-  })
+  permIds := sharedUtil.CastSlice(ids, sharedUtil.ToString[types.Id])
 
   var dbModels []model.Permission
   err := p.db.NewSelect().
@@ -43,18 +41,7 @@ func (p *permissionRepository) FindByIds(ctx context.Context, ids ...types.Id) (
 
   result := repo.CheckSliceResultWithSpan(dbModels, err, span)
 
-  permissions, ierr := sharedUtil.CastSliceErrsP(result.Data, func(perm *model.Permission) (entity.Permission, error) {
-    id, err := types.IdFromString(perm.Id)
-    if err != nil {
-      return entity.Permission{}, err
-    }
-
-    return entity.Permission{
-      Id:   id,
-      Code: perm.Code,
-    }, nil
-  })
-
+  permissions, ierr := sharedUtil.CastSliceErrsP(result.Data, repo.ToDomainErr[*model.Permission, entity.Permission])
   if !ierr.IsNil() {
     spanUtil.RecordError(err, span)
     return nil, ierr
@@ -67,9 +54,7 @@ func (p *permissionRepository) FindByRoleIds(ctx context.Context, roleIds ...typ
   ctx, span := p.tracer.Start(ctx, "PermissionRepository.FindByRoleId")
   defer span.End()
 
-  ids := sharedUtil.CastSlice(roleIds, func(roleId types.Id) string {
-    return roleId.String()
-  })
+  ids := sharedUtil.CastSlice(roleIds, sharedUtil.ToString[types.Id])
 
   var dbModels []model.RolePermission
   err := p.db.NewSelect().
@@ -103,10 +88,7 @@ func (p *permissionRepository) FindAll(ctx context.Context, parameter repo.Query
     ScanAndCount(ctx)
 
   result := repo.CheckPaginationResult(dbModels, count, err)
-  permissions, ierr := sharedUtil.CastSliceErrsP(result.Data, func(from *model.Permission) (entity.Permission, error) {
-    return from.ToDomain()
-  })
-
+  permissions, ierr := sharedUtil.CastSliceErrsP(result.Data, repo.ToDomainErr[*model.Permission, entity.Permission])
   if !ierr.IsNil() {
     spanUtil.RecordError(err, span)
     return repo.NewPaginatedResult[entity.Permission](nil, 0), ierr

@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package nexa.proto.generated.authorization.v1;
+package nexa.authorization.v1;
 option go_package = "nexa/proto/generated/golang/authorization/v1";
 
 import "google/protobuf/empty.proto";
@@ -8,22 +8,24 @@ import "common/paged.proto";
 import "authorization/v1/message.proto";
 
 service PermissionService {
-  rpc Create(PermissionCreateRequest) returns (PermissionCreateResponse);
-  rpc Find(PermissionFindRequest) returns (FindPermissionResponse);
-  rpc FindByRoles(FindPermissionByRolesRequest) returns (FindPermissionByRolesResponse);
-  rpc FindAll(common.PagedElementInput) returns (PermissionFindAllResponse);
-  rpc Delete(PermissionDeleteRequest) returns (google.protobuf.Empty);
+  rpc Create(CreatePermissionRequest) returns (CreatePermissionResponse);
+  rpc Find(FindPermissionRequest) returns (FindPermissionResponse);
+  rpc FindByRoles(FindPermissionsByRoleRequest) returns (FindPermissionByRoleResponse);
+  rpc FindAll(common.PagedElementInput) returns (FindAllPermissionResponse);
+  rpc Delete(DeletePermissionRequest) returns (google.protobuf.Empty);
+
 }
 
-message PermissionCreateRequest {
-  string code = 1;
+message CreatePermissionRequest {
+  string resource = 1; // could be service name
+  string action = 2;
 }
 
-message PermissionCreateResponse {
-  string id = 1;
+message CreatePermissionResponse {
+  string permission_id = 1;
 }
 
-message PermissionFindRequest {
+message FindPermissionRequest {
   repeated string perm_ids = 1;
 }
 
@@ -31,19 +33,19 @@ message FindPermissionResponse {
   repeated Permission permission = 1;
 }
 
-message PermissionFindAllResponse {
+message FindAllPermissionResponse {
   common.PagedElementOutput details = 1;
   repeated Permission permissions = 2;
 }
 
-message PermissionDeleteRequest {
+message DeletePermissionRequest {
   string id = 1;
 }
 
-message FindPermissionByRolesRequest {
-
+message FindPermissionsByRoleRequest {
+  repeated string role_ids = 1;
 }
 
-message FindPermissionByRolesResponse {
-
+message FindPermissionByRoleResponse {
+  repeated Permission permissions = 1;
 }

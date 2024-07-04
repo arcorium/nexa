@@ -9,14 +9,14 @@ import (
 func FromPairs(mailTags ...types.Pair[types.Id, []types.Id]) []MailTag {
   var result []MailTag
   for _, mailTag := range mailTags {
-    mailTag := sharedUtil.CastSlice(mailTag.Second, func(tagId types.Id) MailTag {
+    mailTags := sharedUtil.CastSlice(mailTag.Second, func(tagId types.Id) MailTag {
       return MailTag{
-        MailId: mailTag.First.Underlying().String(),
-        TagId:  tagId.Underlying().String(),
+        MailId: mailTag.First.String(),
+        TagId:  tagId.String(),
       }
     })
 
-    result = append(mailTag, mailTag...)
+    result = append(result, mailTags...)
   }
   return result
 }
