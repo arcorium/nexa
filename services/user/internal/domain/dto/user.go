@@ -3,7 +3,6 @@ package dto
 import (
   "nexa/services/user/internal/domain/entity"
   "nexa/shared/types"
-  "nexa/shared/wrapper"
   "time"
 )
 
@@ -20,12 +19,17 @@ type UserCreateDTO struct {
   Email     types.Email
   Password  types.Password
   FirstName string `validate:"required"`
-  LastName  wrapper.NullableString
-  Bio       wrapper.NullableString
+  LastName  types.NullableString
+  Bio       types.NullableString
 }
 
 func (d *UserCreateDTO) ToDomain() (*entity.User, *entity.Profile, error) {
-  id, err := types.NewId()
+  userId, err := types.NewId()
+  if err != nil {
+    return nil, nil, err
+  }
+
+  profileId, err := types.NewId()
   if err != nil {
     return nil, nil, err
   }
@@ -36,37 +40,38 @@ func (d *UserCreateDTO) ToDomain() (*entity.User, *entity.Profile, error) {
   }
 
   user := &entity.User{
-    Id:        id,
+    Id:        userId,
     Username:  d.Username,
     Email:     d.Email,
     Password:  password, // hashed
-    IsDeleted: false,
+    CreatedAt: time.Now(),
   }
 
   profile := &entity.Profile{
-    Id:        user.Id,
+    Id:        profileId,
+    UserId:    user.Id,
     FirstName: d.FirstName,
   }
 
-  wrapper.SetOnNonNull(&profile.LastName, d.LastName)
-  wrapper.SetOnNonNull(&profile.Bio, d.Bio)
+  types.SetOnNonNull(&profile.LastName, d.LastName)
+  types.SetOnNonNull(&profile.Bio, d.Bio)
 
   return user, profile, nil
 }
 
 type UserUpdateDTO struct {
   Id       types.Id
-  Username wrapper.NullableString
-  Email    wrapper.Nullable[types.Email]
+  Username types.NullableString
+  Email    types.NullableEmail
 }
 
-func (d *UserUpdateDTO) ToDomain() entity.User {
-  user := entity.User{
-    Id:        d.Id,
-    IsDeleted: false,
+func (d *UserUpdateDTO) ToDomain() entity.PatchedUser {
+  user := entity.PatchedUser{
+    Id: d.Id,
   }
 
-  wrapper.SetOnNonNull(&user.Username, d.Username)
+  types.SetOnNonNull(&user.Username, d.Username)
+  types.SetOnNonNull(&user.Email, d.Email)
 
   return user
 }
@@ -77,13 +82,13 @@ type UserUpdatePasswordDTO struct {
   NewPassword  types.Password `validate:"required,gte=6"`
 }
 
-func (p *UserUpdatePasswordDTO) ToDomain() (entity.User, error) {
+func (p *UserUpdatePasswordDTO) ToDomain() (entity.PatchedUser, error) {
   hashedPassword, err := p.NewPassword.Hash()
   if err != nil {
-    return entity.User{}, err
+    return entity.PatchedUser{}, err
   }
 
-  return entity.User{
+  return entity.PatchedUser{
     Id:       p.Id,
     Password: hashedPassword,
   }, nil
@@ -91,19 +96,19 @@ func (p *UserUpdatePasswordDTO) ToDomain() (entity.User, error) {
 
 type UserBannedDTO struct {
   Id       types.Id
-  Duration time.Duration `validate:"required,gte=1"`
+  Duration time.Duration
 }
 
-func (u *UserBannedDTO) ToDomain() entity.User {
-  return entity.User{
-    Id:          u.Id,
-    IsDeleted:   true,
-    BannedUntil: time.Now().Add(u.Duration),
+func (u *UserBannedDTO) ToDomain() entity.PatchedUser {
+  return entity.PatchedUser{
+    Id:             u.Id,
+    BannedDuration: types.SomeNullable(u.Duration),
   }
 }
 
-type UserResetPasswordDTO struct {
-  Token       wrapper.NullableString
+type ResetUserPasswordDTO struct {
+  Token       types.NullableString
+  UserId      types.NullableId
   LogoutAll   bool           // Need to logout all devices?
   NewPassword types.Password `validate:"required,gt=6"`
 }

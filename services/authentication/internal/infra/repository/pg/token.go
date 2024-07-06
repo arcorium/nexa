@@ -23,8 +23,7 @@ func NewToken(db bun.IDB) repository.IToken {
 }
 
 type tokenRepository struct {
-  db bun.IDB
-
+  db     bun.IDB
   tracer trace.Tracer
 }
 

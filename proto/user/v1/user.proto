@@ -109,9 +109,11 @@ message ForgotUserPasswordResponse {
 }
 
 message ResetUserPasswordRequest {
+  // It could be used for reset token from forgot password or reset some user password for authorized user
   optional string token = 1;
-  string new_password = 2;
-  bool logout_all = 3;
+  optional string user_id = 2;
+  string new_password = 3;
+  bool logout_all = 4;
 }
 
 message FindUserByIdsResponse {

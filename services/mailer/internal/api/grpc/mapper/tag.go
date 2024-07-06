@@ -6,13 +6,12 @@ import (
   sharedErr "nexa/shared/errors"
   "nexa/shared/types"
   sharedUtil "nexa/shared/util"
-  "nexa/shared/wrapper"
 )
 
 func ToCreateTagDTO(request *mailerv1.CreateTagRequest) (dto.CreateTagDTO, error) {
   createDto := dto.CreateTagDTO{
     Name:        request.Name,
-    Description: wrapper.NewNullable(request.Description),
+    Description: types.NewNullable(request.Description),
   }
 
   err := sharedUtil.ValidateStruct(&createDto)
@@ -27,8 +26,8 @@ func ToUpdateTagDTO(request *mailerv1.UpdateTagRequest) (dto.UpdateTagDTO, error
 
   return dto.UpdateTagDTO{
     Id:          tagId,
-    Name:        wrapper.NewNullable(request.Name),
-    Description: wrapper.NewNullable(request.Description),
+    Name:        types.NewNullable(request.Name),
+    Description: types.NewNullable(request.Description),
   }, nil
 }
 

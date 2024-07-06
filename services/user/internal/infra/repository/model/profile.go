@@ -2,62 +2,90 @@ package model
 
 import (
   "github.com/uptrace/bun"
-  domain "nexa/services/user/internal/domain/entity"
+  "nexa/services/user/internal/domain/entity"
   "nexa/shared/types"
+  sharedUtil "nexa/shared/util"
   "nexa/shared/util/repo"
   "nexa/shared/variadic"
   "time"
 )
 
-type ProfileMapOption = repo.DataAccessModelMapOption[*domain.Profile, *Profile]
+type ProfileMapOption = repo.DataAccessModelMapOption[*entity.Profile, *Profile]
+type PatchedProfileMapOption = repo.DataAccessModelMapOption[*entity.PatchedProfile, *Profile]
 
-func FromProfileDomain(domain *domain.Profile, opts ...ProfileMapOption) Profile {
-  pfl := Profile{
-    UserId:    domain.Id.String(),
-    FirstName: domain.FirstName,
-    LastName:  domain.LastName,
-    PhotoId:   domain.PhotoId.String(),
-    PhotoURL:  domain.PhotoURL.FileName(),
-    Bio:       domain.Bio,
+func FromPatchedProfileDomain(ent *entity.PatchedProfile, opts ...PatchedProfileMapOption) Profile {
+  profile := Profile{
+    Id:        ent.Id.String(),
+    FirstName: ent.FirstName,
+    LastName:  ent.LastName.ValueOrNil(),
+    PhotoId:   types.GetValueOrNilCasted(ent.PhotoId, sharedUtil.ToString[types.Id]),
+    PhotoURL:  types.GetValueOrNilCasted(ent.PhotoURL, sharedUtil.ToString[types.FilePath]),
+    Bio:       ent.Bio.ValueOrNil(),
   }
 
-  variadic.New(opts...).DoAll(repo.MapOptionFunc(domain, &pfl))
+  variadic.New(opts...).DoAll(repo.MapOptionFunc(ent, &profile))
 
-  return pfl
+  return profile
+}
+
+func FromProfileDomain(ent *entity.Profile, opts ...ProfileMapOption) Profile {
+  photoId := ent.PhotoId.String()
+  photoUrl := ent.PhotoURL.String()
+
+  profile := Profile{
+    Id:        ent.Id.String(),
+    UserId:    ent.UserId.String(),
+    FirstName: ent.FirstName,
+    LastName:  &ent.LastName,
+    PhotoId:   &photoId,
+    PhotoURL:  &photoUrl,
+    Bio:       &ent.Bio,
+  }
+
+  variadic.New(opts...).DoAll(repo.MapOptionFunc(ent, &profile))
+
+  return profile
 }
 
 type Profile struct {
-  bun.BaseModel `bun:"table:profiles"`
+  bun.BaseModel `bun:"table:profiles,alias:p"`
 
-  UserId    string `bun:",type:uuid,pk"` // Profile is unique per user
-  FirstName string `bun:",notnull"`
-  LastName  string `bun:",nullzero"`
-  PhotoId   string `bun:",type:uuid,notnull"` // Id of profile image on file storage
-  PhotoURL  string `bun:",nullzero"`
-  Bio       string `bun:",nullzero"`
+  Id        string  `bun:",type:uuid,pk"`
+  UserId    string  `bun:",type:uuid,notnull,nullzero"` // Profile is unique per user
+  FirstName string  `bun:",notnull,nullzero"`
+  LastName  *string `bun:","`
+  PhotoId   *string `bun:",type:uuid"` // Id of profile image on file storage
+  PhotoURL  *string `bun:","`
+  Bio       *string `bun:","`
 
   UpdatedAt time.Time `bun:",nullzero"`
 
-  //User *User `bun:"rel:belongs-to,join:user_id=id,on_delete:CASCADE"`
+  User *User `bun:"rel:belongs-to,join:user_id=id,on_delete:CASCADE"` // Only used as reference
 }
 
-func (p *Profile) ToDomain() (domain.Profile, error) {
+func (p *Profile) ToDomain() (entity.Profile, error) {
+  id, err := types.IdFromString(p.Id)
+  if err != nil {
+    return entity.Profile{}, err
+  }
+
   userId, err := types.IdFromString(p.UserId)
   if err != nil {
-    return domain.Profile{}, err
+    return entity.Profile{}, err
   }
 
-  photoId, err := types.IdFromString(p.PhotoId)
+  photoId, err := types.IdFromString(types.OnNil(p.PhotoId, ""))
   if err != nil {
-    return domain.Profile{}, err
+    return entity.Profile{}, err
   }
 
-  return domain.Profile{
-    Id:        userId,
+  return entity.Profile{
+    Id:        id,
+    UserId:    userId,
     FirstName: p.FirstName,
-    LastName:  p.LastName,
+    LastName:  types.OnNil(p.LastName, ""),
     PhotoId:   photoId,
-    PhotoURL:  types.FilePathFromString(p.PhotoURL),
-    Bio:       p.Bio,
+    PhotoURL:  types.FilePathFromString(types.OnNil(p.PhotoURL, "")),
+    Bio:       types.OnNil(p.Bio, ""),
   }, nil
 }

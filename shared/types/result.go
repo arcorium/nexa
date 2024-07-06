@@ -1,4 +1,4 @@
-package wrapper
+package types
 
 func Some[T any](data T, err error) Result[T] {
   return Result[T]{

@@ -6,7 +6,6 @@ import (
   "nexa/shared/util"
   "nexa/shared/util/repo"
   "nexa/shared/variadic"
-  "nexa/shared/wrapper"
   "time"
 )
 
@@ -59,9 +58,9 @@ func (c *Credential) OmitZero() map[string]any {
 
 func (c *Credential) ToDomain() domain.Credential {
   return domain.Credential{
-    Id:            wrapper.DropError(types.IdFromString(c.Id)),
-    UserId:        wrapper.DropError(types.IdFromString(c.UserId)),
-    AccessTokenId: wrapper.DropError(types.IdFromString(c.AccessTokenId)),
+    Id:            types.DropError(types.IdFromString(c.Id)),
+    UserId:        types.DropError(types.IdFromString(c.UserId)),
+    AccessTokenId: types.DropError(types.IdFromString(c.AccessTokenId)),
     Device: domain.Device{
       Name: c.Device,
     },

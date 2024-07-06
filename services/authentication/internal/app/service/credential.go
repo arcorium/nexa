@@ -22,7 +22,6 @@ import (
   sharedUtil "nexa/shared/util"
   authUtil "nexa/shared/util/auth"
   spanUtil "nexa/shared/util/span"
-  "nexa/shared/wrapper"
   "time"
 )
 
@@ -169,7 +168,7 @@ func (c *credentialService) RefreshToken(ctx context.Context, refreshDto *dto.Re
   }
 
   claims := token.Claims.(sharedJwt.UserClaims)
-  rtid := wrapper.Must(types.IdFromString(claims.RefreshTokenId))
+  rtid := types.Must(types.IdFromString(claims.RefreshTokenId))
   cred, err := c.credRepo.Find(ctx, rtid)
   if err != nil {
     spanUtil.RecordError(err, span)
@@ -337,7 +336,7 @@ func (c *CredentialServiceConfig) generateAccessToken(username string, userId, r
   ct := time.Now()
   expAt := jwt.NewNumericDate(ct.Add(c.AccessTokenExpiration))
 
-  id := types.NewId2()
+  id := types.MustCreateId()
 
   accessClaims := sharedJwt.UserClaims{
     RegisteredClaims: jwt.RegisteredClaims{

@@ -49,13 +49,13 @@ func (t *Tag) ToDomain() (domain.Tag, error) {
 
 var DefaultTags = []Tag{
   {
-    Id:          types.NewId2().String(),
+    Id:          types.MustCreateId().String(),
     Name:        "Email Validation",
     Description: "Email Validation",
     CreatedAt:   time.Now(),
   },
   {
-    Id:          types.NewId2().String(),
+    Id:          types.MustCreateId().String(),
     Name:        "Forgot Password",
     Description: "Forgot Password",
     CreatedAt:   time.Now(),

@@ -3,8 +3,8 @@ package repo
 import (
   "database/sql"
   "go.opentelemetry.io/otel/trace"
+  "nexa/shared/types"
   spanUtil "nexa/shared/util/span"
-  "nexa/shared/wrapper"
 )
 
 // CheckResult check the result if the rows affected is 0 it will return sql.ErrNoRows
@@ -47,55 +47,55 @@ func CheckResultWithSpan(result sql.Result, err error, span trace.Span) error {
 }
 
 // CheckSliceResult check the slice (from scanning ORMs) and err will become sql.ErrNoRows if the slice size is 0
-func CheckSliceResult[T any](slice []T, err error) wrapper.Result[[]T] {
+func CheckSliceResult[T any](slice []T, err error) types.Result[[]T] {
   if err != nil {
-    return wrapper.None[[]T](err)
+    return types.None[[]T](err)
   }
 
   if len(slice) <= 0 {
-    return wrapper.None[[]T](sql.ErrNoRows)
+    return types.None[[]T](sql.ErrNoRows)
   }
 
-  return wrapper.Some(slice, nil)
+  return types.Some(slice, nil)
 }
 
 // CheckSliceResultWithSpan works like CheckSliceResult, but it will record error for span
-func CheckSliceResultWithSpan[T any](slice []T, err error, span trace.Span) wrapper.Result[[]T] {
+func CheckSliceResultWithSpan[T any](slice []T, err error, span trace.Span) types.Result[[]T] {
   if err != nil {
     spanUtil.RecordError(err, span)
-    return wrapper.None[[]T](err)
+    return types.None[[]T](err)
   }
 
   if len(slice) <= 0 {
     spanUtil.RecordError(sql.ErrNoRows, span)
-    return wrapper.None[[]T](sql.ErrNoRows)
+    return types.None[[]T](sql.ErrNoRows)
   }
 
-  return wrapper.Some(slice, nil)
+  return types.Some(slice, nil)
 }
 
-func CheckPaginationResult[T any](slice []T, count int, err error) wrapper.Result[[]T] {
+func CheckPaginationResult[T any](slice []T, count int, err error) types.Result[[]T] {
   if err != nil {
-    return wrapper.None[[]T](err)
+    return types.None[[]T](err)
   }
 
   if count == 0 || len(slice) == 0 {
-    return wrapper.None[[]T](sql.ErrNoRows)
+    return types.None[[]T](sql.ErrNoRows)
   }
 
-  return wrapper.Some(slice, nil)
+  return types.Some(slice, nil)
 }
 
-func CheckPaginationResultWithSpan[T any](slice []T, count int, err error, span trace.Span) wrapper.Result[[]T] {
+func CheckPaginationResultWithSpan[T any](slice []T, count int, err error, span trace.Span) types.Result[[]T] {
   if err != nil {
     spanUtil.RecordError(err, span)
-    return wrapper.None[[]T](err)
+    return types.None[[]T](err)
   }
 
   if count == 0 || len(slice) == 0 {
     spanUtil.RecordError(sql.ErrNoRows, span)
-    return wrapper.None[[]T](sql.ErrNoRows)
+    return types.None[[]T](sql.ErrNoRows)
   }
 
-  return wrapper.Some(slice, nil)
+  return types.Some(slice, nil)
 }

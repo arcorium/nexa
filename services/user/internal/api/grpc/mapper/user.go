@@ -6,7 +6,6 @@ import (
   sharedErr "nexa/shared/errors"
   "nexa/shared/types"
   sharedUtil "nexa/shared/util"
-  "nexa/shared/wrapper"
 )
 
 func ToUserCreateDTO(request *userv1.CreateUserRequest) (dto.UserCreateDTO, error) {
@@ -23,8 +22,8 @@ func ToUserCreateDTO(request *userv1.CreateUserRequest) (dto.UserCreateDTO, erro
     Email:     email,
     Password:  pass,
     FirstName: request.FirstName,
-    LastName:  wrapper.NewNullable(request.LastName),
-    Bio:       wrapper.NewNullable(request.Bio),
+    LastName:  types.NewNullable(request.LastName),
+    Bio:       types.NewNullable(request.Bio),
   }
 
   err = sharedUtil.ValidateStruct(&dtos)
@@ -49,8 +48,8 @@ func ToUserUpdateDTO(request *userv1.UpdateUserRequest) (dto.UserUpdateDTO, erro
 
   return dto.UserUpdateDTO{
     Id:       id,
-    Username: wrapper.NewNullable(request.Username),
-    Email:    wrapper.NewNullable(emails),
+    Username: types.NewNullable(request.Username),
+    Email:    types.NewNullable(emails),
   }, nil
 }
 
@@ -95,18 +94,28 @@ func ToDTOUserBannedInput(request *userv1.BannedUserRequest) (dto.UserBannedDTO,
   return dtos, err
 }
 
-func ToDTOUserResetPasswordInput(request *userv1.ResetUserPasswordRequest) (dto.UserResetPasswordDTO, error) {
+func ToResetUserPasswordDTO(request *userv1.ResetUserPasswordRequest) (dto.ResetUserPasswordDTO, error) {
   // Empty validation
   eerr := sharedUtil.StringEmptyValidates(
     types.NewField("new_password", request.NewPassword))
   if !eerr.IsNil() {
-    return dto.UserResetPasswordDTO{}, eerr.ToGRPCError()
+    return dto.ResetUserPasswordDTO{}, eerr.ToGRPCError()
+  }
+
+  var userId *types.Id = nil
+  if request.UserId != nil {
+    id, err := types.IdFromString(*request.UserId)
+    if err != nil {
+      return dto.ResetUserPasswordDTO{}, sharedErr.NewFieldError("user_id", err).ToGrpcError()
+    }
+    userId = &id
   }
 
   password := types.PasswordFromString(request.NewPassword)
 
-  dtos := dto.UserResetPasswordDTO{
-    Token:       wrapper.NewNullable(request.Token),
+  dtos := dto.ResetUserPasswordDTO{
+    Token:       types.NewNullable(request.Token),
+    UserId:      types.NewNullable(userId),
     LogoutAll:   request.LogoutAll,
     NewPassword: password,
   }

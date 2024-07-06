@@ -35,8 +35,8 @@ import (
   "nexa/shared/database"
   "nexa/shared/grpc/interceptor"
   "nexa/shared/logger"
+  "nexa/shared/types"
   sharedUtil "nexa/shared/util"
-  "nexa/shared/wrapper"
   "os"
   "os/signal"
   "sync"
@@ -70,7 +70,7 @@ type Server struct {
 
 func (s *Server) validationSetup() {
   validator := sharedUtil.GetValidator()
-  wrapper.RegisterDefaultNullableValidations(validator)
+  types.RegisterDefaultNullableValidations(validator)
 }
 
 func (s *Server) setupOtel() (*promProv.ServerMetrics, *prometheus.Registry, error) {

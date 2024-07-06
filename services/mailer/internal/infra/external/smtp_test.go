@@ -37,7 +37,7 @@ func TestName(t *testing.T) {
 
 func GenerateRandomMail() domain.Mail {
   return domain.Mail{
-    Id:        types.NewId2(),
+    Id:        types.MustCreateId(),
     Subject:   sharedUtil.RandomString(20),
     Recipient: types.Email(gofakeit.Email()),
     Sender:    types.Email(gofakeit.Email()),

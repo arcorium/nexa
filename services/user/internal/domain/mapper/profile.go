@@ -7,9 +7,10 @@ import (
 
 func ToProfileResponse(profile *entity.Profile) dto.ProfileResponseDTO {
   return dto.ProfileResponseDTO{
+    Id:        profile.Id,
     FirstName: profile.FirstName,
     LastName:  profile.LastName,
-    Bio:       profile.LastName,
-    PhotoURL:  profile.PhotoURL.Path(),
+    Bio:       profile.Bio,
+    PhotoURL:  profile.PhotoURL,
   }
 }

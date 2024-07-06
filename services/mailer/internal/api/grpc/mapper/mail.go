@@ -8,7 +8,6 @@ import (
   sharedErr "nexa/shared/errors"
   "nexa/shared/types"
   sharedUtil "nexa/shared/util"
-  "nexa/shared/wrapper"
 )
 
 func ToSendMailDTO(request *mailerv1.SendMailRequest) (dto.SendMailDTO, error) {
@@ -39,7 +38,7 @@ func ToSendMailDTO(request *mailerv1.SendMailRequest) (dto.SendMailDTO, error) {
   dtos := dto.SendMailDTO{
     Subject:    request.Subject,
     Recipients: recipientEmails,
-    Sender:     wrapper.NewNullable(senderEmail),
+    Sender:     types.NewNullable(senderEmail),
     BodyType:   bodyType,
     Body:       request.Body,
     TagIds:     tagIds,

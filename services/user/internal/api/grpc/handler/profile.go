@@ -84,7 +84,7 @@ func (p *ProfileHandler) UpdateAvatar(server userv1.ProfileService_UpdateAvatarS
   ctx, span := p.tracer.Start(wrappedStream.WrappedContext, "ProfileHandler.Update")
   defer span.End()
 
-  var userId string
+  var profilId string
   var filename string
   var bytes []byte
   for {
@@ -96,11 +96,11 @@ func (p *ProfileHandler) UpdateAvatar(server userv1.ProfileService_UpdateAvatarS
       spanUtil.RecordError(err, span)
       return err
     }
-    userId = recv.UserId
+    profilId = recv.Id
     filename = recv.Filename
     bytes = append(bytes, recv.Chunk...)
   }
-  id, err := types.IdFromString(userId)
+  id, err := types.IdFromString(profilId)
   if err != nil {
     spanUtil.RecordError(err, span)
     err = sharedErr.GrpcFieldErrors2(sharedErr.NewFieldError("user_id", err))
@@ -109,7 +109,7 @@ func (p *ProfileHandler) UpdateAvatar(server userv1.ProfileService_UpdateAvatarS
 
   // Mapping and Validation
   dtoInput := dto.ProfileAvatarUpdateDTO{
-    UserId:   id,
+    Id:       id,
     Filename: filename,
     Bytes:    bytes,
   }

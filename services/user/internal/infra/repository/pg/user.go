@@ -2,6 +2,7 @@ package pg
 
 import (
   "context"
+  "database/sql"
   "github.com/uptrace/bun"
   "go.opentelemetry.io/otel/trace"
   "nexa/services/user/internal/domain/entity"
@@ -55,17 +56,17 @@ func (u userRepository) Update(ctx context.Context, user *entity.User) error {
   res, err := u.db.NewUpdate().
     Model(&dbModel).
     WherePK().
-    ExcludeColumn("id", "created_at", "deleted_at").
+    ExcludeColumn("id", "created_at").
     Exec(ctx)
 
   return repo.CheckResultWithSpan(res, err, span)
 }
 
-func (u userRepository) Patch(ctx context.Context, user *entity.User) error {
+func (u userRepository) Patch(ctx context.Context, user *entity.PatchedUser) error {
   ctx, span := u.tracer.Start(ctx, "UserRepository.Patch")
   defer span.End()
 
-  dbModel := model.FromUserDomain(user, func(domain *entity.User, user *model.User) {
+  dbModel := model.FromPatchedUserDomain(user, func(domain *entity.PatchedUser, user *model.User) {
     user.UpdatedAt = time.Now()
   })
 
@@ -73,7 +74,7 @@ func (u userRepository) Patch(ctx context.Context, user *entity.User) error {
     Model(&dbModel).
     OmitZero().
     WherePK().
-    ExcludeColumn("id").
+    ExcludeColumn("id", "created_at").
     Exec(ctx)
 
   return repo.CheckResultWithSpan(res, err, span)
@@ -83,25 +84,27 @@ func (u userRepository) FindByIds(ctx context.Context, userIds ...types.Id) ([]e
   ctx, span := u.tracer.Start(ctx, "UserRepository.FindByIds")
   defer span.End()
 
-  uuids := sharedUtil.CastSlice(userIds, func(from types.Id) string {
-    return from.Underlying().String()
-  })
+  ids := sharedUtil.CastSlice(userIds, sharedUtil.ToString[types.Id])
 
   var dbModel []model.User
   err := u.db.NewSelect().
     Model(&dbModel).
     Relation("Profile").
-    Where("id IN (?)", bun.In(uuids)).
+    Where("u.id IN (?)", bun.In(ids)).
     Scan(ctx)
 
   result := repo.CheckSliceResultWithSpan(dbModel, err, span)
+  if result.IsError() {
+    return nil, result.Err
+  }
+
   users, ierr := sharedUtil.CastSliceErrsP(dbModel, repo.ToDomainErr[*model.User, entity.User])
   if !ierr.IsNil() {
     spanUtil.RecordError(ierr, span)
     return nil, ierr
   }
 
-  return users, result.Err
+  return users, nil
 }
 
 func (u userRepository) FindByEmails(ctx context.Context, emails ...types.Email) ([]entity.User, error) {
@@ -112,17 +115,21 @@ func (u userRepository) FindByEmails(ctx context.Context, emails ...types.Email)
   err := u.db.NewSelect().
     Model(&dbModel).
     Relation("Profile").
-    Where("email IN (?)", bun.In(emails)).
+    Where("u.email IN (?)", bun.In(emails)).
     Scan(ctx)
 
   result := repo.CheckSliceResultWithSpan(dbModel, err, span)
+  if result.IsError() {
+    return nil, result.Err
+  }
+
   users, ierr := sharedUtil.CastSliceErrsP(dbModel, repo.ToDomainErr[*model.User, entity.User])
   if !ierr.IsNil() {
     spanUtil.RecordError(ierr, span)
     return nil, ierr
   }
 
-  return users, result.Err
+  return users, nil
 }
 
 func (u userRepository) Get(ctx context.Context, query repo.QueryParameter) (repo.PaginatedResult[entity.User], error) {
@@ -150,10 +157,13 @@ func (u userRepository) Delete(ctx context.Context, ids ...types.Id) error {
   ctx, span := u.tracer.Start(ctx, "UserRepository.Delete")
   defer span.End()
 
-  users := sharedUtil.CastSliceP(ids, func(from *types.Id) model.User {
+  users := sharedUtil.CastSlice(ids, func(id types.Id) model.User {
     return model.User{
-      Id:        from.Underlying().String(),
-      DeletedAt: time.Now(),
+      Id: id.String(),
+      DeletedAt: sql.NullTime{
+        Time:  time.Now(),
+        Valid: true,
+      },
       UpdatedAt: time.Now(),
     }
   })

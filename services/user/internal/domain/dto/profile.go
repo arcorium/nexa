@@ -3,45 +3,44 @@ package dto
 import (
   "nexa/services/user/internal/domain/entity"
   "nexa/shared/types"
-  "nexa/shared/wrapper"
 )
 
 type ProfileResponseDTO struct {
-  //UserId    string `json:"user_id"`
+  Id        types.Id
   FirstName string
   LastName  string
   Bio       string
-  PhotoURL  string
+  PhotoURL  types.FilePath
 }
 
 //type ProfileCreateInput struct {
-//	UserId    string `json:"user_id"`
-//	FirstName string `json:"first_name"`
-//	LastName  string `json:"last_name"`
-//	Bio       string `json:"bio"`
+//	UserId    string
+//	FirstName string
+//	LastName  string
+//	Bio       string
 //}
 
 type ProfileUpdateDTO struct {
-  UserId    types.Id
-  FirstName wrapper.Nullable[string]
-  LastName  wrapper.Nullable[string]
-  Bio       wrapper.Nullable[string]
+  Id        types.Id
+  FirstName types.NullableString
+  LastName  types.NullableString
+  Bio       types.NullableString
 }
 
-func (p *ProfileUpdateDTO) ToDomain() entity.Profile {
-  profile := entity.Profile{
-    Id: p.UserId,
+func (p *ProfileUpdateDTO) ToDomain() entity.PatchedProfile {
+  profile := entity.PatchedProfile{
+    Id:       p.Id,
+    LastName: p.LastName,
+    Bio:      p.Bio,
   }
 
-  wrapper.SetOnNonNull(&profile.FirstName, p.FirstName)
-  wrapper.SetOnNonNull(&profile.LastName, p.LastName)
-  wrapper.SetOnNonNull(&profile.Bio, p.Bio)
+  types.SetOnNonNull(&profile.FirstName, p.FirstName)
 
   return profile
 }
 
 type ProfileAvatarUpdateDTO struct {
-  UserId   types.Id
+  Id       types.Id
   Filename string `validate:"required"`
   Bytes    []byte `validate:"required"`
 }

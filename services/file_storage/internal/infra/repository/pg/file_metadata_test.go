@@ -11,14 +11,13 @@ import (
   "go.opentelemetry.io/otel/trace"
   "go.opentelemetry.io/otel/trace/noop"
   rand2 "math/rand/v2"
-  domain "nexa/services/file_storage/internal/domain/entity"
+  entity "nexa/services/file_storage/internal/domain/entity"
   "nexa/services/file_storage/internal/infra/repository/model"
   sharedConf "nexa/shared/config"
   "nexa/shared/database"
   "nexa/shared/optional"
   "nexa/shared/types"
   sharedUtil "nexa/shared/util"
-  "nexa/shared/wrapper"
   "reflect"
   "strconv"
   "testing"
@@ -31,7 +30,7 @@ const (
   DATABASE = "nexa"
 )
 
-var dataSeed []domain.FileMetadata
+var dataSeed []entity.FileMetadata
 
 const METADATA_SEED_SIZE = 5
 
@@ -61,12 +60,10 @@ func (f *fileMetadataTestSuite) SetupSuite() {
   ports := inspect.NetworkSettings.Ports
   mapped := ports["5432/tcp"]
 
-  sharedUtil.DoNothing(ports, mapped)
-
   db, err := database.OpenPostgres(&sharedConf.Database{
     Protocol: "postgres",
-    Host:     wrapper.Must(container.Host(ctx)),
-    Port:     uint16(wrapper.Must(strconv.Atoi(mapped[0].HostPort))),
+    Host:     types.Must(container.Host(ctx)),
+    Port:     uint16(types.Must(strconv.Atoi(mapped[0].HostPort))),
     Username: USERNAME,
     Password: PASSWORD,
     Name:     DATABASE,
@@ -97,7 +94,7 @@ func (f *fileMetadataTestSuite) Test_metadataRepository_Create() {
   ctx := context.Background()
   type args struct {
     ctx      context.Context
-    metadata *domain.FileMetadata
+    metadata *entity.FileMetadata
   }
   tests := []struct {
     name    string
@@ -124,8 +121,8 @@ func (f *fileMetadataTestSuite) Test_metadataRepository_Create() {
       name: "Duplicate Username",
       args: args{
         ctx: ctx,
-        metadata: sharedUtil.CopyWithP(dataSeed[0], func(d *domain.FileMetadata) {
-          d.Id = types.NewId2()
+        metadata: sharedUtil.CopyWithP(dataSeed[0], func(d *entity.FileMetadata) {
+          d.Id = types.MustCreateId()
         }),
       },
       wantErr: true,
@@ -182,7 +179,7 @@ func (f *fileMetadataTestSuite) Test_metadataRepository_DeleteById() {
       name: "Data not found",
       args: args{
         ctx: ctx,
-        id:  types.NewId2(),
+        id:  types.MustCreateId(),
       },
       wantErr: true,
     },
@@ -216,7 +213,7 @@ func (f *fileMetadataTestSuite) Test_metadataRepository_FindByIds() {
   tests := []struct {
     name    string
     args    args
-    want    []domain.FileMetadata
+    want    []entity.FileMetadata
     wantErr bool
   }{
     {
@@ -241,7 +238,7 @@ func (f *fileMetadataTestSuite) Test_metadataRepository_FindByIds() {
       name: "Some Id Not Found",
       args: args{
         ctx: ctx,
-        ids: []types.Id{types.NewId2(), dataSeed[0].Id, dataSeed[1].Id, types.NewId2()},
+        ids: []types.Id{types.MustCreateId(), dataSeed[0].Id, dataSeed[1].Id, types.MustCreateId()},
       },
       want:    dataSeed[:2],
       wantErr: false,
@@ -250,7 +247,7 @@ func (f *fileMetadataTestSuite) Test_metadataRepository_FindByIds() {
       name: "File Not Found",
       args: args{
         ctx: ctx,
-        ids: []types.Id{types.NewId2()},
+        ids: []types.Id{types.MustCreateId()},
       },
       want:    nil,
       wantErr: true,
@@ -313,7 +310,7 @@ func (f *fileMetadataTestSuite) Test_metadataRepository_FindByNames() {
   tests := []struct {
     name    string
     args    args
-    want    []domain.FileMetadata
+    want    []entity.FileMetadata
     wantErr bool
   }{
     {
@@ -414,7 +411,7 @@ func (f *fileMetadataTestSuite) Test_metadataRepository_Update() {
 
   type args struct {
     ctx      context.Context
-    metadata *domain.FileMetadata
+    metadata *entity.FileMetadata
   }
   tests := []struct {
     name    string
@@ -425,14 +422,14 @@ func (f *fileMetadataTestSuite) Test_metadataRepository_Update() {
       name: "Normal",
       args: args{
         ctx: ctx,
-        metadata: &domain.FileMetadata{
+        metadata: &entity.FileMetadata{
           Id:       dataSeed[0].Id,
           Name:     "something.jpg",
-          MimeType: domain.FileTypeImage,
-          Provider: domain.StorageProviderMinIO,
+          MimeType: gofakeit.FileMimeType(),
+          Provider: entity.StorageProviderMinIO,
           IsPublic: !dataSeed[0].IsPublic,
         },
-        //metadata: sharedUtil.CopyWithP(dataSeed[0], func(d *domain.FileMetadata) {
+        //metadata: sharedUtil.CopyWithP(dataSeed[0], func(d *entity.FileMetadata) {
         //  d.Username = "something.jpg"
         //  d.IsPublic = !d.IsPublic
         //}),
@@ -443,8 +440,8 @@ func (f *fileMetadataTestSuite) Test_metadataRepository_Update() {
       name: "Data Not Found",
       args: args{
         ctx: ctx,
-        metadata: &domain.FileMetadata{
-          Id:       types.NewId2(),
+        metadata: &entity.FileMetadata{
+          Id:       types.MustCreateId(),
           Name:     "something.jpg",
           IsPublic: !dataSeed[0].IsPublic,
         },
@@ -455,7 +452,7 @@ func (f *fileMetadataTestSuite) Test_metadataRepository_Update() {
       name: "Change Username Into Duplicate",
       args: args{
         ctx: ctx,
-        metadata: &domain.FileMetadata{
+        metadata: &entity.FileMetadata{
           Id:       dataSeed[0].Id,
           Name:     dataSeed[1].Name,
           IsPublic: !dataSeed[0].IsPublic,
@@ -508,25 +505,25 @@ func TestFileMetadata(t *testing.T) {
   suite.Run(t, &fileMetadataTestSuite{})
 }
 
-func generateRandomFileMetadata(id optional.Object[types.Id]) domain.FileMetadata {
-  return domain.FileMetadata{
-    Id:           id.ValueOr(types.NewId2()),
+func generateRandomFileMetadata(id optional.Object[types.Id]) entity.FileMetadata {
+  return entity.FileMetadata{
+    Id:           id.ValueOr(types.MustCreateId()),
     Name:         gofakeit.AppName(),
-    MimeType:     domain.FileType(rand2.UintN(uint(domain.FileTypeOther.Underlying() + 1))),
+    MimeType:     gofakeit.FileMimeType(),
     Size:         gofakeit.Uint64(),
     IsPublic:     gofakeit.Bool(),
-    Provider:     domain.StorageProvider(rand2.UintN(uint(domain.StorageProviderAWSS3.Underlying() + 1))),
+    Provider:     entity.StorageProvider(rand2.UintN(uint(entity.StorageProviderAWSS3.Underlying() + 1))),
     ProviderPath: gofakeit.URL(),
     FullPath:     gofakeit.URL(),
   }
 }
 
-func generateRandomFileMetadataP(id optional.Object[types.Id]) *domain.FileMetadata {
+func generateRandomFileMetadataP(id optional.Object[types.Id]) *entity.FileMetadata {
   obj := generateRandomFileMetadata(id)
   return &obj
 }
 
-func ignoreUnimportantFields(datas ...domain.FileMetadata) {
+func ignoreUnimportantFields(datas ...entity.FileMetadata) {
   for i := 0; i < len(datas); i += 1 {
     datas[i].CreatedAt = time.Time{}
     datas[i].LastModified = time.Time{}

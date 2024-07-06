@@ -1,10 +1,10 @@
 package logger
 
 import (
-  "nexa/shared/wrapper"
+  "nexa/shared/types"
 )
 
-var _default = wrapper.Must(NewZapLogger(true))
+var _default = types.Must(NewZapLogger(true))
 
 func SetGlobal(logger ILogger) {
   _default = logger

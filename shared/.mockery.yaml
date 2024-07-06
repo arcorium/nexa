@@ -1,0 +1,11 @@
+with-expecter: true
+#inpackage: true
+#testonly: true
+dir: "{{.InterfaceDir}}/mocks"
+mockname: '{{trimPrefix .InterfaceName "I"}}Mock'
+outpkg: 'mocks'
+packages:
+  nexa/shared/uow:
+    config:
+      recursive: true
+      all: true

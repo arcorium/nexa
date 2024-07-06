@@ -45,7 +45,7 @@ func main() {
   // Seed role
   seedPerms := sharedUtil.MapToSlice(constant.AUTHZ_PERMISSIONS, func(action string, code string) model.Permission {
     return model.Permission{
-      Id:        types.NewId2().String(),
+      Id:        types.MustCreateId().String(),
       Resource:  constant.SERVICE_RESOURCE,
       Code:      code,
       CreatedAt: time.Now(),
@@ -53,7 +53,7 @@ func main() {
   })
 
   superRole := model.Role{
-    Id:          types.NewId2().String(),
+    Id:          types.MustCreateId().String(),
     Name:        constant.DEFAULT_SUPER_ROLE_NAME,
     Description: "Default roles that capable to do anything",
     CreatedAt:   time.Now(),

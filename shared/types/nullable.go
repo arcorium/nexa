@@ -1,4 +1,4 @@
-package wrapper
+package types
 
 import (
   "encoding/json"
@@ -10,9 +10,15 @@ func NewNullable[T any](data *T) Nullable[T] {
   return Nullable[T]{data}
 }
 
+// SomeNullable set Nullable type with non-nullable data
+func SomeNullable[T any](data T) Nullable[T] {
+  return Nullable[T]{&data}
+}
+
 type INullable[T any] interface {
   HasValue() bool
   Value() *T
+  ValueOrNil() *T
   RawValue() T
 }
 
@@ -57,6 +63,13 @@ func (n Nullable[T]) ValueOr(val T) T {
   return val
 }
 
+func (n Nullable[T]) ValueOrNil() *T {
+  if n.HasValue() {
+    return n.Value()
+  }
+  return nil
+}
+
 // RawValue Works like Value, but it will copy except for data type that has pointer as underlying, for example string, slice, map
 func (n Nullable[T]) RawValue() T {
   return *n.Value()
@@ -72,6 +85,10 @@ func nullableValidation[T any](sl reflect.Value) any {
 
 type (
   NullableString = Nullable[string]
+  NullableId     = Nullable[Id]
+  NullableEmail  = Nullable[Email]
+  NullablePath   = Nullable[FilePath]
+  NullableBool   = Nullable[bool]
   NullableInt    = Nullable[int]
   NullableInt8   = Nullable[int8]
   NullableInt16  = Nullable[int16]
@@ -90,6 +107,10 @@ func RegisterValidation[T any](validate *validator.Validate) {
 
 func RegisterDefaultNullableValidations(validate *validator.Validate) {
   RegisterValidation[string](validate)
+  RegisterValidation[Id](validate)
+  RegisterValidation[Email](validate)
+  RegisterValidation[FilePath](validate)
+  RegisterValidation[bool](validate)
   RegisterValidation[int](validate)
   RegisterValidation[int8](validate)
   RegisterValidation[int16](validate)
@@ -125,4 +146,12 @@ func SetOnNonNullCastedErr[T, V any, U INullable[V]](dest *T, nullable U, castFu
     }
     *dest = tmp
   }
+}
+
+func GetValueOrNilCasted[T, V any, U INullable[V]](nullable U, cast func(V) T) *T {
+  if !nullable.HasValue() {
+    return nil
+  }
+  res := cast(nullable.RawValue())
+  return &res
 }

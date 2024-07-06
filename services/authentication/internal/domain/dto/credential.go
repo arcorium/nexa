@@ -3,7 +3,6 @@ package dto
 import (
   domain "nexa/services/authentication/internal/domain/entity"
   "nexa/shared/types"
-  "nexa/shared/wrapper"
   "time"
 )
 
@@ -34,8 +33,8 @@ type RegisterDTO struct {
   Email     types.Email
   Password  types.Password
   FirstName string `validate:"required"`
-  LastName  wrapper.NullableString
-  Bio       wrapper.NullableString
+  LastName  types.NullableString
+  Bio       types.NullableString
 }
 
 type RefreshTokenDTO struct {
@@ -61,6 +60,6 @@ type CredentialResponseDTO struct {
 }
 
 type LogoutDTO struct {
-  UserId        wrapper.Nullable[types.Id]
+  UserId        types.Nullable[types.Id]
   CredentialIds []types.Id
 }

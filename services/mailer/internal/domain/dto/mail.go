@@ -5,7 +5,6 @@ import (
   domain "nexa/services/mailer/internal/domain/entity"
   "nexa/shared/types"
   sharedUtil "nexa/shared/util"
-  "nexa/shared/wrapper"
   "time"
 )
 
@@ -17,7 +16,7 @@ type FileAttachment struct {
 type SendMailDTO struct {
   Subject     string        `validate:"required"`
   Recipients  []types.Email `validate:"required"`
-  Sender      wrapper.Nullable[types.Email]
+  Sender      types.Nullable[types.Email]
   BodyType    domain.MailBodyType ` validate:"required"`
   Body        string
   TagIds      []types.Id `validate:"required"`

@@ -6,7 +6,6 @@ import (
   sharedErr "nexa/shared/errors"
   "nexa/shared/types"
   sharedUtil "nexa/shared/util"
-  "nexa/shared/wrapper"
 )
 
 func ToLoginDTO(req *authv1.LoginRequest) (dto.LoginDTO, error) {
@@ -45,8 +44,8 @@ func ToRegisterDTO(req *authv1.RegisterRequest) (dto.RegisterDTO, error) {
     Email:     email,
     Password:  password,
     FirstName: req.FirstName,
-    LastName:  wrapper.NewNullable(req.LastName),
-    Bio:       wrapper.NewNullable(req.Bio),
+    LastName:  types.NewNullable(req.LastName),
+    Bio:       types.NewNullable(req.Bio),
   }, nil
 }
 
@@ -83,7 +82,7 @@ func ToLogoutDTO(input *authv1.LogoutRequest) (dto.LogoutDTO, error) {
   }
 
   return dto.LogoutDTO{
-    UserId:        wrapper.NewNullable(userId),
+    UserId:        types.NewNullable(userId),
     CredentialIds: credIds,
   }, nil
 }

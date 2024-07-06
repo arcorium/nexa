@@ -1,32 +1,36 @@
 package types
 
 import (
-	"fmt"
-	"net/url"
-	"strings"
+  "fmt"
+  "net/url"
+  "strings"
 )
 
 func FilePathFromString(path string) FilePath {
-	return FilePath(path)
+  return FilePath(path)
 }
 
 func FilePathFromURL(url *url.URL) FilePath {
-	return FilePath(fmt.Sprintf("%s%s", url.Host, url.Path))
+  return FilePath(fmt.Sprintf("%s%s", url.Host, url.Path))
 }
 
 type FilePath string
 
 func (p FilePath) Underlying() string {
-	return string(p)
+  return string(p)
 }
 
 func (p FilePath) FileName() string {
-	filename := strings.TrimPrefix(p.Underlying(), "/")
-	return filename
+  filename := strings.TrimPrefix(p.Underlying(), "/")
+  return filename
 }
 
 func (p FilePath) Path() string {
-	return p.Underlying()
+  return p.Underlying()
+}
+
+func (p FilePath) String() string {
+  return p.Path()
 }
 
 //

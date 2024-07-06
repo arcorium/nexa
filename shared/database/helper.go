@@ -8,7 +8,7 @@ import (
   "github.com/uptrace/bun/driver/pgdriver"
   "github.com/uptrace/bun/extra/bundebug"
   "nexa/shared/config"
-  "nexa/shared/wrapper"
+  "nexa/shared/types"
 )
 
 func OpenPostgres(config *config.Database, log bool) (*bun.DB, error) {
@@ -41,9 +41,13 @@ func Seed[T any](db bun.IDB, values ...T) error {
     Returning("NULL").
     Exec(ctx)
 
-  if wrapper.Must(res.RowsAffected()) == 0 {
+  if err != nil {
+    return err
+  }
+
+  if types.Must(res.RowsAffected()) == 0 {
     return sql.ErrNoRows
   }
 
-  return err
+  return nil
 }

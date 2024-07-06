@@ -5,30 +5,28 @@ import (
   "nexa/services/user/internal/domain/dto"
   sharedErr "nexa/shared/errors"
   "nexa/shared/types"
-  "nexa/shared/wrapper"
 )
 
 func ToProfileUpdateDTO(request *userv1.UpdateProfileRequest) (dto.ProfileUpdateDTO, error) {
-  id, err := types.IdFromString(request.UserId)
+  id, err := types.IdFromString(request.Id)
   if err != nil {
-    return dto.ProfileUpdateDTO{},
-      sharedErr.GrpcFieldErrors2(sharedErr.NewFieldError("user_id", err))
+    return dto.ProfileUpdateDTO{}, sharedErr.NewFieldError("id", err).ToGrpcError()
   }
 
   return dto.ProfileUpdateDTO{
-    UserId:    id,
-    FirstName: wrapper.NewNullable(request.FirstName),
-    LastName:  wrapper.NewNullable(request.LastName),
-    Bio:       wrapper.NewNullable(request.Bio),
+    Id:        id,
+    FirstName: types.NewNullable(request.FirstName),
+    LastName:  types.NewNullable(request.LastName),
+    Bio:       types.NewNullable(request.Bio),
   }, nil
 }
 
 func ToProtoProfile(response *dto.ProfileResponseDTO) *userv1.Profile {
   return &userv1.Profile{
-    //UserId:    response.UserId,
+    Id:        response.Id.String(),
     FirstName: response.FirstName,
     LastName:  response.LastName,
     Bio:       response.Bio,
-    ImagePath: response.PhotoURL,
+    ImagePath: response.PhotoURL.Path(),
   }
 }

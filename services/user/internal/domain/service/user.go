@@ -9,7 +9,7 @@ import (
 )
 
 type IUser interface {
-  Create(ctx context.Context, input *dto.UserCreateDTO) (string, status.Object)
+  Create(ctx context.Context, input *dto.UserCreateDTO) (types.Id, status.Object)
   Update(ctx context.Context, input *dto.UserUpdateDTO) status.Object
   UpdatePassword(ctx context.Context, input *dto.UserUpdatePasswordDTO) status.Object
   //UpdateVerified(ctx context.Context, userId string) status.Object
@@ -23,5 +23,5 @@ type IUser interface {
   VerifyEmail(ctx context.Context, token string) status.Object
   EmailVerificationRequest(ctx context.Context) (dto.TokenResponseDTO, status.Object)
   ForgotPassword(ctx context.Context, email types.Email) (dto.TokenResponseDTO, status.Object)
-  ResetPassword(ctx context.Context, input *dto.UserResetPasswordDTO) status.Object
+  ResetPassword(ctx context.Context, input *dto.ResetUserPasswordDTO) status.Object
 }

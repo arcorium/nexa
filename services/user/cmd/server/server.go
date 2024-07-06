@@ -29,14 +29,14 @@ import (
   "nexa/services/user/internal/api/grpc/handler"
   inter "nexa/services/user/internal/api/grpc/interceptor"
   "nexa/services/user/internal/app/service"
-  "nexa/services/user/internal/app/uow"
+  "nexa/services/user/internal/app/uow/pg"
   "nexa/services/user/internal/infra/external"
   "nexa/services/user/internal/infra/repository/model"
   "nexa/shared/database"
   "nexa/shared/grpc/interceptor"
   "nexa/shared/logger"
+  "nexa/shared/types"
   sharedUtil "nexa/shared/util"
-  "nexa/shared/wrapper"
   "os"
   "os/signal"
   "sync"
@@ -70,7 +70,7 @@ type Server struct {
 
 func (s *Server) validationSetup() {
   validator := sharedUtil.GetValidator()
-  wrapper.RegisterDefaultNullableValidations(validator)
+  types.RegisterDefaultNullableValidations(validator)
 }
 
 func (s *Server) setupOtel() (*promProv.ServerMetrics, *prometheus.Registry, error) {
@@ -221,7 +221,7 @@ func (s *Server) setup() error {
   s.grpcClientConnections = append(s.grpcClientConnections, fileConn, mailerConn, authConn)
 
   // Repository
-  userUOW := uow.NewUserUOW(s.db)
+  userUOW := pg.NewUserUOW(s.db)
   repos := userUOW.Repositories()
 
   // Service

@@ -44,11 +44,11 @@ func (p profileService) Find(ctx context.Context, userIds ...types.Id) ([]dto.Pr
   return util.CastSliceP(profiles, mapper.ToProfileResponse), status.Success()
 }
 
-func (p profileService) Update(ctx context.Context, input *dto.ProfileUpdateDTO) status.Object {
+func (p profileService) Update(ctx context.Context, updateDto *dto.ProfileUpdateDTO) status.Object {
   ctx, span := p.tracer.Start(ctx, "ProfileService.Update")
   defer span.End()
 
-  profile := input.ToDomain()
+  profile := updateDto.ToDomain()
 
   err := p.profileRepo.Patch(ctx, &profile)
   if err != nil {
@@ -58,12 +58,12 @@ func (p profileService) Update(ctx context.Context, input *dto.ProfileUpdateDTO)
   return status.Updated()
 }
 
-func (p profileService) UpdateAvatar(ctx context.Context, input *dto.ProfileAvatarUpdateDTO) status.Object {
+func (p profileService) UpdateAvatar(ctx context.Context, updateDto *dto.ProfileAvatarUpdateDTO) status.Object {
   ctx, span := p.tracer.Start(ctx, "ProfileService.UpdateAvatar")
   defer span.End()
 
   // Check if user already has photo
-  profiles, err := p.profileRepo.FindByIds(ctx, input.UserId)
+  profiles, err := p.profileRepo.FindByIds(ctx, updateDto.Id)
   if err != nil {
     spanUtil.RecordError(err, span)
     return status.FromRepository(err, status.NullCode)
@@ -71,8 +71,8 @@ func (p profileService) UpdateAvatar(ctx context.Context, input *dto.ProfileAvat
 
   // Upload new avatar
   fileId, filePath, err := p.storageExt.UploadProfileImage(ctx, &dto.UploadImageDTO{
-    Filename: input.Filename,
-    Data:     input.Bytes,
+    Filename: updateDto.Filename,
+    Data:     updateDto.Bytes,
   })
   if err != nil {
     spanUtil.RecordError(err, span)
@@ -80,20 +80,20 @@ func (p profileService) UpdateAvatar(ctx context.Context, input *dto.ProfileAvat
   }
 
   // Update profiles data
-  profile := entity.Profile{
-    Id:       input.UserId,
-    PhotoId:  fileId,
-    PhotoURL: filePath,
+  profile := entity.PatchedProfile{
+    Id:       updateDto.Id,
+    PhotoId:  types.SomeNullable(fileId),
+    PhotoURL: types.SomeNullable(filePath),
   }
 
   err = p.profileRepo.Patch(ctx, &profile)
   if err != nil {
     // Delete new avatar when error happens
     spanUtil.RecordError(err, span)
-    err = p.storageExt.DeleteProfileImage(ctx, fileId)
-    if err != nil {
-      spanUtil.RecordError(err, span)
-      return status.ErrExternal(err)
+    extErr := p.storageExt.DeleteProfileImage(ctx, fileId)
+    if extErr != nil {
+      spanUtil.RecordError(extErr, span)
+      return status.ErrExternal(extErr)
     }
     return status.FromRepository(err, status.NullCode)
   }

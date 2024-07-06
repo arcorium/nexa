@@ -6,13 +6,12 @@ import (
   sharedErr "nexa/shared/errors"
   "nexa/shared/types"
   sharedUtil "nexa/shared/util"
-  "nexa/shared/wrapper"
 )
 
 func ToRoleCreateDTO(req *authZv1.CreateRoleRequest) (dto.RoleCreateDTO, error) {
   dtos := dto.RoleCreateDTO{
     Name:        req.Name,
-    Description: wrapper.NewNullable(req.Description),
+    Description: types.NewNullable(req.Description),
   }
 
   err := sharedUtil.ValidateStruct(&dtos)
@@ -27,8 +26,8 @@ func ToRoleUpdateDTO(req *authZv1.UpdateRoleRequest) (dto.RoleUpdateDTO, error) 
 
   return dto.RoleUpdateDTO{
     RoleId:      id,
-    Name:        wrapper.NewNullable(req.Name),
-    Description: wrapper.NewNullable(req.Description),
+    Name:        types.NewNullable(req.Name),
+    Description: types.NewNullable(req.Description),
   }, nil
 }
 

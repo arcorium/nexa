@@ -34,26 +34,44 @@ func main() {
   })
 
   ctx := context.Background()
-  client := authZv1.NewPermissionServiceClient(conn)
+  permClient := authZv1.NewPermissionServiceClient(conn)
+  roleClient := authZv1.NewRoleServiceClient(conn)
 
   wg := sync.WaitGroup{}
 
+  var permIds []string
   for i := 0; i < len(permissions); i++ {
     wg.Add(1)
     go func() {
       defer wg.Done()
 
+      // Create permission
       for {
         // Try until success
-        _, err := client.Create(ctx, permissions[i])
+        resp, err := permClient.Create(ctx, permissions[i])
         if err != nil {
           logger.Warnf("failed to create permission: %s", err)
           continue
         }
+        permIds = append(permIds, resp.PermissionId)
         break
       }
+
     }()
   }
 
   wg.Wait()
+
+  // Append it to super roles
+  for {
+    _, err := roleClient.AppendSuperRolePermissions(ctx, &authZv1.AppendSuperRolePermissionsRequest{
+      PermissionIds: permIds,
+    })
+    if err != nil {
+      logger.Warnf("failed to append super admin role permission: %s", err)
+      continue
+    }
+
+    break
+  }
 }

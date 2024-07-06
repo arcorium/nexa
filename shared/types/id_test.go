@@ -1,7 +1,6 @@
 package types
 
 import (
-  "nexa/shared/wrapper"
   "testing"
 )
 
@@ -54,7 +53,7 @@ func TestId_Equal(t *testing.T) {
   }{
     {
       name: "EqWithString",
-      i:    wrapper.DropError(IdFromString("ba474c5a-c1bf-43b1-96b6-d0225def9361")),
+      i:    DropError(IdFromString("ba474c5a-c1bf-43b1-96b6-d0225def9361")),
       args: args{
         uuid: "ba474c5a-c1bf-43b1-96b6-d0225def9361",
       },
@@ -62,7 +61,7 @@ func TestId_Equal(t *testing.T) {
     },
     {
       name: "Not EqWithString",
-      i:    wrapper.DropError(NewId()),
+      i:    DropError(NewId()),
       args: args{
         uuid: "ba474c5a-c1bf-43b1-96b6-d0225def9361",
       },

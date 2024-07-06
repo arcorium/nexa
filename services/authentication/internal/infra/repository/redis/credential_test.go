@@ -16,7 +16,6 @@ import (
   "nexa/shared/types"
   sharedUtil "nexa/shared/util"
   "nexa/shared/util/repo"
-  "nexa/shared/wrapper"
   "reflect"
   "strconv"
   "testing"
@@ -57,7 +56,7 @@ func (c *credentialTestSuite) SetupSuite() {
   sharedUtil.DoNothing(ports, mapped)
 
   c.client = redis.NewClient(&redis.Options{
-    Addr: fmt.Sprintf("localhost:%d", uint16(wrapper.Must(strconv.Atoi(mapped[0].HostPort)))),
+    Addr: fmt.Sprintf("localhost:%d", uint16(types.Must(strconv.Atoi(mapped[0].HostPort)))),
     //Username: "",
     //Password: "",
     //DB:       0,
@@ -128,7 +127,7 @@ func (c *credentialTestSuite) Test_credentialRepository_Create() {
       args: args{
         ctx: ctx,
         credential: sharedUtil.CopyWithP(dataSeed[METADATA_SEED_SIZE-1], func(i *domain.Credential) {
-          i.Id = types.NewId2()
+          i.Id = types.MustCreateId()
         }),
       },
       wantErr: false,
@@ -180,7 +179,7 @@ func (c *credentialTestSuite) Test_credentialRepository_Delete() {
       name: "Combination Of Ids",
       args: args{
         ctx:             ctx,
-        refreshTokenIds: []types.Id{types.NewId2(), dataSeed[3].Id, types.NewId2()},
+        refreshTokenIds: []types.Id{types.MustCreateId(), dataSeed[3].Id, types.MustCreateId()},
       },
       wantErr: false,
     },
@@ -188,7 +187,7 @@ func (c *credentialTestSuite) Test_credentialRepository_Delete() {
       name: "UserId Not Found",
       args: args{
         ctx:             ctx,
-        refreshTokenIds: []types.Id{types.NewId2()},
+        refreshTokenIds: []types.Id{types.MustCreateId()},
       },
       wantErr: true,
     },
@@ -231,7 +230,7 @@ func (c *credentialTestSuite) Test_credentialRepository_DeleteByUserId() {
       name: "User id does not exist",
       args: args{
         ctx:    ctx,
-        userId: types.NewId2(),
+        userId: types.MustCreateId(),
       },
       wantErr: true,
     },
@@ -276,7 +275,7 @@ func (c *credentialTestSuite) Test_credentialRepository_Find() {
       name: "Credential Not Found",
       args: args{
         ctx:            ctx,
-        refreshTokenId: types.NewId2(),
+        refreshTokenId: types.MustCreateId(),
       },
       want:    nil,
       wantErr: true,
@@ -401,7 +400,7 @@ func (c *credentialTestSuite) Test_credentialRepository_FindByUserId() {
       name: "User Not Found",
       args: args{
         ctx:    ctx,
-        userId: types.NewId2(),
+        userId: types.MustCreateId(),
       },
       want:    nil,
       wantErr: true,
@@ -482,7 +481,7 @@ func (c *credentialTestSuite) Test_credentialRepository_Patch() {
         ctx: ctx,
         credential: &domain.Credential{
           Id:            dataSeed[1].Id,
-          AccessTokenId: types.NewId2(),
+          AccessTokenId: types.MustCreateId(),
           Device: domain.Device{
             Name: "Changed",
           },
@@ -496,8 +495,8 @@ func (c *credentialTestSuite) Test_credentialRepository_Patch() {
       args: args{
         ctx: ctx,
         credential: &domain.Credential{
-          Id:            types.NewId2(),
-          AccessTokenId: types.NewId2(),
+          Id:            types.MustCreateId(),
+          AccessTokenId: types.MustCreateId(),
           Device: domain.Device{
             Name: "Changed",
           },
@@ -539,9 +538,9 @@ func generateRandomCredential() domain.Credential {
   times := time.Now().Add(time.Hour * time.Duration(gofakeit.Hour()+2))
   times = time.Unix(times.Unix(), 0) // Round to second
   return domain.Credential{
-    Id:            types.NewId2(),
-    UserId:        types.NewId2(),
-    AccessTokenId: types.NewId2(),
+    Id:            types.MustCreateId(),
+    UserId:        types.MustCreateId(),
+    AccessTokenId: types.MustCreateId(),
     Device:        domain.Device{Name: gofakeit.Name()},
     RefreshToken:  sharedJwt.GenerateRefreshToken(),
     ExpiresAt:     times,

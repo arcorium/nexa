@@ -12,3 +12,7 @@ func ToUnderlyingEnum[T types.Enum[U], U any](enum T) U {
 func ToString[T fmt.Stringer](str T) string {
   return str.String()
 }
+
+func ToAny[T any](val T) any {
+  return val
+}

@@ -7,9 +7,9 @@ import (
   "nexa/services/user/internal/domain/entity"
   "nexa/services/user/internal/domain/repository"
   "nexa/services/user/internal/infra/repository/model"
-  util2 "nexa/services/user/util"
+  "nexa/services/user/util"
   "nexa/shared/types"
-  "nexa/shared/util"
+  sharedUtil "nexa/shared/util"
   "nexa/shared/util/repo"
   spanUtil "nexa/shared/util/span"
   "time"
@@ -18,7 +18,7 @@ import (
 func NewProfile(db bun.IDB) repository.IProfile {
   return &profileRepository{
     db:     db,
-    tracer: util2.GetTracer(),
+    tracer: util.GetTracer(),
   }
 }
 
@@ -46,25 +46,51 @@ func (p profileRepository) FindByIds(ctx context.Context, userIds ...types.Id) (
   ctx, span := p.tracer.Start(ctx, "ProfileRepository.FindByIds")
   defer span.End()
 
+  ids := sharedUtil.CastSlice(userIds, sharedUtil.ToString[types.Id])
   var dbModel []model.Profile
-
-  ids := util.CastSliceP(userIds, func(from *types.Id) string {
-    return from.Underlying().String()
-  })
 
   err := p.db.NewSelect().
     Model(&dbModel).
-    Where("user_id IN (?)", bun.In(ids)).
+    Where("id IN (?)", bun.In(ids)).
     Scan(ctx)
 
   result := repo.CheckSliceResultWithSpan(dbModel, err, span)
-  profiles, ierr := util.CastSliceErrsP(result.Data, repo.ToDomainErr[*model.Profile, entity.Profile])
+  if result.Err != nil {
+    return nil, result.Err
+  }
+
+  profiles, ierr := sharedUtil.CastSliceErrsP(result.Data, repo.ToDomainErr[*model.Profile, entity.Profile])
   if !ierr.IsNil() {
     spanUtil.RecordError(ierr, span)
     return nil, ierr
   }
 
-  return profiles, result.Err
+  return profiles, nil
+}
+
+// NOTE: Currently not used, because each user can only have single profile
+func (p profileRepository) FindByUserId(ctx context.Context, userId types.Id) (*entity.Profile, error) {
+  ctx, span := p.tracer.Start(ctx, "ProfileRepository.FindByIds")
+  defer span.End()
+
+  var dbModel model.Profile
+
+  err := p.db.NewSelect().
+    Model(&dbModel).
+    Where("user_id = ?", userId.String()).
+    Scan(ctx)
+
+  if err != nil {
+    spanUtil.RecordError(err, span)
+    return nil, err
+  }
+
+  profile, err := dbModel.ToDomain()
+  if err != nil {
+    return nil, err
+  }
+
+  return &profile, nil
 }
 
 func (p profileRepository) Update(ctx context.Context, profile *entity.Profile) error {
@@ -78,17 +104,17 @@ func (p profileRepository) Update(ctx context.Context, profile *entity.Profile) 
   res, err := p.db.NewUpdate().
     Model(&dbModel).
     WherePK().
-    ExcludeColumn("user_id").
+    ExcludeColumn("user_id", "id").
     Exec(ctx)
 
   return repo.CheckResultWithSpan(res, err, span)
 }
 
-func (p profileRepository) Patch(ctx context.Context, profile *entity.Profile) error {
+func (p profileRepository) Patch(ctx context.Context, profile *entity.PatchedProfile) error {
   ctx, span := p.tracer.Start(ctx, "ProfileRepository.Patch")
   defer span.End()
 
-  dbModel := model.FromProfileDomain(profile, func(domain *entity.Profile, profile *model.Profile) {
+  dbModel := model.FromPatchedProfileDomain(profile, func(domain *entity.PatchedProfile, profile *model.Profile) {
     profile.UpdatedAt = time.Now()
   })
 
@@ -96,7 +122,7 @@ func (p profileRepository) Patch(ctx context.Context, profile *entity.Profile) e
     Model(&dbModel).
     WherePK().
     OmitZero().
-    ExcludeColumn("user_id").
+    ExcludeColumn("user_id", "id").
     Exec(ctx)
 
   return repo.CheckResultWithSpan(res, err, span)

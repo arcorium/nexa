@@ -7,7 +7,6 @@ import (
   "nexa/shared/types"
   "nexa/shared/util/repo"
   "nexa/shared/variadic"
-  "nexa/shared/wrapper"
   "time"
 )
 
@@ -42,7 +41,7 @@ type Token struct {
 func (t *Token) ToDomain() entity.Token {
   return entity.Token{
     Token:     t.Token,
-    UserId:    wrapper.DropError(types.IdFromString(t.UserId)),
+    UserId:    types.DropError(types.IdFromString(t.UserId)),
     Usage:     entity.TokenUsage(t.Usage.Int64),
     ExpiredAt: t.ExpiredAt,
   }

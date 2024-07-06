@@ -13,7 +13,7 @@ type IUser interface {
   // Update update all fields of user based on the id
   Update(ctx context.Context, user *entity.User) error
   // Patch update all non-zero fields of user based on the id
-  Patch(ctx context.Context, user *entity.User) error
+  Patch(ctx context.Context, user *entity.PatchedUser) error
   // FindByIds get all users based on specified user ids
   FindByIds(ctx context.Context, userIds ...types.Id) ([]entity.User, error)
   // FindByEmails get all users based on specified emails

@@ -14,8 +14,8 @@ func AuthSelector(_ context.Context, callMeta interceptors.CallMeta) bool {
   return callMeta.FullMethod() != mailerv1.MailerService_Send_FullMethodName
 }
 
-func Auth(claims *sharedJwt.UserClaims, fullMethod string) bool {
-  switch fullMethod {
+func Auth(claims *sharedJwt.UserClaims, meta interceptors.CallMeta) bool {
+  switch meta.FullMethod() {
   case mailerv1.MailerService_Find_FullMethodName:
     fallthrough
   case mailerv1.MailerService_FindByIds_FullMethodName:

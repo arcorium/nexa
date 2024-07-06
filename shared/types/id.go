@@ -5,7 +5,6 @@ import (
   "errors"
   "github.com/google/uuid"
   "hash"
-  "nexa/shared/wrapper"
 )
 
 func IdFromString(id string) (Id, error) {
@@ -21,8 +20,8 @@ func NewId() (Id, error) {
   return Id(uid), err
 }
 
-func NewId2() Id {
-  return wrapper.DropError(NewId()) // TODO: Panic on error?
+func MustCreateId() Id {
+  return DropError(NewId()) // TODO: Panic on error?
   //return wrapper.Must(NewId())
 }
 
@@ -35,6 +34,9 @@ func (i Id) Underlying() uuid.UUID {
 }
 
 func (i Id) String() string {
+  if i == NullId() {
+    return "" // Prevent bad uuid, which is "000000-..."
+  }
   return i.Underlying().String()
 }
 

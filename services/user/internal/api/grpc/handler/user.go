@@ -15,7 +15,6 @@ import (
   "nexa/shared/types"
   sharedUtil "nexa/shared/util"
   spanUtil "nexa/shared/util/span"
-  "nexa/shared/wrapper"
 )
 
 func NewUserHandler(user service.IUser) UserHandler {
@@ -53,7 +52,7 @@ func (u *UserHandler) Create(ctx context.Context, request *userv1.CreateUserRequ
   }
 
   resp := &userv1.CreateUserResponse{
-    Id: id,
+    Id: id.String(),
   }
   return resp, nil
 }
@@ -197,7 +196,7 @@ func (u *UserHandler) ResetPassword(ctx context.Context, request *userv1.ResetUs
   ctx, span := u.tracer.Start(ctx, "UserHandler.ResetPassword")
   defer span.End()
 
-  dtoInput, err := mapper.ToDTOUserResetPasswordInput(request)
+  dtoInput, err := mapper.ToResetUserPasswordDTO(request)
   if err != nil {
     spanUtil.RecordError(err, span)
     return nil, err
@@ -232,7 +231,7 @@ func (u *UserHandler) VerifyEmail(ctx context.Context, request *userv1.VerifyUse
   ctx, span := u.tracer.Start(ctx, "UserHandler.VerifyEmail")
   defer span.End()
 
-  token := wrapper.NewNullable(request.Token)
+  token := types.NewNullable(request.Token)
   if token.HasValue() {
     // Verify
     stat := u.userService.VerifyEmail(ctx, token.RawValue())

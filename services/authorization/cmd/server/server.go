@@ -33,8 +33,8 @@ import (
   "nexa/shared/database"
   "nexa/shared/grpc/interceptor"
   "nexa/shared/logger"
+  "nexa/shared/types"
   sharedUtil "nexa/shared/util"
-  "nexa/shared/wrapper"
   "os"
   "os/signal"
   "sync"
@@ -67,7 +67,7 @@ type Server struct {
 
 func (s *Server) validationSetup() {
   validator := sharedUtil.GetValidator()
-  wrapper.RegisterDefaultNullableValidations(validator)
+  types.RegisterDefaultNullableValidations(validator)
 }
 
 func (s *Server) setupOtel() (*promProv.ServerMetrics, *prometheus.Registry, error) {
@@ -140,13 +140,13 @@ func (s *Server) grpcServerSetup() error {
     grpc.ChainUnaryInterceptor(
       recovery.UnaryServerInterceptor(),
       logging.UnaryServerInterceptor(zapLogger), // logging
-      interceptor.UnaryServerAuth(inter.Auth, inter.AuthSelector),
+      interceptor.UnaryServerAuth(inter.Auth, interceptor.SkipSelector(inter.AuthSkipSelector)),
       metrics.UnaryServerInterceptor(promProv.WithExemplarFromContext(exemplarFromCtx)),
     ),
     grpc.ChainStreamInterceptor(
       recovery.StreamServerInterceptor(),
       logging.StreamServerInterceptor(zapLogger), // logging
-      interceptor.StreamServerAuth(inter.Auth, inter.AuthSelector),
+      interceptor.StreamServerAuth(inter.Auth, interceptor.SkipSelector(inter.AuthSkipSelector)),
       metrics.StreamServerInterceptor(promProv.WithExemplarFromContext(exemplarFromCtx)),
     ),
   )

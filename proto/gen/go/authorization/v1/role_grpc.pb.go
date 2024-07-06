@@ -21,17 +21,18 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	RoleService_Create_FullMethodName                      = "/nexa.authorization.v1.RoleService/Create"
-	RoleService_Update_FullMethodName                      = "/nexa.authorization.v1.RoleService/Update"
-	RoleService_Delete_FullMethodName                      = "/nexa.authorization.v1.RoleService/Delete"
-	RoleService_GetUsers_FullMethodName                    = "/nexa.authorization.v1.RoleService/GetUsers"
-	RoleService_Find_FullMethodName                        = "/nexa.authorization.v1.RoleService/Find"
-	RoleService_FindAll_FullMethodName                     = "/nexa.authorization.v1.RoleService/FindAll"
-	RoleService_AddUser_FullMethodName                     = "/nexa.authorization.v1.RoleService/AddUser"
-	RoleService_RemoveUser_FullMethodName                  = "/nexa.authorization.v1.RoleService/RemoveUser"
-	RoleService_AppendPermissions_FullMethodName           = "/nexa.authorization.v1.RoleService/AppendPermissions"
-	RoleService_RemovePermissions_FullMethodName           = "/nexa.authorization.v1.RoleService/RemovePermissions"
-	RoleService_AppendSuperAdminPermissions_FullMethodName = "/nexa.authorization.v1.RoleService/AppendSuperAdminPermissions"
+	RoleService_Create_FullMethodName                     = "/nexa.authorization.v1.RoleService/Create"
+	RoleService_Update_FullMethodName                     = "/nexa.authorization.v1.RoleService/Update"
+	RoleService_Delete_FullMethodName                     = "/nexa.authorization.v1.RoleService/Delete"
+	RoleService_GetUsers_FullMethodName                   = "/nexa.authorization.v1.RoleService/GetUsers"
+	RoleService_Find_FullMethodName                       = "/nexa.authorization.v1.RoleService/Find"
+	RoleService_FindAll_FullMethodName                    = "/nexa.authorization.v1.RoleService/FindAll"
+	RoleService_AddUser_FullMethodName                    = "/nexa.authorization.v1.RoleService/AddUser"
+	RoleService_RemoveUser_FullMethodName                 = "/nexa.authorization.v1.RoleService/RemoveUser"
+	RoleService_AppendPermissions_FullMethodName          = "/nexa.authorization.v1.RoleService/AppendPermissions"
+	RoleService_RemovePermissions_FullMethodName          = "/nexa.authorization.v1.RoleService/RemovePermissions"
+	RoleService_AppendSuperRolePermissions_FullMethodName = "/nexa.authorization.v1.RoleService/AppendSuperRolePermissions"
+	RoleService_SetAsSuper_FullMethodName                 = "/nexa.authorization.v1.RoleService/SetAsSuper"
 )
 
 // RoleServiceClient is the client API for RoleService service.
@@ -49,7 +50,9 @@ type RoleServiceClient interface {
 	AppendPermissions(ctx context.Context, in *AppendRolePermissionsRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	RemovePermissions(ctx context.Context, in *RemoveRolePermissionsRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	// Private and supposed to only called by another service
-	AppendSuperAdminPermissions(ctx context.Context, in *AppendSuperAdminPermissionsRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	AppendSuperRolePermissions(ctx context.Context, in *AppendSuperRolePermissionsRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	//  rpc GetSuper(google.protobuf.Empty) returns (RolePermission); // Get super roles information
+	SetAsSuper(ctx context.Context, in *SetAsSuperRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type roleServiceClient struct {
@@ -150,9 +153,18 @@ func (c *roleServiceClient) RemovePermissions(ctx context.Context, in *RemoveRol
 	return out, nil
 }
 
-func (c *roleServiceClient) AppendSuperAdminPermissions(ctx context.Context, in *AppendSuperAdminPermissionsRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+func (c *roleServiceClient) AppendSuperRolePermissions(ctx context.Context, in *AppendSuperRolePermissionsRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, RoleService_AppendSuperAdminPermissions_FullMethodName, in, out, opts...)
+	err := c.cc.Invoke(ctx, RoleService_AppendSuperRolePermissions_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *roleServiceClient) SetAsSuper(ctx context.Context, in *SetAsSuperRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, RoleService_SetAsSuper_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -174,7 +186,9 @@ type RoleServiceServer interface {
 	AppendPermissions(context.Context, *AppendRolePermissionsRequest) (*emptypb.Empty, error)
 	RemovePermissions(context.Context, *RemoveRolePermissionsRequest) (*emptypb.Empty, error)
 	// Private and supposed to only called by another service
-	AppendSuperAdminPermissions(context.Context, *AppendSuperAdminPermissionsRequest) (*emptypb.Empty, error)
+	AppendSuperRolePermissions(context.Context, *AppendSuperRolePermissionsRequest) (*emptypb.Empty, error)
+	//  rpc GetSuper(google.protobuf.Empty) returns (RolePermission); // Get super roles information
+	SetAsSuper(context.Context, *SetAsSuperRequest) (*emptypb.Empty, error)
 	mustEmbedUnimplementedRoleServiceServer()
 }
 
@@ -212,8 +226,11 @@ func (UnimplementedRoleServiceServer) AppendPermissions(context.Context, *Append
 func (UnimplementedRoleServiceServer) RemovePermissions(context.Context, *RemoveRolePermissionsRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RemovePermissions not implemented")
 }
-func (UnimplementedRoleServiceServer) AppendSuperAdminPermissions(context.Context, *AppendSuperAdminPermissionsRequest) (*emptypb.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AppendSuperAdminPermissions not implemented")
+func (UnimplementedRoleServiceServer) AppendSuperRolePermissions(context.Context, *AppendSuperRolePermissionsRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AppendSuperRolePermissions not implemented")
+}
+func (UnimplementedRoleServiceServer) SetAsSuper(context.Context, *SetAsSuperRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetAsSuper not implemented")
 }
 func (UnimplementedRoleServiceServer) mustEmbedUnimplementedRoleServiceServer() {}
 
@@ -408,20 +425,38 @@ func _RoleService_RemovePermissions_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RoleService_AppendSuperAdminPermissions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AppendSuperAdminPermissionsRequest)
+func _RoleService_AppendSuperRolePermissions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AppendSuperRolePermissionsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RoleServiceServer).AppendSuperAdminPermissions(ctx, in)
+		return srv.(RoleServiceServer).AppendSuperRolePermissions(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: RoleService_AppendSuperAdminPermissions_FullMethodName,
+		FullMethod: RoleService_AppendSuperRolePermissions_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RoleServiceServer).AppendSuperAdminPermissions(ctx, req.(*AppendSuperAdminPermissionsRequest))
+		return srv.(RoleServiceServer).AppendSuperRolePermissions(ctx, req.(*AppendSuperRolePermissionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RoleService_SetAsSuper_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetAsSuperRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RoleServiceServer).SetAsSuper(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RoleService_SetAsSuper_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RoleServiceServer).SetAsSuper(ctx, req.(*SetAsSuperRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -474,8 +509,12 @@ var RoleService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _RoleService_RemovePermissions_Handler,
 		},
 		{
-			MethodName: "AppendSuperAdminPermissions",
-			Handler:    _RoleService_AppendSuperAdminPermissions_Handler,
+			MethodName: "AppendSuperRolePermissions",
+			Handler:    _RoleService_AppendSuperRolePermissions_Handler,
+		},
+		{
+			MethodName: "SetAsSuper",
+			Handler:    _RoleService_SetAsSuper_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -6,11 +6,11 @@ import (
   sharedJwt "nexa/shared/jwt"
 )
 
-func AuthSelector(_ context.Context, callMeta interceptors.CallMeta) bool {
+func AuthSelector(_ context.Context, _ interceptors.CallMeta) bool {
   return true // all need auth
 }
 
-func Auth(claims *sharedJwt.UserClaims, fullMethod string) bool {
+func Auth(_ *sharedJwt.UserClaims, _ interceptors.CallMeta) bool {
   // Doesn't need permissions
   return true
 }

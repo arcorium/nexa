@@ -11,14 +11,14 @@ import (
   "strings"
 )
 
-func AuthSelector(_ context.Context, callMeta interceptors.CallMeta) bool {
+func AuthSkipSelector(_ context.Context, callMeta interceptors.CallMeta) bool {
   return callMeta.Service != authZv1.PermissionService_ServiceDesc.ServiceName &&
       !strings.EqualFold(callMeta.FullMethod(), authZv1.RoleService_GetUsers_FullMethodName) &&
       !strings.EqualFold(callMeta.FullMethod(), authZv1.RoleService_AppendSuperAdminPermissions_FullMethodName)
 }
 
-func Auth(claims *sharedJwt.UserClaims, fullMethod string) bool {
-  switch fullMethod {
+func Auth(claims *sharedJwt.UserClaims, meta interceptors.CallMeta) bool {
+  switch meta.FullMethod() {
   case authZv1.RoleService_Create_FullMethodName:
     return authUtil.ContainsPermissions(claims.Roles, constant.AUTHZ_PERMISSIONS[constant.AUTHZ_CREATE_ROLE])
   case authZv1.RoleService_Update_FullMethodName:

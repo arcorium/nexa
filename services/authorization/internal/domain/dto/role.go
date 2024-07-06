@@ -3,12 +3,11 @@ package dto
 import (
   "nexa/services/authorization/internal/domain/entity"
   "nexa/shared/types"
-  "nexa/shared/wrapper"
 )
 
 type RoleCreateDTO struct {
   Name        string `validate:"required"`
-  Description wrapper.NullableString
+  Description types.NullableString
 }
 
 func (c *RoleCreateDTO) ToDomain() (entity.Role, error) {
@@ -22,15 +21,15 @@ func (c *RoleCreateDTO) ToDomain() (entity.Role, error) {
     Name: c.Name,
   }
 
-  wrapper.SetOnNonNull(&role.Description, c.Description)
+  types.SetOnNonNull(&role.Description, c.Description)
 
   return role, nil
 }
 
 type RoleUpdateDTO struct {
   RoleId      types.Id
-  Name        wrapper.NullableString
-  Description wrapper.NullableString
+  Name        types.NullableString
+  Description types.NullableString
 }
 
 func (u *RoleUpdateDTO) ToDomain() entity.Role {
@@ -38,8 +37,8 @@ func (u *RoleUpdateDTO) ToDomain() entity.Role {
     Id: u.RoleId,
   }
 
-  wrapper.SetOnNonNull(&role.Name, u.Name)
-  wrapper.SetOnNonNull(&role.Description, u.Description)
+  types.SetOnNonNull(&role.Name, u.Name)
+  types.SetOnNonNull(&role.Description, u.Description)
 
   return role
 }

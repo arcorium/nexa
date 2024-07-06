@@ -11,7 +11,7 @@ import (
   "slices"
 )
 
-func AuthSelector(ctx context.Context, meta interceptors.CallMeta) bool {
+func AuthSelector(_ context.Context, meta interceptors.CallMeta) bool {
   return !slices.Contains([]string{
     userv1.UserService_Create_FullMethodName,
     userv1.UserService_Validate_FullMethodName,
@@ -23,8 +23,8 @@ func AuthSelector(ctx context.Context, meta interceptors.CallMeta) bool {
   }, meta.FullMethod())
 }
 
-func PermissionCheck(claims *sharedJwt.UserClaims, fullMethod string) bool {
-  switch fullMethod {
+func PermissionCheck(claims *sharedJwt.UserClaims, meta interceptors.CallMeta) bool {
+  switch meta.FullMethod() {
   case userv1.UserService_Update_FullMethodName:
     fallthrough
   case userv1.UserService_VerifyEmail_FullMethodName:
