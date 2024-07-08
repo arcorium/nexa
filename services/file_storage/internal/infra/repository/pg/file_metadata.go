@@ -4,7 +4,7 @@ import (
   "context"
   "github.com/uptrace/bun"
   "go.opentelemetry.io/otel/trace"
-  domain "nexa/services/file_storage/internal/domain/entity"
+  entity "nexa/services/file_storage/internal/domain/entity"
   "nexa/services/file_storage/internal/domain/repository"
   "nexa/services/file_storage/internal/infra/repository/model"
   "nexa/services/file_storage/util"
@@ -28,55 +28,65 @@ type metadataRepository struct {
   tracer trace.Tracer
 }
 
-func (f metadataRepository) FindByIds(ctx context.Context, ids ...types.Id) ([]domain.FileMetadata, error) {
+func (f metadataRepository) FindByIds(ctx context.Context, ids ...types.Id) ([]entity.FileMetadata, error) {
   ctx, span := f.tracer.Start(ctx, "FileRepository.FindByIds")
   defer span.End()
 
   metadataIds := sharedUtil.CastSlice(ids, sharedUtil.ToString[types.Id])
-
   var models []model.FileMetadata
-
   err := f.db.NewSelect().
     Model(&models).
     Where("id IN (?)", bun.In(metadataIds)).
+    Distinct().
+    OrderExpr("created_at DESC").
     Scan(ctx)
 
-  res := repo.CheckSliceResultWithSpan(models, err, span)
-  result, ierr := sharedUtil.CastSliceErrsP(res.Data, repo.ToDomainErr[*model.FileMetadata, domain.FileMetadata])
+  res := repo.CheckSliceResult(models, err)
+  if res.IsError() {
+    spanUtil.RecordError(res.Err, span)
+    return nil, res.Err
+  }
+
+  result, ierr := sharedUtil.CastSliceErrsP(res.Data, repo.ToDomainErr[*model.FileMetadata, entity.FileMetadata])
   if !ierr.IsNil() {
-    spanUtil.RecordError(err, span)
+    spanUtil.RecordError(ierr, span)
     return nil, ierr
   }
 
-  return result, res.Err
+  return result, nil
 }
 
-func (f metadataRepository) FindByNames(ctx context.Context, names ...string) ([]domain.FileMetadata, error) {
+func (f metadataRepository) FindByNames(ctx context.Context, names ...string) ([]entity.FileMetadata, error) {
   ctx, span := f.tracer.Start(ctx, "FileRepository.FindByNames")
   defer span.End()
 
   var models []model.FileMetadata
-
   err := f.db.NewSelect().
     Model(&models).
     Where("filename IN (?)", bun.In(names)).
+    OrderExpr("created_at DESC").
     Scan(ctx)
 
-  res := repo.CheckSliceResultWithSpan(models, err, span)
-  result, ierr := sharedUtil.CastSliceErrsP(res.Data, repo.ToDomainErr[*model.FileMetadata, domain.FileMetadata])
+  res := repo.CheckSliceResult(models, err)
+  if res.IsError() {
+    spanUtil.RecordError(res.Err, span)
+    return nil, res.Err
+  }
+
+  result, ierr := sharedUtil.CastSliceErrsP(res.Data, repo.ToDomainErr[*model.FileMetadata, entity.FileMetadata])
   if !ierr.IsNil() {
-    spanUtil.RecordError(err, span)
+    spanUtil.RecordError(ierr, span)
     return nil, ierr
   }
 
-  return result, res.Err
+  return result, nil
 }
 
-func (f metadataRepository) Create(ctx context.Context, metadata *domain.FileMetadata) error {
+func (f metadataRepository) Create(ctx context.Context, metadata *entity.FileMetadata) error {
   ctx, span := f.tracer.Start(ctx, "FileRepository.Create")
   defer span.End()
 
-  models := model.FromFileDomain(metadata, func(domain *domain.FileMetadata, metadata *model.FileMetadata) {
+  models := model.FromFileDomain(metadata, func(domain *entity.FileMetadata, metadata *model.FileMetadata) {
     metadata.CreatedAt = time.Now()
     metadata.UpdatedAt = time.Now()
   })
@@ -88,11 +98,11 @@ func (f metadataRepository) Create(ctx context.Context, metadata *domain.FileMet
   return repo.CheckResultWithSpan(res, err, span)
 }
 
-func (f metadataRepository) Update(ctx context.Context, metadata *domain.FileMetadata) error {
-  ctx, span := f.tracer.Start(ctx, "FileRepository.Update")
+func (f metadataRepository) Patch(ctx context.Context, metadata *entity.PatchedFileMetadata) error {
+  ctx, span := f.tracer.Start(ctx, "FileRepository.Patch")
   defer span.End()
 
-  models := model.FromFileDomain(metadata, func(domain *domain.FileMetadata, metadata *model.FileMetadata) {
+  models := model.FromPatchedDomain(metadata, func(domain *entity.PatchedFileMetadata, metadata *model.FileMetadata) {
     metadata.UpdatedAt = time.Now()
   })
 

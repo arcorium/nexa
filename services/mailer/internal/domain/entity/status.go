@@ -8,7 +8,7 @@ type Status uint8
 
 func NewStatus(status uint8) (Status, error) {
   s := Status(status)
-  if s.Valid() {
+  if !s.Valid() {
     return s, sharedErr.ErrEnumOutOfBounds
   }
   return s, nil

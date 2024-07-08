@@ -6,9 +6,10 @@ import (
   "log"
   "nexa/services/mailer/internal/app/uow"
   "nexa/services/mailer/internal/domain/dto"
-  domain "nexa/services/mailer/internal/domain/entity"
+  entity "nexa/services/mailer/internal/domain/entity"
   "nexa/services/mailer/internal/domain/external"
   "nexa/services/mailer/internal/domain/mapper"
+  "nexa/services/mailer/internal/domain/repository"
   "nexa/services/mailer/internal/domain/service"
   "nexa/services/mailer/util"
   sharedDto "nexa/shared/dto"
@@ -37,21 +38,21 @@ type mailService struct {
   workCount atomic.Int64
 }
 
-func (m *mailService) Find(ctx context.Context, pagedDTO *sharedDto.PagedElementDTO) (*sharedDto.PagedElementResult[dto.MailResponseDTO], status.Object) {
-  ctx, span := m.tracer.Start(ctx, "MailService.Find")
+func (m *mailService) GetAll(ctx context.Context, pagedDTO *sharedDto.PagedElementDTO) (sharedDto.PagedElementResult[dto.MailResponseDTO], status.Object) {
+  ctx, span := m.tracer.Start(ctx, "MailService.GetAll")
   defer span.End()
 
   repos := m.mailUow.Repositories()
-  result, err := repos.Mail().FindAll(ctx, pagedDTO.ToQueryParam())
+  result, err := repos.Mail().Get(ctx, pagedDTO.ToQueryParam())
   if err != nil {
     spanUtil.RecordError(err, span)
-    return nil, status.FromRepository(err, status.NullCode)
+    return sharedDto.PagedElementResult[dto.MailResponseDTO]{}, status.FromRepository(err, status.NullCode)
   }
 
   mails := sharedUtil.CastSliceP(result.Data, mapper.ToMailResponseDTO)
 
   pagedResult := sharedDto.NewPagedElementResult2(mails, pagedDTO, result.Total)
-  return &pagedResult, status.Success()
+  return pagedResult, status.Success()
 }
 
 func (m *mailService) FindByIds(ctx context.Context, mailIds ...types.Id) ([]dto.MailResponseDTO, status.Object) {
@@ -91,7 +92,7 @@ func (m *mailService) Send(ctx context.Context, mailDTO *dto.SendMailDTO) ([]typ
   mails, err := mailDTO.ToDomain()
   if err != nil {
     spanUtil.RecordError(err, span)
-    return nil, status.ErrBadRequest(err)
+    return nil, status.ErrInternal(err)
   }
 
   // Save metadata
@@ -106,10 +107,10 @@ func (m *mailService) Send(ctx context.Context, mailDTO *dto.SendMailDTO) ([]typ
       return err
     }
 
-    var tags []types.Pair[types.Id, []types.Id]
+    var tags []repository.MailTags
 
     for _, mail := range mails {
-      result := types.NewPair(mail.Id, sharedUtil.CastSliceP(mail.Tags, func(from *domain.Tag) types.Id {
+      result := types.NewPair(mail.Id, sharedUtil.CastSliceP(mail.Tags, func(from *entity.Tag) types.Id {
         return from.Id
       }))
 
@@ -126,21 +127,20 @@ func (m *mailService) Send(ctx context.Context, mailDTO *dto.SendMailDTO) ([]typ
   }
 
   // Send mails
-  go func() {
-    ctx := context.Background()
-    defer m.workCount.Add(int64(len(mails) * -1))
-
-    for _, mail := range mails {
-      m.workCount.Add(1)
+  for _, mail := range mails {
+    m.workCount.Add(1)
+    go func() {
+      defer m.workCount.Store(-1)
+      ctx := context.Background()
 
       err = m.mailExt.Send(ctx, &mail, mailDTO.Attachments)
-      stat := domain.StatusDelivered
+      stat := entity.StatusDelivered
       if err != nil {
-        stat = domain.StatusFailed
+        stat = entity.StatusFailed
       }
       repos := m.mailUow.Repositories()
 
-      newMail := domain.Mail{
+      newMail := entity.Mail{
         Id:          mail.Id,
         Status:      stat,
         DeliveredAt: time.Now(),
@@ -150,14 +150,14 @@ func (m *mailService) Send(ctx context.Context, mailDTO *dto.SendMailDTO) ([]typ
       if err != nil {
         log.Println("Error set mail status:", err)
       }
-    }
-  }()
+    }()
+  }
 
-  mailIds := sharedUtil.CastSliceP(mails, func(from *domain.Mail) types.Id {
+  mailIds := sharedUtil.CastSliceP(mails, func(from *entity.Mail) types.Id {
     return from.Id
   })
 
-  return mailIds, status.Created()
+  return mailIds, status.Success()
 }
 
 func (m *mailService) Update(ctx context.Context, mailDTO *dto.UpdateMailDTO) status.Object {

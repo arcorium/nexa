@@ -9,7 +9,7 @@ import (
 )
 
 type IMail interface {
-  Find(ctx context.Context, pagedDTO *sharedDto.PagedElementDTO) (*sharedDto.PagedElementResult[dto.MailResponseDTO], status.Object)
+  GetAll(ctx context.Context, pagedDTO *sharedDto.PagedElementDTO) (sharedDto.PagedElementResult[dto.MailResponseDTO], status.Object)
   FindByIds(ctx context.Context, mailIds ...types.Id) ([]dto.MailResponseDTO, status.Object)
   FindByTag(ctx context.Context, tagId types.Id) ([]dto.MailResponseDTO, status.Object)
   // Send email and save the metadata

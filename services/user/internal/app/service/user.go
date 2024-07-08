@@ -155,7 +155,7 @@ func (u userService) BannedUser(ctx context.Context, bannedDto *dto.UserBannedDT
   return status.Success()
 }
 
-func (u userService) FindAll(ctx context.Context, pagedDto sharedDto.PagedElementDTO) (sharedDto.PagedElementResult[dto.UserResponseDTO], status.Object) {
+func (u userService) GetAll(ctx context.Context, pagedDto sharedDto.PagedElementDTO) (sharedDto.PagedElementResult[dto.UserResponseDTO], status.Object) {
   ctx, span := u.tracer.Start(ctx, "UserService.FindByEmails")
   defer span.End()
 

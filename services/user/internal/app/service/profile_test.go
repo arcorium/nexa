@@ -25,9 +25,6 @@ func newProfileMocked(t *testing.T) profileMocked {
 
   return profileMocked{
     Profile: repoMock.NewProfileMock(t),
-    //User:    repoMock.NewUserMock(t),
-    //AuthN:   extMock.NewAuthenticationClientMock(t),
-    //Mailer:  extMock.NewMailerClientMock(t),
     Storage: extMock.NewFileStorageClientMock(t),
     Tracer:  provider.Tracer("MOCK"),
   }
@@ -35,9 +32,6 @@ func newProfileMocked(t *testing.T) profileMocked {
 
 type profileMocked struct {
   Profile *repoMock.ProfileMock
-  //User    repository.IUser
-  //AuthN   external.IAuthenticationClient
-  //Mailer  external.IMailerClient
   Storage *extMock.FileStorageClientMock
   Tracer  trace.Tracer
 }

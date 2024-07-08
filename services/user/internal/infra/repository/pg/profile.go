@@ -52,6 +52,8 @@ func (p profileRepository) FindByIds(ctx context.Context, userIds ...types.Id) (
   err := p.db.NewSelect().
     Model(&dbModel).
     Where("id IN (?)", bun.In(ids)).
+    Distinct().
+    OrderExpr("updated_at DESC").
     Scan(ctx)
 
   result := repo.CheckSliceResultWithSpan(dbModel, err, span)
@@ -78,6 +80,8 @@ func (p profileRepository) FindByUserId(ctx context.Context, userId types.Id) (*
   err := p.db.NewSelect().
     Model(&dbModel).
     Where("user_id = ?", userId.String()).
+    Distinct().
+    OrderExpr("updated_at DESC").
     Scan(ctx)
 
   if err != nil {

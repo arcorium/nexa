@@ -14,6 +14,8 @@ var models = []any{
 }
 
 func RegisterBunModels(db *bun.DB) {
+  database.RegisterBunModels(db, types.Nil[RolePermission]())
+  database.RegisterBunModels(db, types.Nil[UserRole]())
   database.RegisterBunModels(db, models...)
 }
 

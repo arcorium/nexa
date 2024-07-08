@@ -27,20 +27,20 @@ type tagService struct {
   tracer  trace.Tracer
 }
 
-func (t *tagService) Find(ctx context.Context, elementDTO *sharedDto.PagedElementDTO) (*sharedDto.PagedElementResult[dto.TagResponseDTO], status.Object) {
-  ctx, span := t.tracer.Start(ctx, "TagService.Find")
+func (t *tagService) GetAll(ctx context.Context, elementDTO *sharedDto.PagedElementDTO) (sharedDto.PagedElementResult[dto.TagResponseDTO], status.Object) {
+  ctx, span := t.tracer.Start(ctx, "TagService.GetAll")
   defer span.End()
 
-  result, err := t.tagRepo.FindAll(ctx, elementDTO.ToQueryParam())
+  result, err := t.tagRepo.Get(ctx, elementDTO.ToQueryParam())
   if err != nil {
     spanUtil.RecordError(err, span)
-    return nil, status.FromRepository(err, status.NullCode)
+    return sharedDto.PagedElementResult[dto.TagResponseDTO]{}, status.FromRepository(err, status.NullCode)
   }
 
   tags := sharedUtil.CastSliceP(result.Data, mapper.ToTagResponseDTO)
 
   res := sharedDto.NewPagedElementResult2(tags, elementDTO, result.Total)
-  return &res, status.Success()
+  return res, status.Success()
 }
 
 func (t *tagService) FindByIds(ctx context.Context, tagIds ...types.Id) ([]dto.TagResponseDTO, status.Object) {

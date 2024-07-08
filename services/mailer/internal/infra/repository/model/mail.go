@@ -4,6 +4,7 @@ import (
   "database/sql"
   "github.com/uptrace/bun"
   domain "nexa/services/mailer/internal/domain/entity"
+  sharedErr "nexa/shared/errors"
   "nexa/shared/types"
   "nexa/shared/util"
   "nexa/shared/util/repo"
@@ -30,7 +31,7 @@ func FromMailDomain(domain *domain.Mail, opts ...MailMapOption) Mail {
 }
 
 type Mail struct {
-  bun.BaseModel `bun:"table:mail"`
+  bun.BaseModel `bun:"table:mails"`
 
   Id        string        `bun:",type:uuid,pk,nullzero"`
   Subject   string        `bun:",nullzero"`
@@ -42,15 +43,17 @@ type Mail struct {
   DeliveredAt time.Time `bun:",nullzero"`
   UpdatedAt   time.Time `bun:",nullzero"`
 
-  Tags []Tag `bun:"m2m:mail_tags,join:Mail=Tags"`
+  Tags []Tag `bun:"m2m:mail_tags,join:Mail=Tag"`
 }
 
 func (p *Mail) ToDomain() (domain.Mail, error) {
-  tags, ierr := util.CastSliceErrsP(p.Tags, func(from *Tag) (domain.Tag, error) {
-    return from.ToDomain()
-  })
-  if !ierr.IsNil() {
-    return domain.Mail{}, ierr
+  var tags []domain.Tag
+  if p.Tags != nil {
+    var ierr sharedErr.IndicesError
+    tags, ierr = util.CastSliceErrsP(p.Tags, repo.ToDomainErr[*Tag, domain.Tag])
+    if !ierr.IsNil() {
+      return domain.Mail{}, ierr
+    }
   }
 
   mailId, err := types.IdFromString(p.Id)
@@ -63,7 +66,7 @@ func (p *Mail) ToDomain() (domain.Mail, error) {
     return domain.Mail{}, err
   }
 
-  recipient, err := types.EmailFromString(p.Sender)
+  recipient, err := types.EmailFromString(p.Recipient)
   if err != nil {
     return domain.Mail{}, err
   }
@@ -74,11 +77,13 @@ func (p *Mail) ToDomain() (domain.Mail, error) {
   }
 
   return domain.Mail{
-    Id:        mailId,
-    Subject:   p.Subject,
-    Recipient: recipient,
-    Sender:    sender,
-    Status:    status,
-    Tags:      tags,
+    Id:          mailId,
+    Subject:     p.Subject,
+    Recipient:   recipient,
+    Sender:      sender,
+    Status:      status,
+    SentAt:      p.SentAt,
+    DeliveredAt: p.DeliveredAt,
+    Tags:        tags,
   }, nil
 }

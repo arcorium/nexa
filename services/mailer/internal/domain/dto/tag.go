@@ -31,14 +31,12 @@ type UpdateTagDTO struct {
   Description types.NullableString
 }
 
-func (u *UpdateTagDTO) ToDomain() domain.Tag {
-  tag := domain.Tag{
-    Id: u.Id,
+func (u *UpdateTagDTO) ToDomain() domain.PatchedTag {
+  tag := domain.PatchedTag{
+    Id:          u.Id,
+    Description: u.Description,
   }
-
   types.SetOnNonNull(&tag.Name, u.Name)
-  types.SetOnNonNull(&tag.Description, u.Description)
-
   return tag
 }
 

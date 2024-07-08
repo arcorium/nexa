@@ -12,15 +12,30 @@ import (
 
 type RoleMapOption = repo.DataAccessModelMapOption[*entity.Role, *Role]
 
-func FromRoleDomain(domain *entity.Role, opts ...RoleMapOption) Role {
+type PatchedRoleMapOption = repo.DataAccessModelMapOption[*entity.PatchedRole, *Role]
+
+func FromPatchedRoleDomain(ent *entity.PatchedRole, opts ...PatchedRoleMapOption) Role {
   role := Role{
-    Id:          domain.Id.Underlying().String(),
-    Name:        domain.Name,
-    Description: domain.Description,
+    Id:          ent.Id.Underlying().String(),
+    Name:        ent.Name,
+    Description: ent.Description.Value(),
   }
 
   variadic.New(opts...).
-    DoAll(repo.MapOptionFunc(domain, &role))
+    DoAll(repo.MapOptionFunc(ent, &role))
+
+  return role
+}
+
+func FromRoleDomain(ent *entity.Role, opts ...RoleMapOption) Role {
+  role := Role{
+    Id:          ent.Id.Underlying().String(),
+    Name:        ent.Name,
+    Description: &ent.Description,
+  }
+
+  variadic.New(opts...).
+    DoAll(repo.MapOptionFunc(ent, &role))
 
   return role
 }
@@ -28,9 +43,9 @@ func FromRoleDomain(domain *entity.Role, opts ...RoleMapOption) Role {
 type Role struct {
   bun.BaseModel `bun:"table:roles"`
 
-  Id          string `bun:",nullzero,type:uuid,pk"`
-  Name        string `bun:",nullzero,unique"`
-  Description string `bun:",nullzero"`
+  Id          string  `bun:",nullzero,type:uuid,pk"`
+  Name        string  `bun:",nullzero,unique"`
+  Description *string `bun:","`
 
   UpdatedAt time.Time `bun:",nullzero"`
   CreatedAt time.Time `bun:",nullzero,notnull"`
@@ -47,14 +62,11 @@ func (r *Role) ToDomain() (entity.Role, error) {
   perms, err := util.CastSliceErrsP(r.Permissions, func(from *Permission) (entity.Permission, error) {
     return from.ToDomain()
   })
-  if err != nil {
-    return entity.Role{}, err
-  }
 
   return entity.Role{
     Id:          roleId,
     Name:        r.Name,
-    Description: r.Description,
+    Description: types.OnNil(r.Description, ""),
     Permissions: perms,
   }, nil
 }

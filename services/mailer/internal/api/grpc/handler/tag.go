@@ -36,7 +36,7 @@ func (t *TagHandler) Register(server *grpc.Server) {
 }
 
 func (t *TagHandler) Find(ctx context.Context, input *common.PagedElementInput) (*mailerv1.FindTagResponse, error) {
-  ctx, span := t.tracer.Start(ctx, "TagHandler.Find")
+  ctx, span := t.tracer.Start(ctx, "TagHandler.GetAll")
   defer span.End()
 
   elementDto := dto.PagedElementDTO{
@@ -44,7 +44,7 @@ func (t *TagHandler) Find(ctx context.Context, input *common.PagedElementInput) 
     Page:    input.Page,
   }
 
-  result, stat := t.tagService.Find(ctx, &elementDto)
+  result, stat := t.tagService.GetAll(ctx, &elementDto)
   if stat.IsError() {
     spanUtil.RecordError(stat.Error, span)
     return nil, stat.ToGRPCError()

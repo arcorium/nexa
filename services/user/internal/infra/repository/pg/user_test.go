@@ -179,8 +179,23 @@ func (f *userTestSuite) Test_userRepository_Create() {
       }
       t := f.T()
 
-      if err := u.Create(tt.args.ctx, tt.args.user); (err != nil) != tt.wantErr {
-        t.Errorf("Create() error = %v, wantErr %v", err, tt.wantErr)
+      err = u.Create(tt.args.ctx, tt.args.user)
+      if res := err != nil; res {
+        if res != tt.wantErr {
+          t.Errorf("Create() error = %v, wantErr %v", err, tt.wantErr)
+        }
+        return
+      }
+
+      got, err := u.FindByIds(tt.args.ctx, tt.args.user.Id)
+      f.Require().NoError(err)
+      f.Require().Len(got, 1)
+
+      ignoreUserFields(got...)
+      ignoreUserFieldsP(tt.args.user)
+
+      if !reflect.DeepEqual(got[0], *tt.args.user) != tt.wantErr {
+        t.Errorf("Get() got = %v, want %v", got[0], *tt.args.user)
       }
     })
   }
@@ -256,7 +271,7 @@ func (f *userTestSuite) Test_userRepository_FindAllUsers() {
     wantErr bool
   }{
     {
-      name: "Normal",
+      name: "Get all users",
       args: args{
         ctx: context.Background(),
         query: repo.QueryParameter{
@@ -819,3 +834,5 @@ func generateRandomUserP() *entity.User {
   user := generateRandomUser()
   return &user
 }
+
+// TODO: The test is fail when run with the profile test

@@ -31,13 +31,14 @@ func (t *tokenRepository) Create(ctx context.Context, token *entity.Token) error
   ctx, span := t.tracer.Start(ctx, "TokenRepository.Create")
   defer span.End()
 
-  dbModel := model.FromTokenDomain(token, func(domain *entity.Token, token *model.Token) {
+  dbModel := model.FromTokenDomain(token, func(ent *entity.Token, token *model.Token) {
     token.CreatedAt = time.Now()
-    token.ExpiredAt = domain.ExpiredAt
+    token.ExpiredAt = ent.ExpiredAt
   })
 
   res, err := t.db.NewInsert().
     Model(&dbModel).
+    Returning("NULL").
     Exec(ctx)
 
   return repo.CheckResultWithSpan(res, err, span)
@@ -72,10 +73,10 @@ func (t *tokenRepository) Find(ctx context.Context, token string) (entity.Token,
   defer span.End()
 
   var dbModel model.Token
-
   err := t.db.NewSelect().
     Model(&dbModel).
     Where("token = ?", token).
+    OrderExpr("expired_at DESC").
     Scan(ctx)
 
   if err != nil {
@@ -83,11 +84,11 @@ func (t *tokenRepository) Find(ctx context.Context, token string) (entity.Token,
     return types.Null[entity.Token](), err
   }
 
-  return dbModel.ToDomain(), nil
+  return dbModel.ToDomain()
 }
 
-func (t *tokenRepository) FindAll(ctx context.Context, parameter repo.QueryParameter) (repo.PaginatedResult[entity.Token], error) {
-  ctx, span := t.tracer.Start(ctx, "TokenRepository.FindAll")
+func (t *tokenRepository) Get(ctx context.Context, parameter repo.QueryParameter) (repo.PaginatedResult[entity.Token], error) {
+  ctx, span := t.tracer.Start(ctx, "TokenRepository.Get")
   defer span.End()
 
   var dbModels []model.Token
@@ -99,9 +100,16 @@ func (t *tokenRepository) FindAll(ctx context.Context, parameter repo.QueryParam
     ScanAndCount(ctx)
 
   result := repo.CheckPaginationResultWithSpan(dbModels, count, err, span)
-  tokens := sharedUtil.CastSliceP(result.Data, func(from *model.Token) entity.Token {
-    return from.ToDomain()
-  })
+  if result.IsError() {
+    spanUtil.RecordError(result.Err, span)
+    return repo.NewPaginatedResult[entity.Token](nil, uint64(count)), result.Err
+  }
 
-  return repo.NewPaginatedResult(tokens, uint64(count)), result.Err
+  tokens, ierr := sharedUtil.CastSliceErrsP(result.Data, repo.ToDomainErr[*model.Token, entity.Token])
+  if !ierr.IsNil() {
+    spanUtil.RecordError(ierr, span)
+    return repo.NewPaginatedResult[entity.Token](nil, uint64(count)), ierr
+  }
+
+  return repo.NewPaginatedResult(tokens, uint64(count)), nil
 }

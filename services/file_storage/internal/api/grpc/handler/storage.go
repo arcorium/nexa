@@ -137,7 +137,7 @@ func (s *StorageHandler) Store(server storagev1.FileStorageService_StoreServer) 
 }
 
 func (s *StorageHandler) Update(ctx context.Context, request *storagev1.UpdateFileRequest) (*emptypb.Empty, error) {
-  ctx, span := s.tracer.Start(ctx, "StorageHandler.UpdateMetadata")
+  ctx, span := s.tracer.Start(ctx, "StorageHandler.Move")
   defer span.End()
 
   dtos, err := mapper.ToUpdateMetadataDTO(request)
@@ -146,7 +146,7 @@ func (s *StorageHandler) Update(ctx context.Context, request *storagev1.UpdateFi
     return nil, err
   }
 
-  stat := s.fileService.UpdateMetadata(ctx, &dtos)
+  stat := s.fileService.Move(ctx, &dtos)
   return nil, stat.ToGRPCErrorWithSpan(span)
 }
 

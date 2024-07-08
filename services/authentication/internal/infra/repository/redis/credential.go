@@ -260,15 +260,17 @@ func (c *credentialRepository) Delete(ctx context.Context, refreshTokenIds ...ty
   return nil
 }
 
-func (c *credentialRepository) DeleteByUserId(ctx context.Context, userId types.Id, ids ...types.Id) error {
+func (c *credentialRepository) DeleteByUserId(ctx context.Context, userId types.Id, credIds ...types.Id) error {
+  // TODO: Delete from user set
   ctx, span := c.tracer.Start(ctx, "CredentialRepository.DeleteByUserId")
   defer span.End()
 
-  userKey := c.userKey(userId.Underlying().String())
+  userKey := c.userKey(userId.String())
 
   tx := func(tx *redis.Tx) error {
-    vars := variadic.New(ids)
+    vars := variadic.New(credIds...)
 
+    // Get user credentials
     credKeys := make([]string, 0)
     if !vars.HasValue() {
       // Get all credential ids
@@ -291,8 +293,8 @@ func (c *credentialRepository) DeleteByUserId(ctx context.Context, userId types.
         return sql.ErrNoRows
       }
     } else {
-      members := sharedUtil.CastSlice(ids, func(from types.Id) any {
-        return c.credKey(from.Underlying().String())
+      members := sharedUtil.CastSlice(credIds, func(from types.Id) any {
+        return c.credKey(from.String())
       })
       boolRes := tx.SMIsMember(ctx, userKey, members...)
       if err := boolRes.Err(); err != nil {
@@ -303,20 +305,28 @@ func (c *credentialRepository) DeleteByUserId(ctx context.Context, userId types.
         return errors.New("malformed redis response")
       }
 
-      // Filter
+      // Make an error when there are false value
       for i := 0; i < len(boolRes.Val()); i++ {
-        // Only append that is on users
+        // Only append that is on users and filter out the others
         if boolRes.Val()[i] {
           credKeys = append(credKeys, members[i].(string))
+          continue
         }
+        return fmt.Errorf("couldn't delete invalid credentials: %s", credIds[i].String())
       }
     }
 
     cmds, err := tx.Pipelined(ctx, func(pipe redis.Pipeliner) error {
       // Remove all creds
       pipe.Del(ctx, credKeys...)
-      // Remove users sets
-      //pipe.Del(ctx, userKey)
+      if credIds == nil {
+        // Remove users sets
+        pipe.Del(ctx, userKey)
+      } else {
+        // Delete all needed credentials from set
+        creds := sharedUtil.CastSlice(credKeys, sharedUtil.ToAny[string])
+        pipe.SRem(ctx, userKey, creds...)
+      }
 
       return nil
     })
@@ -469,10 +479,10 @@ func (c *credentialRepository) FindByUserId(ctx context.Context, userId types.Id
   return models, nil
 }
 
-func (c *credentialRepository) FindAll(ctx context.Context, parameter repo.QueryParameter) (repo.PaginatedResult[entity.Credential], error) {
+func (c *credentialRepository) Get(ctx context.Context, parameter repo.QueryParameter) (repo.PaginatedResult[entity.Credential], error) {
   // NOTE: Offset is ignored, because redis doesn't support that
 
-  ctx, span := c.tracer.Start(ctx, "CredentialRepository.FindAll")
+  ctx, span := c.tracer.Start(ctx, "CredentialRepository.Get")
   defer span.End()
 
   // Get all keys
@@ -480,23 +490,30 @@ func (c *credentialRepository) FindAll(ctx context.Context, parameter repo.Query
   prefix := fmt.Sprintf("%s:*", c.config.CredentialNamespace)
   credKeys := make([]string, 0)
 
-  var credCount int64 = int64(parameter.Limit)
+  var credLeft int64 = int64(parameter.Limit)
   for {
-    scanCmd := c.client.Scan(ctx, cursor, prefix, credCount)
+    // Scan using cursor
+    scanCmd := c.client.Scan(ctx, cursor, prefix, credLeft)
     if err := scanCmd.Err(); err != nil {
       spanUtil.RecordError(err, span)
       return repo.PaginatedResult[entity.Credential]{}, err
     }
 
+    // Get the value and append it into credKeys
     val, newCursor := scanCmd.Val()
     if len(val) > 0 {
       credKeys = append(credKeys, val...)
     }
-    credCount = max(credCount-int64(len(val)), 0)
+    credLeft = max(credLeft-int64(len(val)), 0)
+
+    // Condition to break for limit != 0
     if len(credKeys) >= int(parameter.Limit) && parameter.Limit != 0 {
+      // Shrink when the value is exceeded limit
+      credKeys = credKeys[:parameter.Limit]
       break
     }
 
+    // Condition to break for limit = 0 or the limit exceed the actual data
     if newCursor == 0 {
       break
     }

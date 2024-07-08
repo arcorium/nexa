@@ -1,7 +1,7 @@
 package dto
 
 import (
-  domain "nexa/services/file_storage/internal/domain/entity"
+  entity "nexa/services/file_storage/internal/domain/entity"
   "nexa/shared/types"
   "time"
 )
@@ -11,10 +11,12 @@ type UpdateFileMetadataDTO struct {
   IsPublic bool
 }
 
-func (u *UpdateFileMetadataDTO) ToDomain() domain.FileMetadata {
-  md := domain.FileMetadata{
-    Id:       u.Id,
-    IsPublic: u.IsPublic,
+func (u *UpdateFileMetadataDTO) ToDomain(newRelPath string) entity.PatchedFileMetadata {
+  md := entity.PatchedFileMetadata{
+    Id:           u.Id,
+    IsPublic:     types.SomeNullable(u.IsPublic),
+    ProviderPath: newRelPath,
+    FullPath:     types.SomeNullable(""), // Set fullpath to empty
   }
 
   return md

@@ -2,6 +2,7 @@ package service
 
 import (
   "context"
+  "errors"
   "fmt"
   "go.opentelemetry.io/otel/trace"
   "nexa/services/file_storage/internal/app/uow"
@@ -40,29 +41,68 @@ func (f *fileStorage) Store(ctx context.Context, fileDto *dto.FileStoreDTO) (typ
   defer span.End()
 
   // Map to domain
-  file, metadata, err := fileDto.ToDomain(f.storageExt)
+  file, metadata, err := fileDto.ToDomain(f.storageExt.GetProvider())
   if err != nil {
     spanUtil.RecordError(err, span)
     return types.NullId(), status.ErrInternal(err)
   }
 
-  // Upload file
-  relativePath, err := f.storageExt.Store(ctx, &file)
+  var stat = status.Success()
+  err = f.unit.DoTx(ctx, func(ctx context.Context, storage uow.FileMetadataStorage) error {
+    ctx, span := f.tracer.Start(ctx, "UOW.Store")
+    defer span.End()
+    // Upload file
+    relativePath, err := f.storageExt.Store(ctx, &file)
+    if err != nil {
+      spanUtil.RecordError(err, span)
+      stat = status.ErrExternal(err)
+      return err
+    }
+
+    defer func() {
+      // Delete file when it error on get full path or creating metadata
+      if err == nil {
+        return
+      }
+      // Delete file from storage
+      err2 := f.storageExt.Delete(ctx, relativePath)
+      if err2 != nil {
+        spanUtil.RecordError(err2, span)
+        stat = status.ErrExternal(err2)
+      }
+    }()
+
+    // Save metadata
+    metadata.ProviderPath = relativePath
+
+    // Get fullpath for public file
+    if fileDto.IsPublic {
+      path, err := f.storageExt.GetFullPath(ctx, relativePath)
+      if err != nil {
+        spanUtil.RecordError(err, span)
+        stat = status.ErrExternal(err)
+        return err
+      }
+      metadata.FullPath = path.Path()
+    }
+
+    repos := f.unit.Repositories()
+    err = repos.Metadata().Create(ctx, &metadata)
+    if err != nil {
+      spanUtil.RecordError(err, span)
+      stat = status.FromRepository(err, status.NullCode)
+      return err
+    }
+
+    return nil
+  })
+
   if err != nil {
     spanUtil.RecordError(err, span)
-    return types.NullId(), status.ErrExternal(err)
+    return types.NullId(), stat
   }
 
-  // Save metadata
-  metadata.ProviderPath = relativePath
-  repos := f.unit.Repositories()
-  err = repos.Metadata().Create(ctx, &metadata)
-  if err != nil {
-    spanUtil.RecordError(err, span)
-    return types.NullId(), status.FromRepository(err, status.NullCode)
-  }
-
-  return metadata.Id, status.Created()
+  return metadata.Id, stat
 }
 
 func (f *fileStorage) Find(ctx context.Context, id types.Id) (dto.FileResponseDTO, status.Object) {
@@ -119,6 +159,7 @@ func (f *fileStorage) Delete(ctx context.Context, id types.Id) status.Object {
   // err ignored, because it could be caused by repository and storage external service
   _ = f.unit.DoTx(ctx, func(ctx context.Context, storage uow.FileMetadataStorage) error {
     ctx, span := f.tracer.Start(ctx, "UOW.Delete")
+    defer span.End()
     // Delete metadata from persistent database
     err = storage.Metadata().DeleteById(ctx, id)
     if err != nil {
@@ -141,32 +182,31 @@ func (f *fileStorage) Delete(ctx context.Context, id types.Id) status.Object {
   return stat
 }
 
-func (f *fileStorage) UpdateMetadata(ctx context.Context, input *dto.UpdateFileMetadataDTO) status.Object {
-  ctx, span := f.tracer.Start(ctx, "FileStorageService.UpdateMetadata")
+func (f *fileStorage) Move(ctx context.Context, updateDto *dto.UpdateFileMetadataDTO) status.Object {
+  ctx, span := f.tracer.Start(ctx, "FileStorageService.Move")
   defer span.End()
 
-  obj := input.ToDomain()
   // Get file metadata
   repos := f.unit.Repositories()
-  metadata, err := repos.Metadata().FindByIds(ctx, input.Id)
+  metadata, err := repos.Metadata().FindByIds(ctx, updateDto.Id)
   if err != nil {
     spanUtil.RecordError(err, span)
     return status.FromRepository(err, status.NullCode)
   }
 
   // Doesn't need to update, currently it only handle moving into/from public path
-  if metadata[0].IsPublic == obj.IsPublic {
-    return status.Updated()
+  if metadata[0].IsPublic == updateDto.IsPublic {
+    return status.New(status.OBJECT_NOT_FOUND, errors.New("nothings to do, the file is already on right location"))
   }
 
   stat := status.Updated()
   _ = f.unit.DoTx(ctx, func(ctx context.Context, storage uow.FileMetadataStorage) error {
-    ctx, span = f.tracer.Start(ctx, "UOW.UpdateMetadata")
+    ctx, span = f.tracer.Start(ctx, "UOW.Move")
     defer span.End()
 
     // Copy file
     dest := metadata[0].Name
-    if obj.IsPublic {
+    if updateDto.IsPublic {
       dest = f.publicPath(dest)
     }
     newPath, err := f.storageExt.Copy(ctx, metadata[0].ProviderPath, dest)
@@ -176,9 +216,34 @@ func (f *fileStorage) UpdateMetadata(ctx context.Context, input *dto.UpdateFileM
       return err
     }
 
-    // Update file metadata
-    obj.ProviderPath = newPath
-    err = storage.Metadata().Update(ctx, &obj)
+    defer func() {
+      // When there in an error, delete copied file
+      if err == nil {
+        return
+      }
+      // Delete copied file
+      err2 := f.storageExt.Delete(ctx, newPath)
+      if err2 != nil {
+        spanUtil.RecordError(err2, span)
+        stat = status.ErrExternal(err2)
+      }
+    }()
+
+    // Patch file metadata
+    patched := updateDto.ToDomain(newPath)
+
+    // Get fullpath to access directly
+    if updateDto.IsPublic {
+      fullpath, err := f.storageExt.GetFullPath(ctx, newPath)
+      if err != nil {
+        spanUtil.RecordError(err, span)
+        stat = status.ErrExternal(err)
+        return err
+      }
+      patched.FullPath = types.SomeNullable(fullpath.Path())
+    }
+
+    err = storage.Metadata().Patch(ctx, &patched)
     if err != nil {
       spanUtil.RecordError(err, span)
       stat = status.FromRepository(err, status.NullCode)

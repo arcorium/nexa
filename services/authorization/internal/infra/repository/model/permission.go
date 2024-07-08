@@ -11,15 +11,16 @@ import (
 
 type PermissionMapOption = repo.DataAccessModelMapOption[*entity.Permission, *Permission]
 
-func FromPermissionDomain(domain *entity.Permission, opts ...PermissionMapOption) Permission {
+func FromPermissionDomain(ent *entity.Permission, opts ...PermissionMapOption) Permission {
   permission := Permission{
-    Id:       domain.Id.String(),
-    Resource: domain.Resource,
-    Action:   domain.Action,
+    Id:        ent.Id.String(),
+    Resource:  ent.Resource,
+    Action:    ent.Action,
+    CreatedAt: ent.CreatedAt,
   }
 
   variadic.New(opts...).
-    DoAll(repo.MapOptionFunc(domain, &permission))
+    DoAll(repo.MapOptionFunc(ent, &permission))
 
   return permission
 }

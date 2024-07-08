@@ -3,8 +3,7 @@ package dto
 import (
   "crypto/sha512"
   "fmt"
-  domain "nexa/services/file_storage/internal/domain/entity"
-  "nexa/services/file_storage/internal/domain/external"
+  entity "nexa/services/file_storage/internal/domain/entity"
   "nexa/services/file_storage/util"
   "nexa/shared/types"
   "path"
@@ -22,29 +21,29 @@ type FileStoreDTO struct {
   IsPublic bool   `validate:"required"`
 }
 
-func (s *FileStoreDTO) ToDomain(storage external.IStorage) (domain.File, domain.FileMetadata, error) {
+func (s *FileStoreDTO) ToDomain(provider entity.StorageProvider) (entity.File, entity.FileMetadata, error) {
   id, err := types.NewId()
   if err != nil {
-    return domain.File{}, domain.FileMetadata{}, err
+    return entity.File{}, entity.FileMetadata{}, err
   }
 
   ext := path.Ext(s.Name)
   filename := fmt.Sprintf("%s.%s", id.Hash(sha512.New()), ext)
 
-  file := domain.File{
+  file := entity.File{
     Name:     filename,
     Bytes:    s.Data,
     Size:     uint64(len(s.Data)),
     IsPublic: s.IsPublic,
   }
 
-  metadata := domain.FileMetadata{
+  metadata := entity.FileMetadata{
     Id:       id,
     Name:     filename,
     MimeType: util.GetMimeType(s.Name),
     Size:     uint64(len(s.Data)),
     IsPublic: s.IsPublic,
-    Provider: storage.GetProvider(),
+    Provider: provider,
   }
 
   return file, metadata, nil

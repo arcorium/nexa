@@ -2,7 +2,9 @@ package pg
 
 import (
   "context"
+  "errors"
   "github.com/uptrace/bun"
+  "github.com/uptrace/bun/driver/pgdriver"
   "go.opentelemetry.io/otel/trace"
   "nexa/services/authorization/internal/domain/entity"
   "nexa/services/authorization/internal/domain/repository"
@@ -34,21 +36,27 @@ func (r *roleRepository) FindByIds(ctx context.Context, ids ...types.Id) ([]enti
 
   roleIds := sharedUtil.CastSlice(ids, sharedUtil.ToString[types.Id])
   var dbModels []model.Role
-
   err := r.db.NewSelect().
     Model(&dbModels).
     Where("id IN (?)", bun.In(roleIds)).
     Relation("Permissions").
+    Distinct().
+    OrderExpr("created_at DESC").
     Scan(ctx)
 
-  result := repo.CheckSliceResultWithSpan(dbModels, err, span)
+  result := repo.CheckSliceResult(dbModels, err)
+  if result.IsError() {
+    spanUtil.RecordError(result.Err, span)
+    return nil, result.Err
+  }
+
   roles, ierr := sharedUtil.CastSliceErrsP(dbModels, repo.ToDomainErr[*model.Role, entity.Role])
   if !ierr.IsNil() {
     spanUtil.RecordError(ierr, span)
     return nil, ierr
   }
 
-  return roles, result.Err
+  return roles, nil
 }
 
 func (r *roleRepository) FindByUserId(ctx context.Context, userId types.Id) ([]entity.Role, error) {
@@ -60,20 +68,25 @@ func (r *roleRepository) FindByUserId(ctx context.Context, userId types.Id) ([]e
   err := r.db.NewSelect().
     Model(&dbModels).
     Where("user_id = ?", userId.String()).
-    Relation("Role").
     Relation("Role.Permissions").
+    OrderExpr("created_at DESC").
     Scan(ctx)
 
   result := repo.CheckSliceResultWithSpan(dbModels, err, span)
+  if result.IsError() {
+    spanUtil.RecordError(result.Err, span)
+    return nil, result.Err
+  }
+
   roles, ierr := sharedUtil.CastSliceErrsP(dbModels, func(userRole *model.UserRole) (entity.Role, error) {
     return userRole.Role.ToDomain()
   })
   if !ierr.IsNil() {
-    spanUtil.RecordError(err, span)
+    spanUtil.RecordError(ierr, span)
     return nil, ierr
   }
 
-  return roles, result.Err
+  return roles, nil
 }
 
 func (r *roleRepository) FindByName(ctx context.Context, name string) (entity.Role, error) {
@@ -81,12 +94,10 @@ func (r *roleRepository) FindByName(ctx context.Context, name string) (entity.Ro
   defer span.End()
 
   var dbModels model.Role
-
   err := r.db.NewSelect().
     Model(&dbModels).
     Where("name = ?", name).
-    Relation("Role").
-    Relation("Role.Permissions"). // NOTE: Is it needed?
+    Relation("Permissions").
     Scan(ctx)
 
   if err != nil {
@@ -97,27 +108,32 @@ func (r *roleRepository) FindByName(ctx context.Context, name string) (entity.Ro
   return dbModels.ToDomain()
 }
 
-func (r *roleRepository) FindAll(ctx context.Context, parameter repo.QueryParameter) (repo.PaginatedResult[entity.Role], error) {
-  ctx, span := r.tracer.Start(ctx, "RoleRepository.FindAll")
+func (r *roleRepository) Get(ctx context.Context, parameter repo.QueryParameter) (repo.PaginatedResult[entity.Role], error) {
+  ctx, span := r.tracer.Start(ctx, "RoleRepository.Get")
   defer span.End()
 
   var dbModels []model.Role
-
   count, err := r.db.NewSelect().
     Model(&dbModels).
     Relation("Permissions").
     Offset(int(parameter.Offset)).
     Limit(int(parameter.Limit)).
+    OrderExpr("created_at DESC").
     ScanAndCount(ctx)
 
   result := repo.CheckPaginationResult(dbModels, count, err)
+  if result.IsError() {
+    spanUtil.RecordError(result.Err, span)
+    return repo.NewPaginatedResult[entity.Role](nil, uint64(count)), result.Err
+  }
+
   roles, ierr := sharedUtil.CastSliceErrsP(dbModels, repo.ToDomainErr[*model.Role, entity.Role])
   if !ierr.IsNil() {
     spanUtil.RecordError(ierr, span)
-    return repo.NewPaginatedResult[entity.Role](nil, 0), ierr
+    return repo.NewPaginatedResult[entity.Role](nil, uint64(count)), ierr
   }
 
-  return repo.NewPaginatedResult(roles, uint64(count)), result.Err
+  return repo.NewPaginatedResult(roles, uint64(count)), nil
 }
 
 func (r *roleRepository) Create(ctx context.Context, role *entity.Role) error {
@@ -135,11 +151,11 @@ func (r *roleRepository) Create(ctx context.Context, role *entity.Role) error {
   return repo.CheckResultWithSpan(res, err, span)
 }
 
-func (r *roleRepository) Patch(ctx context.Context, role *entity.Role) error {
+func (r *roleRepository) Patch(ctx context.Context, role *entity.PatchedRole) error {
   ctx, span := r.tracer.Start(ctx, "RoleRepository.Patch")
   defer span.End()
 
-  dbModel := model.FromRoleDomain(role, func(domain *entity.Role, role *model.Role) {
+  dbModel := model.FromPatchedRoleDomain(role, func(domain *entity.PatchedRole, role *model.Role) {
     role.UpdatedAt = time.Now()
   })
 
@@ -179,7 +195,17 @@ func (r *roleRepository) AddPermissions(ctx context.Context, roleId types.Id, pe
 
   res, err := r.db.NewInsert().
     Model(&permissionModels).
+    Returning("NULL").
     Exec(ctx)
+
+  pgErr, ok := err.(pgdriver.Error)
+  if ok {
+    if pgErr.IntegrityViolation() {
+      err = errors.Join(pgErr, errors.New(pgErr.Field(68)))
+      spanUtil.RecordError(err, span)
+      return err
+    }
+  }
 
   return repo.CheckResultWithSpan(res, err, span)
 }
@@ -214,6 +240,15 @@ func (r *roleRepository) AddUser(ctx context.Context, userId types.Id, roleIds .
     Model(&userRoleModels).
     Returning("NULL").
     Exec(ctx)
+
+  pgErr, ok := err.(pgdriver.Error)
+  if ok {
+    if pgErr.IntegrityViolation() {
+      err = errors.Join(pgErr, errors.New(pgErr.Field(68)))
+      spanUtil.RecordError(err, span)
+      return err
+    }
+  }
 
   return repo.CheckResultWithSpan(res, err, span)
 }

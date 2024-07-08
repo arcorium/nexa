@@ -30,7 +30,7 @@ func (m *SendMailDTO) ToDomain() ([]domain.Mail, error) {
     }
   })
 
-  mails := make([]domain.Mail, len(m.Recipients))
+  mails := make([]domain.Mail, 0, len(m.Recipients))
   for _, email := range m.Recipients {
     mailId, err := types.NewId()
     if err != nil {

@@ -566,12 +566,12 @@ func Test_userService_FindAll(t *testing.T) {
         authClient: mocked.AuthN,
       }
 
-      got, got1 := u.FindAll(tt.args.ctx, tt.args.pagedDto)
+      got, got1 := u.GetAll(tt.args.ctx, tt.args.pagedDto)
       if !reflect.DeepEqual(got, tt.want) {
-        t.Errorf("FindAll() got = %v, want %v", got, tt.want)
+        t.Errorf("GetAll() got = %v, want %v", got, tt.want)
       }
       if !reflect.DeepEqual(got1, tt.want1) {
-        t.Errorf("FindAll() got1 = %v, want %v", got1, tt.want1)
+        t.Errorf("GetAll() got1 = %v, want %v", got1, tt.want1)
       }
     })
   }
@@ -1407,10 +1407,10 @@ func generateUserClaims(roles ...sharedJwt.Role) *sharedJwt.UserClaims {
       IssuedAt:  jwt.NewNumericDate(time.Now()),
       ID:        types.MustCreateId().String(),
     },
-    RefreshTokenId: types.MustCreateId().String(),
-    UserId:         types.MustCreateId().String(),
-    Username:       gofakeit.Username(),
-    Roles:          roles,
+    CredentialId: types.MustCreateId().String(),
+    UserId:       types.MustCreateId().String(),
+    Username:     gofakeit.Username(),
+    Roles:        roles,
   }
 }
 

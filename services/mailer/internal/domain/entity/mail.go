@@ -13,6 +13,10 @@ const (
   BodyTypeUnknown
 )
 
+func (m MailBodyType) Underlying() uint8 {
+  return uint8(m)
+}
+
 func (m MailBodyType) String() string {
   switch m {
   case BodyTypeHTML:

@@ -37,17 +37,23 @@ func (p *permissionRepository) FindByIds(ctx context.Context, ids ...types.Id) (
   err := p.db.NewSelect().
     Model(&dbModels).
     Where("id IN (?)", bun.In(permIds)).
+    OrderExpr("created_at").
+    Distinct().
     Scan(ctx)
 
-  result := repo.CheckSliceResultWithSpan(dbModels, err, span)
+  result := repo.CheckSliceResult(dbModels, err)
+  if result.IsError() {
+    spanUtil.RecordError(result.Err, span)
+    return nil, result.Err
+  }
 
   permissions, ierr := sharedUtil.CastSliceErrsP(result.Data, repo.ToDomainErr[*model.Permission, entity.Permission])
   if !ierr.IsNil() {
-    spanUtil.RecordError(err, span)
+    spanUtil.RecordError(ierr, span)
     return nil, ierr
   }
 
-  return permissions, result.Err
+  return permissions, nil
 }
 
 func (p *permissionRepository) FindByRoleIds(ctx context.Context, roleIds ...types.Id) ([]entity.Permission, error) {
@@ -61,22 +67,29 @@ func (p *permissionRepository) FindByRoleIds(ctx context.Context, roleIds ...typ
     Model(&dbModels).
     Relation("Permission").
     Where("role_id IN (?)", bun.In(ids)).
+    OrderExpr("permission_id, permission.created_at").
+    DistinctOn("permission_id").
     Scan(ctx)
 
-  result := repo.CheckSliceResultWithSpan(dbModels, err, span)
+  result := repo.CheckSliceResult(dbModels, err)
+  if result.IsError() {
+    spanUtil.RecordError(result.Err, span)
+    return nil, result.Err
+  }
+
   permissions, ierr := sharedUtil.CastSliceErrsP(result.Data, func(from *model.RolePermission) (entity.Permission, error) {
     return from.Permission.ToDomain()
   })
   if !ierr.IsNil() {
-    spanUtil.RecordError(err, span)
+    spanUtil.RecordError(ierr, span)
     return nil, ierr
   }
 
-  return permissions, result.Err
+  return permissions, nil
 }
 
-func (p *permissionRepository) FindAll(ctx context.Context, parameter repo.QueryParameter) (repo.PaginatedResult[entity.Permission], error) {
-  ctx, span := p.tracer.Start(ctx, "PermissionRepository.FindAll")
+func (p *permissionRepository) Get(ctx context.Context, parameter repo.QueryParameter) (repo.PaginatedResult[entity.Permission], error) {
+  ctx, span := p.tracer.Start(ctx, "PermissionRepository.Get")
   defer span.End()
 
   var dbModels []model.Permission
@@ -85,16 +98,22 @@ func (p *permissionRepository) FindAll(ctx context.Context, parameter repo.Query
     Model(&dbModels).
     Limit(int(parameter.Limit)).
     Offset(int(parameter.Offset)).
+    OrderExpr("created_at").
     ScanAndCount(ctx)
 
   result := repo.CheckPaginationResult(dbModels, count, err)
-  permissions, ierr := sharedUtil.CastSliceErrsP(result.Data, repo.ToDomainErr[*model.Permission, entity.Permission])
-  if !ierr.IsNil() {
-    spanUtil.RecordError(err, span)
-    return repo.NewPaginatedResult[entity.Permission](nil, 0), ierr
+  if result.IsError() {
+    spanUtil.RecordError(result.Err, span)
+    return repo.NewPaginatedResult[entity.Permission](nil, uint64(count)), result.Err
   }
 
-  return repo.NewPaginatedResult(permissions, uint64(count)), result.Err
+  permissions, ierr := sharedUtil.CastSliceErrsP(result.Data, repo.ToDomainErr[*model.Permission, entity.Permission])
+  if !ierr.IsNil() {
+    spanUtil.RecordError(ierr, span)
+    return repo.NewPaginatedResult[entity.Permission](nil, uint64(count)), ierr
+  }
+
+  return repo.NewPaginatedResult(permissions, uint64(count)), nil
 }
 
 func (p *permissionRepository) Create(ctx context.Context, permission *entity.Permission) error {

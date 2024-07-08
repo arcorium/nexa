@@ -13,6 +13,7 @@ var models = []any{
 }
 
 func RegisterBunModels(db *bun.DB) {
+  db.RegisterModel(types.Nil[MailTag]())
   db.RegisterModel(models...)
 }
 
@@ -30,19 +31,4 @@ func CreateTables(db *bun.DB) error {
     }
   }
   return nil
-}
-
-// InsertDefaultData insert default data for Tag
-func InsertDefaultData(db *bun.DB) error {
-  ctx := context.Background()
-
-  RegisterBunModels(db)
-  var err error
-  for _, model := range DefaultTags {
-    _, err = db.NewInsert().
-      Model(&model).
-      Returning("NULL").
-      Exec(ctx)
-  }
-  return err
 }

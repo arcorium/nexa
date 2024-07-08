@@ -68,6 +68,33 @@ func (c *credentialService) checkPermission(ctx context.Context, targetId types.
   return nil
 }
 
+func (c *credentialService) getUserRoles(ctx context.Context, userId types.Id) ([]sharedJwt.Role, error) {
+  roles, err := c.roleExt.GetUserRoles(ctx, userId)
+  if err != nil {
+    return nil, err
+  }
+
+  jwtRoles := sharedUtil.CastSliceP(roles, func(from *dto.RoleResponseDTO) sharedJwt.Role {
+    return from.ToJWT()
+  })
+  return jwtRoles, nil
+}
+
+func (c *credentialService) getTokenClaims(ctx context.Context, tokenStr string) (*sharedJwt.UserClaims, error) {
+  token, err := jwt.ParseWithClaims(tokenStr, &sharedJwt.UserClaims{}, func(token *jwt.Token) (interface{}, error) {
+    return []byte(c.config.SecretKey), nil
+  })
+  if err != nil {
+    return nil, errors.ErrMalformedToken
+  }
+
+  claims, ok := token.Claims.(*sharedJwt.UserClaims)
+  if !ok {
+    return nil, errors.ErrMalformedToken
+  }
+  return claims, nil
+}
+
 func (c *credentialService) Login(ctx context.Context, loginDto *dto.LoginDTO) (dto.LoginResponseDTO, status.Object) {
   ctx, span := c.tracer.Start(ctx, "CredentialService.Login")
   defer span.End()
@@ -80,15 +107,11 @@ func (c *credentialService) Login(ctx context.Context, loginDto *dto.LoginDTO) (
   }
 
   // Get user roles and permissions
-  roles, err := c.roleExt.GetUserRoles(ctx, user.UserId)
+  jwtRoles, err := c.getUserRoles(ctx, user.UserId)
   if err != nil {
     spanUtil.RecordError(err, span)
     return dto.LoginResponseDTO{}, status.ErrExternal(err)
   }
-
-  jwtRoles := sharedUtil.CastSliceP(roles, func(from *dto.RoleResponseDTO) sharedJwt.Role {
-    return from.ToJWT()
-  })
 
   // Generate token pairs
   pairTokens, err := c.config.generatePairTokens(user.Username, user.UserId, jwtRoles)
@@ -126,6 +149,7 @@ func (c *credentialService) Register(ctx context.Context, registerDTO *dto.Regis
   token := entity.NewToken(userId, entity.TokenUsageVerification, constant.TOKEN_VERIFICATION_EXPIRY_TIME)
   err = c.tokenRepo.Create(ctx, &token)
   if err != nil {
+    // NOTE: Make it to return success?
     spanUtil.RecordError(err, span)
     return status.FromRepository(err, status.NullCode)
   }
@@ -148,28 +172,26 @@ func (c *credentialService) RefreshToken(ctx context.Context, refreshDto *dto.Re
   ctx, span := c.tracer.Start(ctx, "CredentialService.RefreshToken")
   defer span.End()
 
-  if err := sharedUtil.ValidateStructCtx(ctx, refreshDto); err != nil {
-    spanUtil.RecordError(err, span)
-    return dto.RefreshTokenResponseDTO{}, status.ErrBadRequest(err)
-  }
-
   // Check scheme
   if refreshDto.TokenType != constant.TOKEN_TYPE {
+    spanUtil.RecordError(errors.ErrDifferentScheme, span)
     return dto.RefreshTokenResponseDTO{}, status.ErrBadRequest(errors.ErrDifferentScheme)
   }
 
   // Parse token
-  token, err := jwt.ParseWithClaims(refreshDto.AccessToken, &sharedJwt.UserClaims{}, func(token *jwt.Token) (interface{}, error) {
-    return []byte(c.config.SecretKey), nil
-  })
+  claims, err := c.getTokenClaims(ctx, refreshDto.AccessToken)
   if err != nil {
     spanUtil.RecordError(err, span)
     return dto.RefreshTokenResponseDTO{}, status.ErrBadRequest(err)
   }
 
-  claims := token.Claims.(sharedJwt.UserClaims)
-  rtid := types.Must(types.IdFromString(claims.RefreshTokenId))
-  cred, err := c.credRepo.Find(ctx, rtid)
+  credId, err := types.IdFromString(claims.CredentialId)
+  if err != nil {
+    spanUtil.RecordError(errors.ErrMalformedToken, span)
+    return dto.RefreshTokenResponseDTO{}, status.ErrBadRequest(errors.ErrMalformedToken)
+  }
+
+  cred, err := c.credRepo.Find(ctx, credId)
   if err != nil {
     spanUtil.RecordError(err, span)
     if err == sql.ErrNoRows {
@@ -185,15 +207,11 @@ func (c *credentialService) RefreshToken(ctx context.Context, refreshDto *dto.Re
   }
 
   // Get user roles and permissions
-  roles, err := c.roleExt.GetUserRoles(ctx, cred.UserId)
+  jwtRoles, err := c.getUserRoles(ctx, cred.UserId)
   if err != nil {
     spanUtil.RecordError(err, span)
     return dto.RefreshTokenResponseDTO{}, status.ErrExternal(err)
   }
-
-  jwtRoles := sharedUtil.CastSliceP(roles, func(from *dto.RoleResponseDTO) sharedJwt.Role {
-    return from.ToJWT()
-  })
 
   // Create new access token
   accessToken, err := c.config.generateAccessToken(claims.Username, cred.UserId, cred.Id, jwtRoles)
@@ -236,6 +254,19 @@ func (c *credentialService) GetCredentials(ctx context.Context, userId types.Id)
   return response, status.Success()
 }
 
+func (c *credentialService) logoutOther(ctx context.Context, credentialIds []types.Id) status.Object {
+  ctx, span := c.tracer.Start(ctx, "CredentialService.LogoutOther")
+  defer span.End()
+
+  // Delete arbitrary user credentials
+  err := c.credRepo.Delete(ctx, credentialIds...)
+  if err != nil {
+    spanUtil.RecordError(err, span)
+    return status.FromRepository(err, status.NullCode)
+  }
+  return status.Deleted()
+}
+
 func (c *credentialService) Logout(ctx context.Context, logoutDTO *dto.LogoutDTO) status.Object {
   ctx, span := c.tracer.Start(ctx, "CredentialService.Logout")
   defer span.End()
@@ -247,31 +278,18 @@ func (c *credentialService) Logout(ctx context.Context, logoutDTO *dto.LogoutDTO
     return status.ErrUnAuthenticated(err)
   }
 
-  isPrivileged := authUtil.ContainsPermissions(userClaims.Roles, constant.AUTHN_PERMISSIONS[constant.AUTHN_LOGOUT_OTHER])
-
-  // Check if userid empty
-  if !logoutDTO.UserId.HasValue() {
-    if !isPrivileged {
-      spanUtil.RecordError(err, span)
+  // Check if dto user id is the same with claims user id
+  if !logoutDTO.UserId.EqWithString(userClaims.UserId) {
+    // Check permissions needed
+    if !authUtil.ContainsPermissions(userClaims.Roles, constant.AUTHN_PERMISSIONS[constant.AUTHN_LOGOUT_OTHER]) {
+      spanUtil.RecordError(sharedErr.ErrUnauthorizedPermission, span)
       return status.ErrUnAuthorized(sharedErr.ErrUnauthorizedPermission)
     }
-
-    // Delete arbitrary user credentials
-    err = c.credRepo.Delete(ctx, logoutDTO.CredentialIds...)
-    if err != nil {
-      spanUtil.RecordError(err, span)
-      return status.FromRepository(err, status.NullCode)
-    }
-    return status.Deleted()
+    // Logout other user
+    return c.logoutOther(ctx, logoutDTO.CredentialIds)
   }
 
-  // Check if user id is different from claims
-  if !logoutDTO.UserId.Value().EqWithString(userClaims.UserId) && !isPrivileged {
-    spanUtil.RecordError(err, span)
-    return status.ErrUnAuthorized(sharedErr.ErrUnauthorizedPermission)
-  }
-
-  err = c.credRepo.DeleteByUserId(ctx, logoutDTO.UserId.RawValue(), logoutDTO.CredentialIds...)
+  err = c.credRepo.DeleteByUserId(ctx, logoutDTO.UserId, logoutDTO.CredentialIds...)
   if err != nil {
     spanUtil.RecordError(err, span)
     return status.FromRepository(err, status.NullCode)
@@ -288,9 +306,10 @@ func (c *credentialService) LogoutAll(ctx context.Context, userId types.Id) stat
   err := c.checkPermission(ctx, userId, constant.AUTHN_PERMISSIONS[constant.AUTHN_LOGOUT_OTHER])
   if err != nil {
     spanUtil.RecordError(err, span)
-    return status.ErrUnAuthorized(sharedErr.ErrUnauthorizedPermission)
+    return status.ErrUnAuthorized(err)
   }
 
+  // Delete all user credentials
   err = c.credRepo.DeleteByUserId(ctx, userId)
   if err != nil {
     spanUtil.RecordError(err, span)
@@ -346,10 +365,10 @@ func (c *CredentialServiceConfig) generateAccessToken(username string, userId, r
       IssuedAt:  jwt.NewNumericDate(ct),
       ID:        id.String(),
     },
-    RefreshTokenId: refreshId.String(),
-    UserId:         userId.String(),
-    Username:       username,
-    Roles:          roles,
+    CredentialId: refreshId.String(),
+    UserId:       userId.String(),
+    Username:     username,
+    Roles:        roles,
   }
   accessToken := jwt.NewWithClaims(c.SigningMethod, accessClaims)
   accessSignedString, err := accessToken.SignedString([]byte(c.SecretKey))

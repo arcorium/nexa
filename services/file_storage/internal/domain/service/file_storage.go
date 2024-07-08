@@ -16,5 +16,5 @@ type IFileStorage interface {
   // Delete remove or place file on bin based on the filename
   Delete(ctx context.Context, id types.Id) status.Object
   // UpdateMetadata patch some field on metadata
-  UpdateMetadata(ctx context.Context, input *dto.UpdateFileMetadataDTO) status.Object
+  Move(ctx context.Context, input *dto.UpdateFileMetadataDTO) status.Object
 }

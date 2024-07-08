@@ -13,5 +13,5 @@ type UserRole struct {
 
   CreatedAt time.Time `bun:",nullzero,notnull"`
 
-  Role *Role `bun:"rel:belongs-to,join=role_id=id,on_delete:CASCADE"`
+  Role *Role `bun:"rel:belongs-to,join:role_id=id,on_delete:CASCADE"`
 }

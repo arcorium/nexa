@@ -46,7 +46,7 @@ func (t *tokenService) Request(ctx context.Context, req *dto.TokenCreateDTO) (dt
   } else if req.Usage == entity.TokenUsageResetPassword {
     expiryDuration = t.config.ResetTokenExpiration
   }
-  // NOTE: Doesn't need else, because its already handled by handler
+  // NOTE: Doesn't need else, its already handled by handler
 
   domain := req.ToDomain(expiryDuration)
 
@@ -75,7 +75,7 @@ func (t *tokenService) Verify(ctx context.Context, verifyDTO *dto.TokenVerifyDTO
   }
 
   // Check the usage
-  if token.Usage == verifyDTO.Usage {
+  if token.Usage != verifyDTO.Usage {
     spanUtil.RecordError(errors.ErrTokenDifferentUsage, span)
     return types.NullId(), status.ErrBadRequest(errors.ErrTokenDifferentUsage)
   }

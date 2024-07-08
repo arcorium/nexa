@@ -42,9 +42,9 @@ type RefreshTokenDTO struct {
   AccessToken string `validate:"required,jwt"`
 }
 
-func (r *RefreshTokenDTO) ToDomain(refreshTokenId, accessTokenId types.Id) domain.Credential {
+func (r *RefreshTokenDTO) ToDomain(credId, accessTokenId types.Id) domain.Credential {
   return domain.Credential{
-    Id:            refreshTokenId,
+    Id:            credId,
     AccessTokenId: accessTokenId,
   }
 }
@@ -60,6 +60,6 @@ type CredentialResponseDTO struct {
 }
 
 type LogoutDTO struct {
-  UserId        types.Nullable[types.Id]
+  UserId        types.Id
   CredentialIds []types.Id
 }

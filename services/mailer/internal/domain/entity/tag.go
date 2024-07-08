@@ -7,3 +7,9 @@ type Tag struct {
   Name        string
   Description string
 }
+
+type PatchedTag struct {
+  Id          types.Id
+  Name        string
+  Description types.NullableString
+}

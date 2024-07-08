@@ -36,7 +36,7 @@ func (m *MailHandler) Register(server *grpc.Server) {
 }
 
 func (m *MailHandler) Find(ctx context.Context, input *common.PagedElementInput) (*mailerv1.FindResponse, error) {
-  ctx, span := m.tracer.Start(ctx, "MailerHandler.Find")
+  ctx, span := m.tracer.Start(ctx, "MailerHandler.GetAll")
   defer span.End()
 
   elementDTO := dto.PagedElementDTO{
@@ -44,7 +44,7 @@ func (m *MailHandler) Find(ctx context.Context, input *common.PagedElementInput)
     Page:    input.Page,
   }
 
-  result, stat := m.mailService.Find(ctx, &elementDTO)
+  result, stat := m.mailService.GetAll(ctx, &elementDTO)
   if stat.IsError() {
     spanUtil.RecordError(stat.Error, span)
     return nil, stat.ToGRPCError()
@@ -64,7 +64,7 @@ func (m *MailHandler) Find(ctx context.Context, input *common.PagedElementInput)
 }
 
 func (m *MailHandler) FindByIds(ctx context.Context, request *mailerv1.FindMailByIdsRequest) (*mailerv1.FindMailByIdsResponse, error) {
-  ctx, span := m.tracer.Start(ctx, "MailerHandler.Find")
+  ctx, span := m.tracer.Start(ctx, "MailerHandler.GetAll")
   defer span.End()
 
   // Input type validation

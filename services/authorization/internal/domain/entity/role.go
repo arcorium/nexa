@@ -23,3 +23,10 @@ func (r *Role) ToJWT() sharedJwt.Role {
     }),
   }
 }
+
+// PatchedRole used as patching field role that also handle nullable field
+type PatchedRole struct {
+  Id          types.Id
+  Name        string
+  Description types.NullableString
+}

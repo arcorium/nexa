@@ -98,7 +98,7 @@ func (p *PermissionHandler) FindByRoles(ctx context.Context, request *authZv1.Fi
 }
 
 func (p *PermissionHandler) FindAll(ctx context.Context, input *common.PagedElementInput) (*authZv1.FindAllPermissionResponse, error) {
-  ctx, span := p.tracer.Start(ctx, "PermissionHandler.FindAll")
+  ctx, span := p.tracer.Start(ctx, "PermissionHandler.Get")
   defer span.End()
 
   pagedDto := sharedDto.PagedElementDTO{

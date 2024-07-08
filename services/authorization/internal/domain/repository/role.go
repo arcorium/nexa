@@ -15,11 +15,11 @@ type IRole interface {
   // FindByName get roles by the name
   FindByName(ctx context.Context, name string) (entity.Role, error)
   // FindAll get all roles
-  FindAll(ctx context.Context, parameter repo.QueryParameter) (repo.PaginatedResult[entity.Role], error)
+  Get(ctx context.Context, parameter repo.QueryParameter) (repo.PaginatedResult[entity.Role], error)
   // Create create new role
   Create(ctx context.Context, role *entity.Role) error
   // Patch update role
-  Patch(ctx context.Context, role *entity.Role) error
+  Patch(ctx context.Context, role *entity.PatchedRole) error
   // Delete delete role
   Delete(ctx context.Context, id types.Id) error
   // AddPermissions add permission into role

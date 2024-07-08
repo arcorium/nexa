@@ -3,27 +3,42 @@ package model
 import (
   "database/sql"
   "github.com/uptrace/bun"
-  domain "nexa/services/file_storage/internal/domain/entity"
+  entity "nexa/services/file_storage/internal/domain/entity"
   "nexa/shared/types"
   "nexa/shared/util/repo"
   "nexa/shared/variadic"
   "time"
 )
 
-type FileMapOption = repo.DataAccessModelMapOption[*domain.FileMetadata, *FileMetadata]
+type FileMapOption = repo.DataAccessModelMapOption[*entity.FileMetadata, *FileMetadata]
 
-func FromFileDomain(domain *domain.FileMetadata, opts ...FileMapOption) FileMetadata {
+type PatchedFileMapOption = repo.DataAccessModelMapOption[*entity.PatchedFileMetadata, *FileMetadata]
+
+func FromPatchedDomain(ent *entity.PatchedFileMetadata, opts ...PatchedFileMapOption) FileMetadata {
   obj := FileMetadata{
-    Id:              domain.Id.Underlying().String(),
-    Filename:        domain.Name,
-    MimeType:        domain.MimeType,
-    Size:            domain.Size,
-    IsPublic:        sql.NullBool{Bool: domain.IsPublic, Valid: true},
-    StorageProvider: sql.NullInt64{Int64: int64(domain.Provider.Underlying()), Valid: true},
-    StoragePath:     domain.ProviderPath,
+    Id:              ent.Id.String(),
+    IsPublic:        ent.SqlIsPublic(),
+    StorageProvider: ent.SqlStorageProvider(),
+    StoragePath:     ent.ProviderPath,
+    FullPath:        ent.FullPath.Value(),
   }
 
-  variadic.New(opts...).DoAll(repo.MapOptionFunc(domain, &obj))
+  variadic.New(opts...).DoAll(repo.MapOptionFunc(ent, &obj))
+  return obj
+}
+
+func FromFileDomain(ent *entity.FileMetadata, opts ...FileMapOption) FileMetadata {
+  obj := FileMetadata{
+    Id:              ent.Id.String(),
+    Filename:        ent.Name,
+    MimeType:        ent.MimeType,
+    Size:            ent.Size,
+    IsPublic:        sql.NullBool{Bool: ent.IsPublic, Valid: true},
+    StorageProvider: sql.NullInt64{Int64: int64(ent.Provider.Underlying()), Valid: true},
+    StoragePath:     ent.ProviderPath,
+  }
+
+  variadic.New(opts...).DoAll(repo.MapOptionFunc(ent, &obj))
   return obj
 }
 
@@ -37,24 +52,25 @@ type FileMetadata struct {
   IsPublic sql.NullBool `bun:",notnull,default:false"`
 
   StorageProvider sql.NullInt64 `bun:",type:smallint,notnull"` // NOTE: Bun only able to use sql.NullBool and sql.NullInt64 for integer
-  StoragePath     string        `bun:",notnull"`               // Relative
+  StoragePath     string        `bun:",nullzero,notnull"`      // Relative
+  FullPath        *string       `bun:","`
 
   CreatedAt time.Time `bun:",nullzero,notnull"`
   UpdatedAt time.Time `bun:",nullzero"`
 }
 
-func (m *FileMetadata) ToDomain() (domain.FileMetadata, error) {
+func (m *FileMetadata) ToDomain() (entity.FileMetadata, error) {
   id, err := types.IdFromString(m.Id)
   if err != nil {
-    return domain.FileMetadata{}, err
+    return entity.FileMetadata{}, err
   }
 
-  provider, err := domain.NewStorageProvider(uint8(m.StorageProvider.Int64))
+  provider, err := entity.NewStorageProvider(uint8(m.StorageProvider.Int64))
   if err != nil {
-    return domain.FileMetadata{}, err
+    return entity.FileMetadata{}, err
   }
 
-  return domain.FileMetadata{
+  return entity.FileMetadata{
     Id:           id,
     Name:         m.Filename,
     MimeType:     m.MimeType,

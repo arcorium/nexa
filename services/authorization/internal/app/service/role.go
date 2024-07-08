@@ -57,10 +57,10 @@ func (r *roleService) FindByUserId(ctx context.Context, userId types.Id) ([]dto.
 }
 
 func (r *roleService) FindAll(ctx context.Context, input *sharedDto.PagedElementDTO) (sharedDto.PagedElementResult[dto.RoleResponseDTO], status.Object) {
-  ctx, span := r.tracer.Start(ctx, "RoleService.FindAll")
+  ctx, span := r.tracer.Start(ctx, "RoleService.Get")
   defer span.End()
 
-  result, err := r.roleRepo.FindAll(ctx, input.ToQueryParam())
+  result, err := r.roleRepo.Get(ctx, input.ToQueryParam())
   if err != nil {
     spanUtil.RecordError(err, span)
     return sharedDto.PagedElementResult[dto.RoleResponseDTO]{}, status.FromRepository(err, status.NullCode)

@@ -76,10 +76,10 @@ func (p *permissionService) FindByRoles(ctx context.Context, roleIds ...types.Id
 }
 
 func (p *permissionService) FindAll(ctx context.Context, input *sharedDto.PagedElementDTO) (sharedDto.PagedElementResult[dto.PermissionResponseDTO], status.Object) {
-  ctx, span := p.tracer.Start(ctx, "PermissionService.FindAll")
+  ctx, span := p.tracer.Start(ctx, "PermissionService.Get")
   defer span.End()
 
-  result, err := p.permRepo.FindAll(ctx, input.ToQueryParam())
+  result, err := p.permRepo.Get(ctx, input.ToQueryParam())
   if err != nil {
     spanUtil.RecordError(err, span)
     return sharedDto.PagedElementResult[dto.PermissionResponseDTO]{}, status.FromRepository(err, status.NullCode)

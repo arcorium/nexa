@@ -91,6 +91,8 @@ func (u userRepository) FindByIds(ctx context.Context, userIds ...types.Id) ([]e
     Model(&dbModel).
     Relation("Profile").
     Where("u.id IN (?)", bun.In(ids)).
+    Distinct().
+    OrderExpr("created_at DESC").
     Scan(ctx)
 
   result := repo.CheckSliceResultWithSpan(dbModel, err, span)
@@ -116,6 +118,8 @@ func (u userRepository) FindByEmails(ctx context.Context, emails ...types.Email)
     Model(&dbModel).
     Relation("Profile").
     Where("u.email IN (?)", bun.In(emails)).
+    Distinct().
+    OrderExpr("created_at DESC").
     Scan(ctx)
 
   result := repo.CheckSliceResultWithSpan(dbModel, err, span)
@@ -141,16 +145,21 @@ func (u userRepository) Get(ctx context.Context, query repo.QueryParameter) (rep
     Model(&dbModel).
     Offset(int(query.Offset)).
     Limit(int(query.Limit)).
+    OrderExpr("created_at DESC").
     ScanAndCount(ctx)
 
   result := repo.CheckPaginationResultWithSpan(dbModel, count, err, span)
+  if result.IsError() {
+    return repo.NewPaginatedResult[entity.User](nil, uint64(count)), result.Err
+  }
+
   users, ierr := sharedUtil.CastSliceErrsP(dbModel, repo.ToDomainErr[*model.User, entity.User])
   if !ierr.IsNil() {
     spanUtil.RecordError(ierr, span)
-    return repo.PaginatedResult[entity.User]{}, ierr
+    return repo.NewPaginatedResult[entity.User](nil, uint64(count)), ierr
   }
 
-  return repo.NewPaginatedResult(users, uint64(count)), result.Err
+  return repo.NewPaginatedResult(users, uint64(count)), nil
 }
 
 func (u userRepository) Delete(ctx context.Context, ids ...types.Id) error {

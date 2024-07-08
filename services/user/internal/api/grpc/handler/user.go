@@ -94,7 +94,7 @@ func (u *UserHandler) Find(ctx context.Context, input *common.PagedElementInput)
     Page:    input.Page,
   }
 
-  result, stat := u.userService.FindAll(ctx, pagedDto)
+  result, stat := u.userService.GetAll(ctx, pagedDto)
   if stat.IsError() {
     spanUtil.RecordError(stat.Error, span)
     return nil, stat.ToGRPCError()

@@ -17,6 +17,7 @@ import (
   sharedUtil "nexa/shared/util"
   "nexa/shared/util/repo"
   "reflect"
+  "slices"
   "strconv"
   "testing"
   "time"
@@ -210,8 +211,9 @@ func (c *credentialTestSuite) Test_credentialRepository_DeleteByUserId() {
   ctx := context.Background()
 
   type args struct {
-    ctx    context.Context
-    userId types.Id
+    ctx     context.Context
+    userId  types.Id
+    credIds []types.Id
   }
   tests := []struct {
     name    string
@@ -219,18 +221,47 @@ func (c *credentialTestSuite) Test_credentialRepository_DeleteByUserId() {
     wantErr bool
   }{
     {
-      name: "Normal",
+      name: "Delete all user credentials",
       args: args{
-        ctx:    ctx,
-        userId: dataSeed[0].UserId,
+        ctx:     ctx,
+        userId:  dataSeed[3].UserId,
+        credIds: nil,
       },
       wantErr: false,
     },
     {
-      name: "User id does not exist",
+      name: "Delete user single credential",
       args: args{
-        ctx:    ctx,
-        userId: types.MustCreateId(),
+        ctx:     ctx,
+        userId:  dataSeed[0].UserId,
+        credIds: []types.Id{dataSeed[0].Id},
+      },
+      wantErr: false,
+    },
+    {
+      name: "Delete user multiple credentials",
+      args: args{
+        ctx:     ctx,
+        userId:  dataSeed[0].UserId,
+        credIds: []types.Id{dataSeed[1].Id, dataSeed[2].Id},
+      },
+      wantErr: false,
+    },
+    {
+      name: "Delete user combination credentials",
+      args: args{
+        ctx:     ctx,
+        userId:  dataSeed[5].UserId,
+        credIds: []types.Id{dataSeed[5].Id, types.MustCreateId()},
+      },
+      wantErr: true,
+    },
+    {
+      name: "User does not exist",
+      args: args{
+        ctx:     ctx,
+        userId:  types.MustCreateId(),
+        credIds: nil,
       },
       wantErr: true,
     },
@@ -242,8 +273,27 @@ func (c *credentialTestSuite) Test_credentialRepository_DeleteByUserId() {
         client: c.client,
         tracer: c.tracer,
       }
-      if err := repos.DeleteByUserId(tt.args.ctx, tt.args.userId); (err != nil) != tt.wantErr {
-        c.T().Errorf("DeleteByUserId() error = %v, wantErr %v", err, tt.wantErr)
+      err := repos.DeleteByUserId(tt.args.ctx, tt.args.userId, tt.args.credIds...)
+      if res := err != nil; res {
+        if res != tt.wantErr {
+          c.T().Errorf("DeleteByUserId() error = %v, wantErr %v", err, tt.wantErr)
+        }
+        return
+      }
+
+      got, err := repos.FindByUserId(tt.args.ctx, tt.args.userId)
+      if tt.args.credIds == nil {
+        c.Require().Error(err)
+        c.Require().Nil(got)
+        return
+      }
+
+      for _, credId := range tt.args.credIds {
+        if slices.ContainsFunc(got, func(cred domain.Credential) bool {
+          return cred.Id.Eq(credId)
+        }) {
+          c.T().Errorf("DeleteByUserId() error = credential %v is not deleted", credId)
+        }
       }
     })
   }
@@ -300,7 +350,7 @@ func (c *credentialTestSuite) Test_credentialRepository_Find() {
   }
 }
 
-func (c *credentialTestSuite) Test_credentialRepository_FindAll() {
+func (c *credentialTestSuite) Test_credentialRepository_Get() {
   ctx := context.Background()
 
   type args struct {
@@ -314,7 +364,23 @@ func (c *credentialTestSuite) Test_credentialRepository_FindAll() {
     wantErr bool
   }{
     {
-      name: "Normal",
+      name: "Get all elements",
+      args: args{
+        ctx: ctx,
+        parameter: repo.QueryParameter{
+          Offset: 0,
+          Limit:  0,
+        },
+      },
+      want: repo.PaginatedResult[domain.Credential]{
+        Data:    nil,
+        Total:   METADATA_SEED_SIZE,
+        Element: METADATA_SEED_SIZE,
+      },
+      wantErr: false,
+    },
+    {
+      name: "Get 3 elements",
       args: args{
         ctx: ctx,
         parameter: repo.QueryParameter{
@@ -353,21 +419,21 @@ func (c *credentialTestSuite) Test_credentialRepository_FindAll() {
         client: c.client,
         tracer: c.tracer,
       }
-      got, err := repos.FindAll(tt.args.ctx, tt.args.parameter)
+      got, err := repos.Get(tt.args.ctx, tt.args.parameter)
       if isErr := err != nil; isErr {
         if isErr == tt.wantErr {
           return
         }
-        c.T().Errorf("FindAll() error = %v, wantErr %v", err, tt.wantErr)
+        c.T().Errorf("Get() error = %v, wantErr %v", err, tt.wantErr)
         return
       }
 
-      c.Require().Equal(tt.want.Element, got.Element)
-      c.Require().Equal(tt.want.Total, got.Total)
+      c.Require().Equal(tt.want.Element, got.Element, "Expected element")
+      c.Require().Equal(tt.want.Total, got.Total, "Expected total element")
 
       if got.Data == nil {
         if tt.want.Data != nil {
-          c.T().Errorf("FindAll() got = %v, want %v", got, tt.want)
+          c.T().Errorf("Get() got = %v, want %v", got, tt.want)
         }
       }
     })
@@ -415,34 +481,21 @@ func (c *credentialTestSuite) Test_credentialRepository_FindByUserId() {
       }
       got, err := repos.FindByUserId(tt.args.ctx, tt.args.userId)
       if isErr := err != nil; isErr {
-        if isErr == tt.wantErr {
-          return
+        if isErr != tt.wantErr {
+          c.T().Errorf("FindByUserId() error = %v, wantErr %v", err, tt.wantErr)
         }
-        c.T().Errorf("FindByUserId() error = %v, wantErr %v", err, tt.wantErr)
         return
       }
 
       c.Require().Equal(len(got), len(tt.want))
 
-      for _, g := range got {
-        found := false
-        for _, w := range tt.want {
-          if g.Id != w.Id {
-            continue
-          }
-
-          found = true
-          if !reflect.DeepEqual(got, tt.want) {
-            c.T().Errorf("FindByUserId() got = %v, want %v", got, tt.want)
-          }
-          break
-        }
-
-        if !found {
-          panic("Error")
-        }
+      comparatorFunc := func(e *domain.Credential, e2 *domain.Credential) bool {
+        return e.Id == e2.Id
       }
 
+      if !sharedUtil.ArbitraryCheck(got, tt.want, comparatorFunc) != tt.wantErr {
+        c.T().Errorf("FindByUserId() got = %v, want %v", got, tt.want)
+      }
     })
   }
 }
@@ -530,12 +583,17 @@ func TestCredential(t *testing.T) {
   // User id index 0 will have 3 credentials
   dataSeed[1].UserId = dataSeed[0].UserId
   dataSeed[2].UserId = dataSeed[0].UserId
+  // User id index 3 will have 2 credentials
+  dataSeed[4].UserId = dataSeed[3].UserId
 
   suite.Run(t, &credentialTestSuite{})
 }
 
+var countGenerate = 0
+
 func generateRandomCredential() domain.Credential {
-  times := time.Now().Add(time.Hour * time.Duration(gofakeit.Hour()+2))
+  countGenerate++
+  times := time.Now().Add(time.Hour * time.Duration(countGenerate+2))
   times = time.Unix(times.Unix(), 0) // Round to second
   return domain.Credential{
     Id:            types.MustCreateId(),

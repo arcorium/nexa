@@ -10,7 +10,7 @@ type IFileMetadata interface {
   FindByIds(ctx context.Context, ids ...types.Id) ([]domain.FileMetadata, error)
   FindByNames(ctx context.Context, names ...string) ([]domain.FileMetadata, error)
   Create(ctx context.Context, metadata *domain.FileMetadata) error
-  Update(ctx context.Context, metadata *domain.FileMetadata) error
+  Patch(ctx context.Context, metadata *domain.PatchedFileMetadata) error
   DeleteById(ctx context.Context, id types.Id) error
   DeleteByName(ctx context.Context, name string) error
 }

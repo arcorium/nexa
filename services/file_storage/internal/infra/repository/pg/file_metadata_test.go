@@ -140,8 +140,24 @@ func (f *fileMetadataTestSuite) Test_metadataRepository_Create() {
         tracer: f.tracer,
       }
 
-      if err := repo.Create(tt.args.ctx, tt.args.metadata); (err != nil) != tt.wantErr {
-        t.Errorf("Create() error = %v, wantErr %v", err, tt.wantErr)
+      err = repo.Create(tt.args.ctx, tt.args.metadata)
+      if res := err != nil; res {
+        if res != tt.wantErr {
+          t.Errorf("Create() error = %v, wantErr %v", err, tt.wantErr)
+        }
+        return
+      }
+
+      got, err := repo.FindByIds(tt.args.ctx, tt.args.metadata.Id)
+      f.Require().Nil(err)
+      f.Require().Len(got, 1)
+
+      // Ignore time fields
+      ignoreFileMetadataFields(got...)
+      ignoreFileMetadata(tt.args.metadata)
+
+      if !reflect.DeepEqual(got[0], *tt.args.metadata) != tt.wantErr {
+        t.Errorf("FindByIds() got = %v, want %v", got[0], tt.args.metadata)
       }
     })
   }
@@ -196,9 +212,17 @@ func (f *fileMetadataTestSuite) Test_metadataRepository_DeleteById() {
         tracer: f.tracer,
       }
 
-      if err := repo.DeleteById(tt.args.ctx, tt.args.id); (err != nil) != tt.wantErr {
-        t.Errorf("DeleteById() error = %v, wantErr %v", err, tt.wantErr)
+      err = repo.DeleteById(tt.args.ctx, tt.args.id)
+      if res := err != nil; res {
+        if res != tt.wantErr {
+          t.Errorf("DeleteById() error = %v, wantErr %v", err, tt.wantErr)
+        }
+        return
       }
+
+      got, err := repo.FindByIds(tt.args.ctx, tt.args.id)
+      f.Require().Error(err)
+      f.Require().Nil(got)
     })
   }
 }
@@ -246,7 +270,7 @@ func (f *fileMetadataTestSuite) Test_metadataRepository_FindByIds() {
     {
       name: "File Not Found",
       args: args{
-        ctx: ctx,
+        ctx: context.Background(),
         ids: []types.Id{types.MustCreateId()},
       },
       want:    nil,
@@ -284,16 +308,18 @@ func (f *fileMetadataTestSuite) Test_metadataRepository_FindByIds() {
       }
 
       got, err := repo.FindByIds(tt.args.ctx, tt.args.ids...)
-      if (err != nil) != tt.wantErr {
-        t.Errorf("FindByIds() error = %v, wantErr %v", err, tt.wantErr)
+      if res := err != nil; res {
+        if res != tt.wantErr {
+          t.Errorf("FindByIds() error = %v, wantErr %v", err, tt.wantErr)
+        }
         return
       }
 
       // Ignore time fields
-      ignoreUnimportantFields(got...)
-      ignoreUnimportantFields(tt.want...)
+      ignoreFileMetadataFields(got...)
+      ignoreFileMetadataFields(tt.want...)
 
-      if !reflect.DeepEqual(got, tt.want) {
+      if !reflect.DeepEqual(got, tt.want) != tt.wantErr {
         t.Errorf("FindByIds() got = %v, want %v", got, tt.want)
       }
     })
@@ -390,16 +416,18 @@ func (f *fileMetadataTestSuite) Test_metadataRepository_FindByNames() {
       }
 
       got, err := repo.FindByNames(tt.args.ctx, tt.args.names...)
-      if (err != nil) != tt.wantErr {
-        t.Errorf("FindByNames() error = %v, wantErr %v", err, tt.wantErr)
+      if res := err != nil; res {
+        if res != tt.wantErr {
+          t.Errorf("FindByNames() error = %v, wantErr %v", err, tt.wantErr)
+        }
         return
       }
 
       // Ignore time fields
-      ignoreUnimportantFields(got...)
-      ignoreUnimportantFields(tt.want...)
+      ignoreFileMetadataFields(got...)
+      ignoreFileMetadataFields(tt.want...)
 
-      if !reflect.DeepEqual(got, tt.want) {
+      if !reflect.DeepEqual(got, tt.want) != tt.wantErr {
         t.Errorf("FindByNames() got = %v, want %v", got, tt.want)
       }
     })
@@ -411,7 +439,8 @@ func (f *fileMetadataTestSuite) Test_metadataRepository_Update() {
 
   type args struct {
     ctx      context.Context
-    metadata *entity.FileMetadata
+    metadata *entity.PatchedFileMetadata
+    baseId   int
   }
   tests := []struct {
     name    string
@@ -419,46 +448,71 @@ func (f *fileMetadataTestSuite) Test_metadataRepository_Update() {
     wantErr bool
   }{
     {
-      name: "Normal",
+      name: "Update all fields",
       args: args{
         ctx: ctx,
-        metadata: &entity.FileMetadata{
-          Id:       dataSeed[0].Id,
-          Name:     "something.jpg",
-          MimeType: gofakeit.FileMimeType(),
-          Provider: entity.StorageProviderMinIO,
-          IsPublic: !dataSeed[0].IsPublic,
+        metadata: &entity.PatchedFileMetadata{
+          Id:           dataSeed[0].Id,
+          IsPublic:     types.SomeNullable(!dataSeed[0].IsPublic),
+          Provider:     types.SomeNullable(entity.StorageProviderMinIO),
+          ProviderPath: "provider/path",
+          FullPath:     types.SomeNullable("other"),
         },
-        //metadata: sharedUtil.CopyWithP(dataSeed[0], func(d *entity.FileMetadata) {
-        //  d.Username = "something.jpg"
-        //  d.IsPublic = !d.IsPublic
-        //}),
+        baseId: 0,
       },
       wantErr: false,
     },
     {
-      name: "Data Not Found",
+      name: "File metadata not found",
       args: args{
         ctx: ctx,
-        metadata: &entity.FileMetadata{
-          Id:       types.MustCreateId(),
-          Name:     "something.jpg",
-          IsPublic: !dataSeed[0].IsPublic,
+        metadata: &entity.PatchedFileMetadata{
+          Id:           types.MustCreateId(),
+          IsPublic:     types.SomeNullable(!dataSeed[0].IsPublic),
+          Provider:     types.SomeNullable(entity.StorageProviderMinIO),
+          ProviderPath: "provider/path",
+          FullPath:     types.SomeNullable("other"),
         },
+        baseId: -1,
       },
       wantErr: true,
     },
     {
-      name: "Change Username Into Duplicate",
+      name: "Update only the visibility",
       args: args{
         ctx: ctx,
-        metadata: &entity.FileMetadata{
+        metadata: &entity.PatchedFileMetadata{
           Id:       dataSeed[0].Id,
-          Name:     dataSeed[1].Name,
-          IsPublic: !dataSeed[0].IsPublic,
+          IsPublic: types.SomeNullable(!dataSeed[0].IsPublic),
         },
+        baseId: 0,
       },
-      wantErr: true,
+      wantErr: false,
+    },
+    {
+      name: "Update provider",
+      args: args{
+        ctx: ctx,
+        metadata: &entity.PatchedFileMetadata{
+          Id:           dataSeed[0].Id,
+          Provider:     types.SomeNullable(entity.StorageProviderMinIO),
+          ProviderPath: "provider/path",
+        },
+        baseId: 0,
+      },
+      wantErr: false,
+    },
+    {
+      name: "Update fullpath",
+      args: args{
+        ctx: ctx,
+        metadata: &entity.PatchedFileMetadata{
+          Id:       dataSeed[0].Id,
+          FullPath: types.SomeNullable(gofakeit.URL()),
+        },
+        baseId: 0,
+      },
+      wantErr: false,
     },
   }
   for _, tt := range tests {
@@ -473,11 +527,10 @@ func (f *fileMetadataTestSuite) Test_metadataRepository_Update() {
         tracer: f.tracer,
       }
 
-      err = repo.Update(tt.args.ctx, tt.args.metadata)
-
-      if err != nil {
-        if (err != nil) != tt.wantErr {
-          t.Errorf("Update() error = %v, wantErr %v", err, tt.wantErr)
+      err = repo.Patch(tt.args.ctx, tt.args.metadata)
+      if res := err != nil; res {
+        if res != tt.wantErr {
+          t.Errorf("Patch() error = %v, wantErr %v", err, tt.wantErr)
         }
         return
       }
@@ -485,13 +538,27 @@ func (f *fileMetadataTestSuite) Test_metadataRepository_Update() {
       // Check result
       result, err := repo.FindByIds(tt.args.ctx, tt.args.metadata.Id)
       f.Require().NoError(err)
+      f.Require().Len(result, 1)
 
-      if result[0].Name != tt.args.metadata.Name ||
-          result[0].IsPublic != tt.args.metadata.IsPublic ||
-          result[0].MimeType != tt.args.metadata.MimeType ||
-          result[0].Provider != tt.args.metadata.Provider {
+      comparator := dataSeed[tt.args.baseId]
+      if tt.args.metadata.IsPublic.HasValue() {
+        comparator.IsPublic = tt.args.metadata.IsPublic.RawValue()
+      }
+      if tt.args.metadata.Provider.HasValue() {
+        comparator.Provider = tt.args.metadata.Provider.RawValue()
+      }
+      if tt.args.metadata.ProviderPath != "" {
+        comparator.ProviderPath = tt.args.metadata.ProviderPath
+      }
+      if tt.args.metadata.FullPath.HasValue() {
+        comparator.FullPath = tt.args.metadata.FullPath.RawValue()
+      }
 
-        t.Errorf("Update() got = %v, want %v", result[0], tt.args.metadata)
+      ignoreFileMetadata(&comparator)
+      ignoreFileMetadata(&result[0])
+
+      if !reflect.DeepEqual(comparator, result[0]) != tt.wantErr {
+        t.Errorf("FindByIds() got = %v, want %v", result[0], comparator)
       }
     })
   }
@@ -523,10 +590,14 @@ func generateRandomFileMetadataP(id optional.Object[types.Id]) *entity.FileMetad
   return &obj
 }
 
-func ignoreUnimportantFields(datas ...entity.FileMetadata) {
+func ignoreFileMetadata(metadata *entity.FileMetadata) {
+  metadata.CreatedAt = time.Time{}
+  metadata.LastModified = time.Time{}
+  metadata.FullPath = ""
+}
+
+func ignoreFileMetadataFields(datas ...entity.FileMetadata) {
   for i := 0; i < len(datas); i += 1 {
-    datas[i].CreatedAt = time.Time{}
-    datas[i].LastModified = time.Time{}
-    datas[i].FullPath = ""
+    ignoreFileMetadata(&datas[i])
   }
 }

@@ -128,7 +128,7 @@ func (r *RoleHandler) Find(ctx context.Context, request *authZv1.FindRoleRequest
 }
 
 func (r *RoleHandler) FindAll(ctx context.Context, input *common.PagedElementInput) (*authZv1.FindAllRolesResponse, error) {
-  ctx, span := r.tracer.Start(ctx, "RoleHandler.FindAll")
+  ctx, span := r.tracer.Start(ctx, "RoleHandler.Get")
   defer span.End()
 
   pagedDto := sharedDto.PagedElementDTO{

@@ -1,7 +1,6 @@
 package model
 
 import (
-  "database/sql"
   "github.com/uptrace/bun"
   "nexa/services/authentication/internal/domain/entity"
   "nexa/shared/types"
@@ -12,37 +11,48 @@ import (
 
 type TokenMapOption = repo.DataAccessModelMapOption[*entity.Token, *Token]
 
-func FromTokenDomain(domain *entity.Token, opts ...TokenMapOption) Token {
+func FromTokenDomain(ent *entity.Token, opts ...TokenMapOption) Token {
   token := Token{
-    Token:     domain.Token,
-    UserId:    domain.UserId.Underlying().String(),
-    Usage:     sql.NullInt64{Int64: int64(domain.Usage.Underlying()), Valid: true},
-    ExpiredAt: domain.ExpiredAt,
+    Token:     ent.Token,
+    UserId:    ent.UserId.String(),
+    Usage:     ent.Usage.Underlying(),
+    ExpiredAt: ent.ExpiredAt,
   }
 
   variadic.New(opts...).
-    DoAll(repo.MapOptionFunc(domain, &token))
+    DoAll(repo.MapOptionFunc(ent, &token))
 
   return token
 }
 
+// Token the data is read only and shouldn't edit
 type Token struct {
   bun.BaseModel `bun:"table:tokens"`
 
-  Token     string        `bun:",nullzero,pk"`
-  UserId    string        `bun:",nullzero,notnull,type:uuid,unique:creds_usage_idx"`
-  Usage     sql.NullInt64 `bun:",type:smallint,notnull,unique:creds_usage_idx"`
-  ExpiredAt time.Time     `bun:",nullzero,notnull"`
+  Token     string    `bun:",nullzero,pk"`
+  UserId    string    `bun:",nullzero,notnull,type:uuid,unique:creds_usage_idx"`
+  Usage     uint8     `bun:",notnull,unique:creds_usage_idx"`
+  ExpiredAt time.Time `bun:",nullzero,notnull"`
 
-  UpdatedAt time.Time `bun:",nullzero"`
+  //UpdatedAt time.Time `bun:",nullzero"`
   CreatedAt time.Time `bun:",nullzero,notnull"`
 }
 
-func (t *Token) ToDomain() entity.Token {
+func (t *Token) ToDomain() (entity.Token, error) {
+  userId, err := types.IdFromString(t.UserId)
+  if err != nil {
+    return entity.Token{}, err
+  }
+
+  usage, err := entity.NewTokenUsage(t.Usage)
+  if err != nil {
+    return entity.Token{}, err
+  }
+
   return entity.Token{
     Token:     t.Token,
-    UserId:    types.DropError(types.IdFromString(t.UserId)),
-    Usage:     entity.TokenUsage(t.Usage.Int64),
+    UserId:    userId,
+    Usage:     usage,
     ExpiredAt: t.ExpiredAt,
-  }
+  }, nil
 }

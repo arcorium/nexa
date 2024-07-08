@@ -2,11 +2,12 @@ package model
 
 import (
   "github.com/uptrace/bun"
+  "nexa/services/mailer/internal/domain/repository"
   "nexa/shared/types"
   sharedUtil "nexa/shared/util"
 )
 
-func FromPairs(mailTags ...types.Pair[types.Id, []types.Id]) []MailTag {
+func FromMailTags(mailTags ...repository.MailTags) []MailTag {
   var result []MailTag
   for _, mailTag := range mailTags {
     mailTags := sharedUtil.CastSlice(mailTag.Second, func(tagId types.Id) MailTag {

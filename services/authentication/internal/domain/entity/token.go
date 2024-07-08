@@ -73,7 +73,7 @@ type Token struct {
 }
 
 func (t *Token) IsExpired() bool {
-  return t.ExpiredAt.After(time.Now())
+  return t.ExpiredAt.Before(time.Now())
 }
 
 type JWTToken struct {

@@ -15,10 +15,10 @@ type Role struct {
 
 type UserClaims struct {
   jwt.RegisteredClaims
-  RefreshTokenId string `json:"rtid"`
-  UserId         string `json:"uid"`
-  Username       string `json:"username"`
-  Roles          []Role `json:"roles"`
+  CredentialId string `json:"cid"`
+  UserId       string `json:"uid"`
+  Username     string `json:"username"`
+  Roles        []Role `json:"roles"`
 }
 
 func GetClaimsFromCtx(ctx context.Context) (*UserClaims, error) {

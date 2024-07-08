@@ -11,7 +11,10 @@ import (
 )
 
 func AuthSelector(_ context.Context, callMeta interceptors.CallMeta) bool {
-  return callMeta.FullMethod() != mailerv1.MailerService_Send_FullMethodName
+  return callMeta.FullMethod() != mailerv1.MailerService_Send_FullMethodName &&
+      callMeta.FullMethod() != mailerv1.TagService_Find_FullMethodName &&
+      callMeta.FullMethod() != mailerv1.TagService_FindByIds_FullMethodName &&
+      callMeta.FullMethod() != mailerv1.TagService_FindByName_FullMethodName
 }
 
 func Auth(claims *sharedJwt.UserClaims, meta interceptors.CallMeta) bool {
@@ -26,12 +29,6 @@ func Auth(claims *sharedJwt.UserClaims, meta interceptors.CallMeta) bool {
     return authUtil.ContainsPermissions(claims.Roles, constant.MAILER_PERMISSIONS[constant.MAIL_UPDATE])
   case mailerv1.MailerService_Remove_FullMethodName:
     return authUtil.ContainsPermissions(claims.Roles, constant.MAILER_PERMISSIONS[constant.MAIL_DELETE])
-  case mailerv1.TagService_Find_FullMethodName:
-    fallthrough
-  case mailerv1.TagService_FindByIds_FullMethodName:
-    fallthrough
-  case mailerv1.TagService_FindByName_FullMethodName:
-    return authUtil.ContainsPermissions(claims.Roles, constant.MAILER_PERMISSIONS[constant.MAIL_READ_TAG])
   case mailerv1.TagService_Create_FullMethodName:
     return authUtil.ContainsPermissions(claims.Roles, constant.MAILER_PERMISSIONS[constant.MAIL_CREATE_TAG])
   case mailerv1.TagService_Update_FullMethodName:
