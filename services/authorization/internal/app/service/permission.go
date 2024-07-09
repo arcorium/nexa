@@ -41,7 +41,7 @@ func (p *permissionService) Create(ctx context.Context, createDTO *dto.Permissio
   err = p.permRepo.Create(ctx, &domain)
   if err != nil {
     spanUtil.RecordError(err, span)
-    return types.NullId(), status.FromRepository(err, status.NullCode)
+    return types.NullId(), status.FromRepositoryExist(err)
   }
 
   return domain.Id, status.Created()
@@ -75,7 +75,7 @@ func (p *permissionService) FindByRoles(ctx context.Context, roleIds ...types.Id
   return responseDTOS, status.Success()
 }
 
-func (p *permissionService) FindAll(ctx context.Context, input *sharedDto.PagedElementDTO) (sharedDto.PagedElementResult[dto.PermissionResponseDTO], status.Object) {
+func (p *permissionService) GetAll(ctx context.Context, input *sharedDto.PagedElementDTO) (sharedDto.PagedElementResult[dto.PermissionResponseDTO], status.Object) {
   ctx, span := p.tracer.Start(ctx, "PermissionService.Get")
   defer span.End()
 

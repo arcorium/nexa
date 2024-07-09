@@ -29,13 +29,14 @@ const (
   ROLE_DB_PASSWORD = "password"
   ROLE_DB          = "nexa"
 
-  SEED_ROLE_DATA_SIZE = 4
-  SEED_USER_DATA_SIZE = 5
+  ROLE_SEED_ROLE_DATA_SIZE = 4
+  ROLE_SEED_PERM_DATA_SIZE = 5
+  ROLE_SEED_USER_DATA_SIZE = 5
 )
 
-var roleSeed []entity.Role
-
-var userSeed []types.Id
+var role_RoleSeed []entity.Role
+var role_UserSeed []types.Id
+var role_PermSeed []entity.Permission
 
 type roleTestSuite struct {
   suite.Suite
@@ -72,7 +73,7 @@ func (f *roleTestSuite) SetupSuite() {
     Name:     ROLE_DB,
     IsSecure: false,
     Timeout:  time.Second * 10,
-  }, true)
+  }, false)
   f.Require().NoError(err)
   f.db = db
 
@@ -87,49 +88,51 @@ func (f *roleTestSuite) SetupSuite() {
   // Seeding
   rolePerms := []model.RolePermission{
     {
-      RoleId:       roleSeed[0].Id.String(),
-      PermissionId: permSeed[0].Id.String(),
+      RoleId:       role_RoleSeed[0].Id.String(),
+      PermissionId: role_PermSeed[0].Id.String(),
       CreatedAt:    time.Now().Add(time.Hour * -1),
     },
     {
-      RoleId:       roleSeed[0].Id.String(),
-      PermissionId: permSeed[1].Id.String(),
+      RoleId:       role_RoleSeed[0].Id.String(),
+      PermissionId: role_PermSeed[1].Id.String(),
       CreatedAt:    time.Now().Add(time.Hour * -2),
     },
     {
-      RoleId:       roleSeed[1].Id.String(),
-      PermissionId: permSeed[0].Id.String(),
+      RoleId:       role_RoleSeed[1].Id.String(),
+      PermissionId: role_PermSeed[0].Id.String(),
       CreatedAt:    time.Now().Add(time.Hour * -3),
     },
     {
-      RoleId:       roleSeed[2].Id.String(),
-      PermissionId: permSeed[0].Id.String(),
+      RoleId:       role_RoleSeed[2].Id.String(),
+      PermissionId: role_PermSeed[0].Id.String(),
       CreatedAt:    time.Now().Add(time.Hour * -4),
     },
   }
   userRoles := []model.UserRole{
     {
-      UserId:    userSeed[0].String(),
-      RoleId:    roleSeed[0].Id.String(),
+      UserId:    role_UserSeed[0].String(),
+      RoleId:    role_RoleSeed[0].Id.String(),
       CreatedAt: time.Now().Add(time.Hour * -1),
     },
     {
-      UserId:    userSeed[0].String(),
-      RoleId:    roleSeed[1].Id.String(),
+      UserId:    role_UserSeed[0].String(),
+      RoleId:    role_RoleSeed[1].Id.String(),
       CreatedAt: time.Now().Add(time.Hour * -2),
     },
     {
-      UserId:    userSeed[1].String(),
-      RoleId:    roleSeed[0].Id.String(),
+      UserId:    role_UserSeed[1].String(),
+      RoleId:    role_RoleSeed[0].Id.String(),
       CreatedAt: time.Now().Add(time.Hour * -3),
     },
   }
 
-  perms := util.CastSliceP(permSeed, func(from *entity.Permission) model.Permission {
-    return model.FromPermissionDomain(from)
+  perms := util.CastSliceP(role_PermSeed, func(from *entity.Permission) model.Permission {
+    return model.FromPermissionDomain(from, func(ent *entity.Permission, perm *model.Permission) {
+      perm.CreatedAt = time.Now()
+    })
   })
   roleCount := 0
-  roles := util.CastSliceP(roleSeed, func(from *entity.Role) model.Role {
+  roles := util.CastSliceP(role_RoleSeed, func(from *entity.Role) model.Role {
     roleCount--
     return model.FromRoleDomain(from, func(ent *entity.Role, role *model.Role) {
       role.CreatedAt = time.Now().Add(time.Duration(roleCount) * time.Hour).UTC()
@@ -169,8 +172,8 @@ func (f *roleTestSuite) Test_roleRepository_AddPermissions() {
       name: "Add multiple permissions to valid roles",
       args: args{
         ctx:           context.Background(),
-        roleId:        roleSeed[3].Id,
-        permissionIds: []types.Id{permSeed[0].Id, permSeed[1].Id},
+        roleId:        role_RoleSeed[3].Id,
+        permissionIds: []types.Id{role_PermSeed[0].Id, role_PermSeed[1].Id},
       },
       wantErr: false,
     },
@@ -179,7 +182,7 @@ func (f *roleTestSuite) Test_roleRepository_AddPermissions() {
       args: args{
         ctx:           context.Background(),
         roleId:        types.MustCreateId(),
-        permissionIds: []types.Id{permSeed[0].Id, permSeed[1].Id},
+        permissionIds: []types.Id{role_PermSeed[0].Id, role_PermSeed[1].Id},
       },
       wantErr: true,
     },
@@ -187,8 +190,8 @@ func (f *roleTestSuite) Test_roleRepository_AddPermissions() {
       name: "Add permissions that roles already has",
       args: args{
         ctx:           context.Background(),
-        roleId:        roleSeed[0].Id,
-        permissionIds: []types.Id{permSeed[0].Id, permSeed[1].Id},
+        roleId:        role_RoleSeed[0].Id,
+        permissionIds: []types.Id{role_PermSeed[0].Id, role_PermSeed[1].Id},
       },
       wantErr: true,
     },
@@ -196,8 +199,8 @@ func (f *roleTestSuite) Test_roleRepository_AddPermissions() {
       name: "Add multiple invalid permissions to valid roles",
       args: args{
         ctx:           context.Background(),
-        roleId:        roleSeed[3].Id,
-        permissionIds: []types.Id{permSeed[0].Id, permSeed[1].Id, types.MustCreateId()},
+        roleId:        role_RoleSeed[3].Id,
+        permissionIds: []types.Id{role_PermSeed[0].Id, role_PermSeed[1].Id, types.MustCreateId()},
       },
       wantErr: true,
     },
@@ -256,8 +259,8 @@ func (f *roleTestSuite) Test_roleRepository_AddUser() {
       name: "Add single roles to user",
       args: args{
         ctx:     context.Background(),
-        userId:  userSeed[0],
-        roleIds: []types.Id{roleSeed[2].Id},
+        userId:  role_UserSeed[0],
+        roleIds: []types.Id{role_RoleSeed[2].Id},
       },
       wantErr: false,
     },
@@ -265,8 +268,8 @@ func (f *roleTestSuite) Test_roleRepository_AddUser() {
       name: "Add multiple roles to user",
       args: args{
         ctx:     context.Background(),
-        userId:  userSeed[3],
-        roleIds: []types.Id{roleSeed[0].Id, roleSeed[1].Id},
+        userId:  role_UserSeed[3],
+        roleIds: []types.Id{role_RoleSeed[0].Id, role_RoleSeed[1].Id},
       },
       wantErr: false,
     },
@@ -274,7 +277,7 @@ func (f *roleTestSuite) Test_roleRepository_AddUser() {
       name: "Add invalid roles to user",
       args: args{
         ctx:     context.Background(),
-        userId:  userSeed[0],
+        userId:  role_UserSeed[0],
         roleIds: []types.Id{types.MustCreateId()},
       },
       wantErr: true,
@@ -283,8 +286,8 @@ func (f *roleTestSuite) Test_roleRepository_AddUser() {
       name: "Add combination roles to user",
       args: args{
         ctx:     context.Background(),
-        userId:  userSeed[3],
-        roleIds: []types.Id{types.MustCreateId(), roleSeed[0].Id},
+        userId:  role_UserSeed[3],
+        roleIds: []types.Id{types.MustCreateId(), role_RoleSeed[0].Id},
       },
       wantErr: true,
     },
@@ -346,7 +349,7 @@ func (f *roleTestSuite) Test_roleRepository_Create() {
       args: args{
         ctx: context.Background(),
         role: util.CopyWithP(generateRole(), func(e *entity.Role) {
-          e.Name = roleSeed[0].Name
+          e.Name = role_RoleSeed[0].Name
         }),
       },
       wantErr: true,
@@ -403,7 +406,7 @@ func (f *roleTestSuite) Test_roleRepository_Delete() {
       name: "Delete valid role",
       args: args{
         ctx: context.Background(),
-        id:  roleSeed[0].Id,
+        id:  role_RoleSeed[0].Id,
       },
       wantErr: false,
     },
@@ -464,9 +467,9 @@ func (f *roleTestSuite) Test_roleRepository_Get() {
         },
       },
       want: repo.PaginatedResult[entity.Role]{
-        Data:    roleSeed,
-        Total:   uint64(len(roleSeed)),
-        Element: uint64(len(roleSeed)),
+        Data:    role_RoleSeed,
+        Total:   uint64(len(role_RoleSeed)),
+        Element: uint64(len(role_RoleSeed)),
       },
       wantErr: false,
     },
@@ -480,8 +483,8 @@ func (f *roleTestSuite) Test_roleRepository_Get() {
         },
       },
       want: repo.PaginatedResult[entity.Role]{
-        Data:    roleSeed[1:3],
-        Total:   SEED_ROLE_DATA_SIZE,
+        Data:    role_RoleSeed[1:3],
+        Total:   ROLE_SEED_ROLE_DATA_SIZE,
         Element: 2,
       },
       wantErr: false,
@@ -496,8 +499,8 @@ func (f *roleTestSuite) Test_roleRepository_Get() {
         },
       },
       want: repo.PaginatedResult[entity.Role]{
-        Data:    roleSeed[2:],
-        Total:   SEED_ROLE_DATA_SIZE,
+        Data:    role_RoleSeed[2:],
+        Total:   ROLE_SEED_ROLE_DATA_SIZE,
         Element: 2,
       },
       wantErr: false,
@@ -513,7 +516,7 @@ func (f *roleTestSuite) Test_roleRepository_Get() {
       },
       want: repo.PaginatedResult[entity.Role]{
         Data:    nil,
-        Total:   SEED_ROLE_DATA_SIZE,
+        Total:   ROLE_SEED_ROLE_DATA_SIZE,
         Element: 0,
       },
       wantErr: true,
@@ -542,7 +545,11 @@ func (f *roleTestSuite) Test_roleRepository_Get() {
       ignoreRolesFields(got.Data...)
       ignoreRolesFields(tt.want.Data...)
 
-      if !reflect.DeepEqual(got, tt.want) != tt.wantErr {
+      comparatorFunc := func(e *entity.Role, e2 *entity.Role) bool {
+        return e.Id == e2.Id
+      }
+
+      if !util.ArbitraryCheck(got.Data, tt.want.Data, comparatorFunc) != tt.wantErr {
         t.Errorf("Get() got = %v, want %v", got, tt.want)
       }
     })
@@ -564,27 +571,27 @@ func (f *roleTestSuite) Test_roleRepository_FindByIds() {
     //  name: "Find single valid role ids",
     //  args: args{
     //    ctx: context.Background(),
-    //    ids: []types.Id{roleSeed[0].Id},
+    //    ids: []types.Id{role_RoleSeed[0].Id},
     //  },
-    //  want:    roleSeed[:1],
+    //  want:    role_RoleSeed[:1],
     //  wantErr: false,
     //},
     {
       name: "Find multiple valid role ids",
       args: args{
         ctx: context.Background(),
-        ids: []types.Id{roleSeed[1].Id, roleSeed[2].Id},
+        ids: []types.Id{role_RoleSeed[1].Id, role_RoleSeed[2].Id},
       },
-      want:    roleSeed[1:3],
+      want:    role_RoleSeed[1:3],
       wantErr: false,
     },
     {
       name: "Find combination multiple role ids",
       args: args{
         ctx: context.Background(),
-        ids: []types.Id{roleSeed[1].Id, types.MustCreateId(), roleSeed[2].Id},
+        ids: []types.Id{role_RoleSeed[1].Id, types.MustCreateId(), role_RoleSeed[2].Id},
       },
-      want:    roleSeed[1:3],
+      want:    role_RoleSeed[1:3],
       wantErr: false,
     },
     {
@@ -643,9 +650,9 @@ func (f *roleTestSuite) Test_roleRepository_FindByName() {
       name: "Find valid role by name",
       args: args{
         ctx:  context.Background(),
-        name: roleSeed[0].Name,
+        name: role_RoleSeed[0].Name,
       },
-      want:    roleSeed[0],
+      want:    role_RoleSeed[0],
       wantErr: false,
     },
     {
@@ -701,25 +708,25 @@ func (f *roleTestSuite) Test_roleRepository_FindByUserId() {
       name: "Find valid user id roles",
       args: args{
         ctx:    context.Background(),
-        userId: userSeed[0],
+        userId: role_UserSeed[0],
       },
-      want:    roleSeed[:2],
+      want:    role_RoleSeed[:2],
       wantErr: false,
     },
     {
       name: "Find valid user id roles have single role",
       args: args{
         ctx:    context.Background(),
-        userId: userSeed[1],
+        userId: role_UserSeed[1],
       },
-      want:    roleSeed[0:1],
+      want:    role_RoleSeed[0:1],
       wantErr: false,
     },
     {
       name: "Find user id with no roles",
       args: args{
         ctx:    context.Background(),
-        userId: userSeed[2],
+        userId: role_UserSeed[2],
       },
       want:    nil,
       wantErr: true,
@@ -772,7 +779,7 @@ func (f *roleTestSuite) Test_roleRepository_Patch() {
       args: args{
         ctx: context.Background(),
         role: &entity.PatchedRole{
-          Id:          roleSeed[0].Id,
+          Id:          role_RoleSeed[0].Id,
           Name:        gofakeit.Country(),
           Description: types.SomeNullable(gofakeit.LoremIpsumSentence(5)),
         },
@@ -785,7 +792,7 @@ func (f *roleTestSuite) Test_roleRepository_Patch() {
       args: args{
         ctx: context.Background(),
         role: &entity.PatchedRole{
-          Id:   roleSeed[0].Id,
+          Id:   role_RoleSeed[0].Id,
           Name: gofakeit.Country(),
         },
         baseIdx: 0,
@@ -797,7 +804,7 @@ func (f *roleTestSuite) Test_roleRepository_Patch() {
       args: args{
         ctx: context.Background(),
         role: &entity.PatchedRole{
-          Id:          roleSeed[0].Id,
+          Id:          role_RoleSeed[0].Id,
           Description: types.SomeNullable(gofakeit.LoremIpsumSentence(5)),
         },
         baseIdx: 0,
@@ -809,7 +816,7 @@ func (f *roleTestSuite) Test_roleRepository_Patch() {
       args: args{
         ctx: context.Background(),
         role: &entity.PatchedRole{
-          Id:          roleSeed[0].Id,
+          Id:          role_RoleSeed[0].Id,
           Description: types.SomeNullable(""),
         },
         baseIdx: 0,
@@ -821,7 +828,7 @@ func (f *roleTestSuite) Test_roleRepository_Patch() {
       args: args{
         ctx: context.Background(),
         role: &entity.PatchedRole{
-          Id: roleSeed[0].Id,
+          Id: role_RoleSeed[0].Id,
         },
         baseIdx: 0,
       },
@@ -865,7 +872,7 @@ func (f *roleTestSuite) Test_roleRepository_Patch() {
       f.Require().NoError(err)
       f.Require().Len(got, 1)
 
-      comparator := roleSeed[tt.args.baseIdx]
+      comparator := role_RoleSeed[tt.args.baseIdx]
       if tt.args.role.Name != "" {
         comparator.Name = tt.args.role.Name
       }
@@ -898,8 +905,8 @@ func (f *roleTestSuite) Test_roleRepository_RemovePermissions() {
     //  name: "Role with single valid permissions",
     //  args: args{
     //    ctx:           context.Background(),
-    //    roleId:        roleSeed[1].Id,
-    //    permissionIds: []types.Id{permSeed[0].Id},
+    //    roleId:        role_RoleSeed[1].Id,
+    //    permissionIds: []types.Id{role_PermSeed[0].Id},
     //  },
     //  wantErr: false,
     //},
@@ -907,8 +914,8 @@ func (f *roleTestSuite) Test_roleRepository_RemovePermissions() {
     //  name: "Role with multiple valid permissions",
     //  args: args{
     //    ctx:           context.Background(),
-    //    roleId:        roleSeed[0].Id,
-    //    permissionIds: []types.Id{permSeed[0].Id},
+    //    roleId:        role_RoleSeed[0].Id,
+    //    permissionIds: []types.Id{role_PermSeed[0].Id},
     //  },
     //  wantErr: false,
     //},
@@ -916,8 +923,8 @@ func (f *roleTestSuite) Test_roleRepository_RemovePermissions() {
     //  name: "Remove all roles permissions",
     //  args: args{
     //    ctx:           context.Background(),
-    //    roleId:        roleSeed[0].Id,
-    //    permissionIds: []types.Id{permSeed[0].Id, permSeed[1].Id},
+    //    roleId:        role_RoleSeed[0].Id,
+    //    permissionIds: []types.Id{role_PermSeed[0].Id, role_PermSeed[1].Id},
     //  },
     //  wantErr: false,
     //},
@@ -925,8 +932,8 @@ func (f *roleTestSuite) Test_roleRepository_RemovePermissions() {
       name: "Role with combination permissions",
       args: args{
         ctx:           context.Background(),
-        roleId:        roleSeed[0].Id,
-        permissionIds: []types.Id{types.MustCreateId(), permSeed[0].Id},
+        roleId:        role_RoleSeed[0].Id,
+        permissionIds: []types.Id{types.MustCreateId(), role_PermSeed[0].Id},
       },
       wantErr: false,
     },
@@ -935,7 +942,7 @@ func (f *roleTestSuite) Test_roleRepository_RemovePermissions() {
       args: args{
         ctx:           context.Background(),
         roleId:        types.MustCreateId(),
-        permissionIds: []types.Id{permSeed[0].Id, permSeed[1].Id},
+        permissionIds: []types.Id{role_PermSeed[0].Id, role_PermSeed[1].Id},
       },
       wantErr: true,
     },
@@ -943,7 +950,7 @@ func (f *roleTestSuite) Test_roleRepository_RemovePermissions() {
       name: "Role with multiple invalid permissions",
       args: args{
         ctx:           context.Background(),
-        roleId:        roleSeed[0].Id,
+        roleId:        role_RoleSeed[0].Id,
         permissionIds: util.GenerateMultiple(2, types.MustCreateId),
       },
       wantErr: true,
@@ -1007,8 +1014,8 @@ func (f *roleTestSuite) Test_roleRepository_RemoveUser() {
       name: "User with valid roles",
       args: args{
         ctx:     context.Background(),
-        userId:  userSeed[1],
-        roleIds: []types.Id{roleSeed[0].Id},
+        userId:  role_UserSeed[1],
+        roleIds: []types.Id{role_RoleSeed[0].Id},
       },
       wantErr: false,
     },
@@ -1016,8 +1023,8 @@ func (f *roleTestSuite) Test_roleRepository_RemoveUser() {
       name: "User with multiple valid roles",
       args: args{
         ctx:     context.Background(),
-        userId:  userSeed[0],
-        roleIds: []types.Id{roleSeed[0].Id, roleSeed[1].Id},
+        userId:  role_UserSeed[0],
+        roleIds: []types.Id{role_RoleSeed[0].Id, role_RoleSeed[1].Id},
       },
       wantErr: false,
     },
@@ -1025,8 +1032,8 @@ func (f *roleTestSuite) Test_roleRepository_RemoveUser() {
       name: "User with combination roles",
       args: args{
         ctx:     context.Background(),
-        userId:  userSeed[0],
-        roleIds: []types.Id{types.MustCreateId(), roleSeed[0].Id},
+        userId:  role_UserSeed[0],
+        roleIds: []types.Id{types.MustCreateId(), role_RoleSeed[0].Id},
       },
       wantErr: false,
     },
@@ -1034,7 +1041,7 @@ func (f *roleTestSuite) Test_roleRepository_RemoveUser() {
       name: "User with invalid roles",
       args: args{
         ctx:     context.Background(),
-        userId:  userSeed[1],
+        userId:  role_UserSeed[1],
         roleIds: []types.Id{types.MustCreateId()},
       },
       wantErr: true,
@@ -1044,7 +1051,7 @@ func (f *roleTestSuite) Test_roleRepository_RemoveUser() {
       args: args{
         ctx:     context.Background(),
         userId:  types.MustCreateId(),
-        roleIds: []types.Id{roleSeed[0].Id},
+        roleIds: []types.Id{role_RoleSeed[0].Id},
       },
       wantErr: true,
     },
@@ -1086,23 +1093,17 @@ func (f *roleTestSuite) Test_roleRepository_RemoveUser() {
 }
 
 func TestRoles(t *testing.T) {
-  seedPermsData()
-  seedRolesData()
-  seedUserData()
+  for i := 0; i < ROLE_SEED_PERM_DATA_SIZE; i += 1 {
+    role_PermSeed = append(role_PermSeed, generatePerms())
+  }
+  for i := 0; i < ROLE_SEED_ROLE_DATA_SIZE; i += 1 {
+    role_RoleSeed = append(role_RoleSeed, generateRole())
+  }
+  for i := 0; i < ROLE_SEED_USER_DATA_SIZE; i += 1 {
+    role_UserSeed = append(role_UserSeed, types.MustCreateId())
+  }
 
   suite.Run(t, &roleTestSuite{})
-}
-
-func seedRolesData() {
-  for i := 0; i < SEED_ROLE_DATA_SIZE; i += 1 {
-    roleSeed = append(roleSeed, generateRole())
-  }
-}
-
-func seedUserData() {
-  for i := 0; i < SEED_USER_DATA_SIZE; i += 1 {
-    userSeed = append(userSeed, types.MustCreateId())
-  }
 }
 
 func generateRole() entity.Role {

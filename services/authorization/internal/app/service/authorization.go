@@ -11,6 +11,7 @@ import (
   sharedErr "nexa/shared/errors"
   sharedJwt "nexa/shared/jwt"
   "nexa/shared/status"
+  "nexa/shared/types"
   sharedUtil "nexa/shared/util"
   "nexa/shared/util/auth"
   spanUtil "nexa/shared/util/span"
@@ -35,17 +36,16 @@ func (a *authorizationService) IsAuthorized(ctx context.Context, authDto *dto.Is
   roles, err := a.roleRepo.FindByUserId(ctx, authDto.UserId)
   if err != nil {
     spanUtil.RecordError(err, span)
-    return status.FromRepository(err, status.NullCode)
+    return status.FromRepositoryOverride(err, types.NewPair(status.NOT_AUTHORIZED_ERROR, sharedErr.ErrUnauthorized))
   }
 
   jwtRoles := sharedUtil.CastSliceP(roles, func(role *entity.Role) sharedJwt.Role {
     return role.ToJWT()
   })
 
-  result := auth.ContainsPermissions(jwtRoles, authDto.ExpectedPermission...)
-  if !result {
-    spanUtil.RecordError(sharedErr.ErrUnauthorized, span)
-    return status.ErrUnAuthorized(sharedErr.ErrUnauthorized)
+  if !auth.ContainsPermission(jwtRoles, authDto.ExpectedPermission) {
+    spanUtil.RecordError(sharedErr.ErrUnauthorizedPermission, span)
+    return status.ErrUnAuthorized(sharedErr.ErrUnauthorizedPermission)
   }
   return status.Success()
 }

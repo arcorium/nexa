@@ -93,7 +93,7 @@ func main() {
     log.Fatalln("Failed to commit transaction:", err)
   }
 
-  // Get super role
+  // Set super role
   var conn grpc.ClientConnInterface
   for {
     option := grpc.WithTransportCredentials(insecure.NewCredentials())

@@ -60,110 +60,6 @@ type credentialMocked struct {
 
 type setupCredTestFunc func(mocked *credentialMocked, arg any, want any)
 
-/*
-func TestCredentialServiceConfig_generateAccessToken(t *testing.T) {
-  type args struct {
-    username  string
-    userId    types.Id
-    refreshId types.Id
-    roles     []sharedJwt.Role
-  }
-  tests := []struct {
-    name    string
-    args    args
-    want    entity.JWTToken
-    wantErr bool
-  }{
-    {
-      name: "",
-      args: args{
-        username:  "",
-        userId:    types.Id{},
-        refreshId: types.Id{},
-        roles:     nil,
-      },
-      want: entity.JWTToken{
-        Id:    types.Id{},
-        Token: "",
-      },
-      wantErr: false,
-    },
-  }
-  for _, tt := range tests {
-    t.Run(tt.name, func(t *testing.T) {
-      mocked := newCredentialMocked(t)
-
-      c := mocked.Config
-      got, err := c.generateAccessToken(tt.args.username, tt.args.userId, tt.args.refreshId, tt.args.roles)
-      if (err != nil) != tt.wantErr {
-        t.Errorf("generateAccessToken() error = %v, wantErr %v", err, tt.wantErr)
-        return
-      }
-      if !reflect.DeepEqual(got, tt.want) {
-        t.Errorf("generateAccessToken() got = %v, want %v", got, tt.want)
-      }
-    })
-  }
-}
-
-func TestCredentialServiceConfig_generatePairTokens(t *testing.T) {
-  type args struct {
-    username string
-    userId   types.Id
-    roles    []sharedJwt.Role
-  }
-  tests := []struct {
-    name    string
-    args    args
-    want    entity.PairTokens
-    wantErr bool
-  }{
-    // TODO: Add test cases.
-  }
-  for _, tt := range tests {
-    t.Run(tt.name, func(t *testing.T) {
-      mocked := newCredentialMocked(t)
-
-      c := mocked.Config
-
-      got, err := c.generatePairTokens(tt.args.username, tt.args.userId, tt.args.roles)
-      if (err != nil) != tt.wantErr {
-        t.Errorf("generatePairTokens() error = %v, wantErr %v", err, tt.wantErr)
-        return
-      }
-      if !reflect.DeepEqual(got, tt.want) {
-        t.Errorf("generatePairTokens() got = %v, want %v", got, tt.want)
-      }
-    })
-  }
-}
-
-func TestCredentialServiceConfig_generateRefreshToken(t *testing.T) {
-  tests := []struct {
-    name    string
-    want    entity.JWTToken
-    wantErr bool
-  }{
-    // TODO: Add test cases.
-  }
-  for _, tt := range tests {
-    t.Run(tt.name, func(t *testing.T) {
-      mocked := newCredentialMocked(t)
-
-      c := mocked.Config
-
-      got, err := c.generateRefreshToken()
-      if (err != nil) != tt.wantErr {
-        t.Errorf("generateRefreshToken() error = %v, wantErr %v", err, tt.wantErr)
-        return
-      }
-      if !reflect.DeepEqual(got, tt.want) {
-        t.Errorf("generateRefreshToken() got = %v, want %v", got, tt.want)
-      }
-    })
-  }
-}
-*/
 func Test_credentialService_GetCredentials(t *testing.T) {
   type args struct {
     ctx    context.Context
@@ -452,7 +348,7 @@ func Test_credentialService_Login(t *testing.T) {
       want1: status.Success(),
     },
     {
-      name: "Success login with roles without permissions",
+      name: "Success login with roles without permission",
       setup: func(mocked *credentialMocked, arg any, want any) {
         a := arg.(*args)
 
@@ -671,7 +567,7 @@ func Test_credentialService_Logout(t *testing.T) {
       want: status.FromRepository(sql.ErrNoRows, status.NullCode),
     },
     {
-      name: "Has no permissions to logout other user",
+      name: "Has no permission to logout other user",
       setup: func(mocked *credentialMocked, arg any, want any) {
 
       },
@@ -1220,9 +1116,9 @@ func Test_credentialService_Register(t *testing.T) {
 
 func Test_credentialService_checkPermission(t *testing.T) {
   type args struct {
-    ctx         context.Context
-    targetId    types.Id
-    permissions []string
+    ctx        context.Context
+    targetId   types.Id
+    permission string
   }
   tests := []struct {
     name    string
@@ -1235,9 +1131,9 @@ func Test_credentialService_checkPermission(t *testing.T) {
       setup: func(mocked *credentialMocked, arg any, want any) {
       },
       args: args{
-        ctx:         generateClaimsCtx(constant.AUTHN_LOGOUT_OTHER, constant.AUTHN_GET_OTHER_CREDENTIALS),
-        targetId:    types.MustCreateId(),
-        permissions: []string{constant.AUTHN_PERMISSIONS[constant.AUTHN_LOGOUT_OTHER]},
+        ctx:        generateClaimsCtx(constant.AUTHN_LOGOUT_OTHER, constant.AUTHN_GET_OTHER_CREDENTIALS),
+        targetId:   types.MustCreateId(),
+        permission: constant.AUTHN_PERMISSIONS[constant.AUTHN_LOGOUT_OTHER],
       },
       wantErr: false,
     },
@@ -1246,9 +1142,9 @@ func Test_credentialService_checkPermission(t *testing.T) {
       setup: func(mocked *credentialMocked, arg any, want any) {
       },
       args: args{
-        ctx:         generateClaimsCtx(constant.AUTHN_LOGOUT_OTHER),
-        targetId:    types.MustCreateId(),
-        permissions: []string{constant.AUTHN_PERMISSIONS[constant.AUTHN_GET_OTHER_CREDENTIALS]},
+        ctx:        generateClaimsCtx(constant.AUTHN_LOGOUT_OTHER),
+        targetId:   types.MustCreateId(),
+        permission: constant.AUTHN_PERMISSIONS[constant.AUTHN_GET_OTHER_CREDENTIALS],
       },
       wantErr: true,
     },
@@ -1263,9 +1159,9 @@ func Test_credentialService_checkPermission(t *testing.T) {
         a.targetId = types.Must(types.IdFromString(claims.UserId))
       },
       args: args{
-        ctx:         generateClaimsCtx(constant.AUTHN_GET_OTHER_CREDENTIALS),
-        targetId:    types.Id{}, // Set on setup
-        permissions: []string{constant.AUTHN_PERMISSIONS[constant.AUTHN_LOGOUT_OTHER]},
+        ctx:        generateClaimsCtx(constant.AUTHN_GET_OTHER_CREDENTIALS),
+        targetId:   types.Id{}, // Set on setup
+        permission: constant.AUTHN_PERMISSIONS[constant.AUTHN_LOGOUT_OTHER],
       },
       wantErr: false,
     },
@@ -1288,7 +1184,7 @@ func Test_credentialService_checkPermission(t *testing.T) {
         tracer:    mocked.Tracer,
       }
 
-      if err := c.checkPermission(tt.args.ctx, tt.args.targetId, tt.args.permissions...); (err != nil) != tt.wantErr {
+      if err := c.checkPermission(tt.args.ctx, tt.args.targetId, tt.args.permission); (err != nil) != tt.wantErr {
         t.Errorf("checkPermission() error = %v, wantErr %v", err, tt.wantErr)
       }
     })

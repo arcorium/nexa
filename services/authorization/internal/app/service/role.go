@@ -56,8 +56,8 @@ func (r *roleService) FindByUserId(ctx context.Context, userId types.Id) ([]dto.
   return roleResponses, status.Success()
 }
 
-func (r *roleService) FindAll(ctx context.Context, input *sharedDto.PagedElementDTO) (sharedDto.PagedElementResult[dto.RoleResponseDTO], status.Object) {
-  ctx, span := r.tracer.Start(ctx, "RoleService.Get")
+func (r *roleService) GetAll(ctx context.Context, input *sharedDto.PagedElementDTO) (sharedDto.PagedElementResult[dto.RoleResponseDTO], status.Object) {
+  ctx, span := r.tracer.Start(ctx, "RoleService.GetAll")
   defer span.End()
 
   result, err := r.roleRepo.Get(ctx, input.ToQueryParam())
@@ -67,7 +67,7 @@ func (r *roleService) FindAll(ctx context.Context, input *sharedDto.PagedElement
   }
 
   rolesDTO := sharedUtil.CastSliceP(result.Data, mapper.ToRoleResponseDTO)
-  return sharedDto.NewPagedElementResult2(rolesDTO, input, result.Total), status.FromRepository(err, status.NullCode)
+  return sharedDto.NewPagedElementResult2(rolesDTO, input, result.Total), status.Success()
 }
 
 func (r *roleService) Create(ctx context.Context, createDTO *dto.RoleCreateDTO) (types.Id, status.Object) {
@@ -84,7 +84,7 @@ func (r *roleService) Create(ctx context.Context, createDTO *dto.RoleCreateDTO) 
   err = r.roleRepo.Create(ctx, &role)
   if err != nil {
     spanUtil.RecordError(err, span)
-    return types.NullId(), status.FromRepository(err, status.NullCode)
+    return types.NullId(), status.FromRepositoryExist(err)
   }
   return role.Id, status.Created()
 }
@@ -123,7 +123,7 @@ func (r *roleService) AddPermissions(ctx context.Context, permissionsDTO *dto.Mo
   err := r.roleRepo.AddPermissions(ctx, permissionsDTO.RoleId, permissionsDTO.PermissionIds...)
   if err != nil {
     spanUtil.RecordError(err, span)
-    return status.FromRepository(err, status.NullCode)
+    return status.FromRepositoryExist(err)
   }
 
   return status.Created()
@@ -149,7 +149,7 @@ func (r *roleService) AddUsers(ctx context.Context, usersDTO *dto.ModifyUserRole
   err := r.roleRepo.AddUser(ctx, usersDTO.UserId, usersDTO.RoleIds...)
   if err != nil {
     spanUtil.RecordError(err, span)
-    return status.FromRepository(err, status.NullCode)
+    return status.FromRepositoryExist(err)
   }
 
   return status.Created()
@@ -183,8 +183,29 @@ func (r *roleService) AppendSuperRolesPermission(ctx context.Context, permIds ..
   err = r.roleRepo.AddPermissions(ctx, role.Id, permIds...)
   if err != nil {
     spanUtil.RecordError(err, span)
-    return status.FromRepository(err, status.NullCode)
+    return status.FromRepositoryExist(err)
   }
 
   return status.Created()
+}
+
+func (r *roleService) SetUserAsSuper(ctx context.Context, userId types.Id) status.Object {
+  ctx, span := r.tracer.Start(ctx, "PermissionService.SetUserAsSuper")
+  defer span.End()
+
+  // Get super roles
+  role, err := r.roleRepo.FindByName(ctx, constant.DEFAULT_SUPER_ROLE_NAME)
+  if err != nil {
+    spanUtil.RecordError(err, span)
+    return status.FromRepository(err, status.NullCode)
+  }
+
+  // Set the user with the roles
+  err = r.roleRepo.AddUser(ctx, userId, role.Id)
+  if err != nil {
+    spanUtil.RecordError(err, span)
+    return status.FromRepository(err, status.NullCode)
+  }
+
+  return status.Success()
 }

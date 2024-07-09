@@ -4,6 +4,7 @@ import (
   "context"
   "github.com/uptrace/bun"
   "nexa/shared/types"
+  "time"
 )
 
 var models = []any{
@@ -31,4 +32,28 @@ func CreateTables(db *bun.DB) error {
     }
   }
   return nil
+}
+
+func SeedDefaultTags(db *bun.DB) error {
+  defaultTags := [...]Tag{
+    {
+      Id:          types.MustCreateId().String(),
+      Name:        "Email Verification",
+      Description: nil,
+      CreatedAt:   time.Now().UTC(),
+    },
+    {
+      Id:          types.MustCreateId().String(),
+      Name:        "Reset Password",
+      Description: nil,
+      CreatedAt:   time.Now().UTC(),
+    },
+  }
+
+  _, err := db.NewInsert().
+    Model(&defaultTags).
+    Returning("NULL").
+    Exec(context.Background())
+
+  return err
 }

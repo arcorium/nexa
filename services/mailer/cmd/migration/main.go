@@ -36,7 +36,8 @@ func main() {
     log.Fatalln(err)
   }
 
-  if err = model.InsertDefaultData(db); err != nil {
+  // Seed data
+  if err = model.SeedDefaultTags(db); err != nil {
     log.Fatalln(err)
   }
 }

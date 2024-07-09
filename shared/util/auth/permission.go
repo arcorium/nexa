@@ -7,20 +7,27 @@ import (
   "strings"
 )
 
-func ContainsPermissions(roles []jwt.Role, expected ...string) bool {
+func ContainsPermission(roles []jwt.Role, expected string) bool {
   return slices.ContainsFunc(roles, func(role jwt.Role) bool {
-    return HasPermissions(role.Permissions, expected...)
+    return HasPermission(role.Permissions, expected)
   })
 }
 
-func HasPermissions(permissions []string, expected ...string) bool {
-  return slices.ContainsFunc(permissions, func(permission string) bool {
-    for _, perm := range expected {
-      if strings.EqualFold(permission, perm) {
+func ContainsOneOfPermission(roles []jwt.Role, expected ...string) bool {
+  for _, exp := range expected {
+    for _, role := range roles {
+      if HasPermission(role.Permissions, exp) {
         return true
       }
     }
-    return false
+  }
+  return false
+}
+
+// HasPermission Check if it contains single expected permissions (code)
+func HasPermission(permissions []string, expected string) bool {
+  return slices.ContainsFunc(permissions, func(permission string) bool {
+    return strings.EqualFold(permission, expected)
   })
 }
 

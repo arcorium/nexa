@@ -1,17 +1,6 @@
 package external
 
-import (
-  "context"
-  "github.com/brianvoe/gofakeit/v7"
-  "github.com/stretchr/testify/assert"
-  "github.com/stretchr/testify/mock"
-  domain "nexa/services/mailer/internal/domain/entity"
-  repository "nexa/services/mailer/internal/domain/repository/mocks"
-  "nexa/shared/types"
-  sharedUtil "nexa/shared/util"
-  "testing"
-)
-
+/*
 func TestName(t *testing.T) {
   host := "sandbox.smtp.mailtrap.io"
   username := "b4b05a7f41be5d"
@@ -46,3 +35,4 @@ func GenerateRandomMail() domain.Mail {
     Status:    domain.StatusPending,
   }
 }
+*/

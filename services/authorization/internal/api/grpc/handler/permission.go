@@ -106,7 +106,7 @@ func (p *PermissionHandler) FindAll(ctx context.Context, input *common.PagedElem
     Page:    input.Page,
   }
 
-  result, stat := p.permService.FindAll(ctx, &pagedDto)
+  result, stat := p.permService.GetAll(ctx, &pagedDto)
   if stat.IsError() {
     spanUtil.RecordError(stat.Error, span)
     return nil, stat.ToGRPCError()

@@ -32,14 +32,13 @@ type RoleUpdateDTO struct {
   Description types.NullableString
 }
 
-func (u *RoleUpdateDTO) ToDomain() entity.Role {
-  role := entity.Role{
-    Id: u.RoleId,
+func (u *RoleUpdateDTO) ToDomain() entity.PatchedRole {
+  role := entity.PatchedRole{
+    Id:          u.RoleId,
+    Description: u.Description,
   }
 
   types.SetOnNonNull(&role.Name, u.Name)
-  types.SetOnNonNull(&role.Description, u.Description)
-
   return role
 }
 

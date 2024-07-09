@@ -40,12 +40,12 @@ type userService struct {
   authClient external.IAuthenticationClient
 }
 
-func (u userService) checkPermission(ctx context.Context, targetId types.Id, permissions ...string) error {
+func (u userService) checkPermission(ctx context.Context, targetId types.Id, permission string) error {
   // Validate permission
   claims, _ := sharedJwt.GetClaimsFromCtx(ctx)
   if !targetId.EqWithString(claims.UserId) {
     // Need permission to update other users
-    if !authUtil.ContainsPermissions(claims.Roles, permissions...) {
+    if !authUtil.ContainsPermission(claims.Roles, permission) {
       return sharedErr.ErrUnauthorizedPermission
     }
   }
@@ -86,7 +86,7 @@ func (u userService) Update(ctx context.Context, updateDto *dto.UserUpdateDTO) s
   user := updateDto.ToDomain()
 
   // Validate permission
-  if err := u.checkPermission(ctx, user.Id, constant.USER_PERMISSIONS[constant.USER_UPDATE_OTHER]); err != nil {
+  if err := u.checkPermission(ctx, user.Id, constant.USER_PERMISSIONS[constant.USER_UPDATE_ARB]); err != nil {
     spanUtil.RecordError(err, span)
     return status.ErrUnAuthorized(err)
   }
@@ -112,7 +112,7 @@ func (u userService) UpdatePassword(ctx context.Context, input *dto.UserUpdatePa
   }
 
   // Validate permission
-  if err := u.checkPermission(ctx, user.Id, constant.USER_PERMISSIONS[constant.USER_UPDATE_OTHER]); err != nil {
+  if err := u.checkPermission(ctx, user.Id, constant.USER_PERMISSIONS[constant.USER_UPDATE_ARB]); err != nil {
     spanUtil.RecordError(err, span)
     return status.ErrUnAuthorized(err)
   }
@@ -194,7 +194,7 @@ func (u userService) DeleteById(ctx context.Context, userId types.Id) status.Obj
   defer span.End()
 
   // Check target id with claims id and the permissions needed
-  if err := u.checkPermission(ctx, userId, constant.USER_PERMISSIONS[constant.USER_DELETE_OTHER]); err != nil {
+  if err := u.checkPermission(ctx, userId, constant.USER_PERMISSIONS[constant.USER_DELETE_ARB]); err != nil {
     spanUtil.RecordError(err, span)
     return status.ErrUnAuthorized(sharedErr.ErrUnauthorized)
   }
@@ -370,7 +370,7 @@ func (u userService) ResetPassword(ctx context.Context, input *dto.ResetUserPass
     }
 
     // Check permissions
-    if !authUtil.ContainsPermissions(userClaims.Roles, constant.USER_PERMISSIONS[constant.USER_UPDATE_OTHER]) {
+    if !authUtil.ContainsPermission(userClaims.Roles, constant.USER_PERMISSIONS[constant.USER_UPDATE_ARB]) {
       spanUtil.RecordError(sharedErr.ErrUnauthorizedPermission, span)
       return status.ErrUnAuthorized(sharedErr.ErrUnauthorizedPermission)
     }

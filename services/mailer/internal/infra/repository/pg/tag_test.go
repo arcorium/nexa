@@ -31,16 +31,21 @@ const (
   SEED_TAG_DATA_SIZE = 3
 )
 
-var tagSeed []entity.Tag
-
 type tagTestSuite struct {
   suite.Suite
   container *postgres.PostgresContainer
   db        bun.IDB
   tracer    trace.Tracer // Mock
+
+  tagSeed []entity.Tag
 }
 
 func (f *tagTestSuite) SetupSuite() {
+  // Create data
+  for i := 0; i < SEED_TAG_DATA_SIZE; i += 1 {
+    f.tagSeed = append(f.tagSeed, generateTag())
+  }
+
   ctx := context.Background()
 
   container, err := postgres.RunContainer(ctx,
@@ -63,9 +68,9 @@ func (f *tagTestSuite) SetupSuite() {
     Protocol: "postgres",
     Host:     types.Must(container.Host(ctx)),
     Port:     uint16(types.Must(strconv.Atoi(mapped[0].HostPort))),
-    Username: MAIL_DB_USERNAME,
-    Password: MAIL_DB_PASSWORD,
-    Name:     MAIL_DB,
+    Username: TAG_DB_USERNAME,
+    Password: TAG_DB_PASSWORD,
+    Name:     TAG_DB,
     IsSecure: false,
     Timeout:  time.Second * 10,
   }, true)
@@ -83,10 +88,10 @@ func (f *tagTestSuite) SetupSuite() {
   // Seeding
   // Tag
   counter := 0
-  tags := util.CastSliceP(tagSeed, func(from *entity.Tag) model.Tag {
+  tags := util.CastSliceP(f.tagSeed, func(from *entity.Tag) model.Tag {
     counter += 1
     return model.FromTagDomain(from, func(ent *entity.Tag, tag *model.Tag) {
-      tag.CreatedAt = time.Now().Add(time.Hour * time.Duration(counter))
+      tag.CreatedAt = time.Now().Add(time.Hour * time.Duration(counter*-1))
     })
   })
 
@@ -137,7 +142,7 @@ func (f *tagTestSuite) Test_tagRepository_Create() {
       args: args{
         ctx: context.Background(),
         tag: &entity.Tag{
-          Id:          tagSeed[0].Id,
+          Id:          f.tagSeed[0].Id,
           Name:        gofakeit.AnimalType(),
           Description: gofakeit.LoremIpsumSentence(10),
         },
@@ -197,9 +202,9 @@ func (f *tagTestSuite) Test_tagRepository_Get() {
         },
       },
       want: repo.PaginatedResult[entity.Tag]{
-        Data:    tagSeed,
-        Total:   uint64(len(tagSeed)),
-        Element: uint64(len(tagSeed)),
+        Data:    f.tagSeed,
+        Total:   uint64(len(f.tagSeed)),
+        Element: uint64(len(f.tagSeed)),
       },
       wantErr: false,
     },
@@ -213,8 +218,8 @@ func (f *tagTestSuite) Test_tagRepository_Get() {
         },
       },
       want: repo.PaginatedResult[entity.Tag]{
-        Data:    tagSeed[1:2],
-        Total:   uint64(len(tagSeed)),
+        Data:    f.tagSeed[1:2],
+        Total:   uint64(len(f.tagSeed)),
         Element: 1,
       },
       wantErr: false,
@@ -229,9 +234,9 @@ func (f *tagTestSuite) Test_tagRepository_Get() {
         },
       },
       want: repo.PaginatedResult[entity.Tag]{
-        Data:    tagSeed[2:],
-        Total:   uint64(len(tagSeed)),
-        Element: uint64(len(tagSeed)) - 2,
+        Data:    f.tagSeed[2:],
+        Total:   uint64(len(f.tagSeed)),
+        Element: uint64(len(f.tagSeed)) - 2,
       },
       wantErr: false,
     },
@@ -245,8 +250,8 @@ func (f *tagTestSuite) Test_tagRepository_Get() {
         },
       },
       want: repo.PaginatedResult[entity.Tag]{
-        Data:    tagSeed[:2],
-        Total:   uint64(len(tagSeed)),
+        Data:    f.tagSeed[:2],
+        Total:   uint64(len(f.tagSeed)),
         Element: 2,
       },
       wantErr: false,
@@ -256,13 +261,13 @@ func (f *tagTestSuite) Test_tagRepository_Get() {
       args: args{
         ctx: context.Background(),
         query: repo.QueryParameter{
-          Offset: uint64(len(tagSeed)),
+          Offset: uint64(len(f.tagSeed)),
           Limit:  3,
         },
       },
       want: repo.PaginatedResult[entity.Tag]{
         Data:    nil,
-        Total:   uint64(len(tagSeed)),
+        Total:   uint64(len(f.tagSeed)),
         Element: 0,
       },
       wantErr: true,
@@ -307,27 +312,27 @@ func (f *tagTestSuite) Test_tagRepository_FindByIds() {
       name: "Get single tag",
       args: args{
         ctx: context.Background(),
-        ids: []types.Id{tagSeed[0].Id},
+        ids: []types.Id{f.tagSeed[0].Id},
       },
-      want:    tagSeed[:1],
+      want:    f.tagSeed[:1],
       wantErr: false,
     },
     {
       name: "Get multiple mails",
       args: args{
         ctx: context.Background(),
-        ids: []types.Id{tagSeed[0].Id, tagSeed[1].Id},
+        ids: []types.Id{f.tagSeed[0].Id, f.tagSeed[1].Id},
       },
-      want:    tagSeed[:2],
+      want:    f.tagSeed[:2],
       wantErr: false,
     },
     {
       name: "Some mail is not valid",
       args: args{
         ctx: context.Background(),
-        ids: []types.Id{tagSeed[2].Id, types.MustCreateId(), tagSeed[1].Id},
+        ids: []types.Id{f.tagSeed[2].Id, types.MustCreateId(), f.tagSeed[1].Id},
       },
-      want:    []entity.Tag{tagSeed[1], tagSeed[2]},
+      want:    []entity.Tag{f.tagSeed[1], f.tagSeed[2]},
       wantErr: false,
     },
     {
@@ -388,9 +393,9 @@ func (f *tagTestSuite) Test_tagRepository_FindByName() {
       name: "Valid name",
       args: args{
         ctx:  context.Background(),
-        name: tagSeed[0].Name,
+        name: f.tagSeed[0].Name,
       },
-      want:    &tagSeed[0],
+      want:    &f.tagSeed[0],
       wantErr: false,
     },
     {
@@ -443,7 +448,7 @@ func (f *tagTestSuite) Test_tagRepository_Patch() {
       args: args{
         ctx: context.Background(),
         tag: &entity.PatchedTag{
-          Id:          tagSeed[0].Id,
+          Id:          f.tagSeed[0].Id,
           Name:        "another",
           Description: types.SomeNullable(gofakeit.LoremIpsumSentence(20)),
         },
@@ -456,7 +461,7 @@ func (f *tagTestSuite) Test_tagRepository_Patch() {
       args: args{
         ctx: context.Background(),
         tag: &entity.PatchedTag{
-          Id:   tagSeed[0].Id,
+          Id:   f.tagSeed[0].Id,
           Name: "another",
         },
         baseId: 0,
@@ -468,7 +473,7 @@ func (f *tagTestSuite) Test_tagRepository_Patch() {
       args: args{
         ctx: context.Background(),
         tag: &entity.PatchedTag{
-          Id:          tagSeed[0].Id,
+          Id:          f.tagSeed[0].Id,
           Description: types.SomeNullable(""),
         },
         baseId: 0,
@@ -480,7 +485,7 @@ func (f *tagTestSuite) Test_tagRepository_Patch() {
       args: args{
         ctx: context.Background(),
         tag: &entity.PatchedTag{
-          Id: tagSeed[0].Id,
+          Id: f.tagSeed[0].Id,
         },
         baseId: 0,
       },
@@ -523,7 +528,7 @@ func (f *tagTestSuite) Test_tagRepository_Patch() {
       f.Require().NoError(err)
       f.Require().Len(got, 1)
 
-      comparator := tagSeed[tt.args.baseId]
+      comparator := f.tagSeed[tt.args.baseId]
       if tt.args.tag.Name != "" {
         comparator.Name = tt.args.tag.Name
       }
@@ -552,7 +557,7 @@ func (f *tagTestSuite) Test_tagRepository_Remove() {
       name: "Remove valid tag",
       args: args{
         ctx: context.Background(),
-        id:  tagSeed[0].Id,
+        id:  f.tagSeed[0].Id,
       },
       wantErr: false,
     },
@@ -593,16 +598,7 @@ func (f *tagTestSuite) Test_tagRepository_Remove() {
 }
 
 func TestTag(t *testing.T) {
-  //seedMail()
-  seedTag()
-
   suite.Run(t, &tagTestSuite{})
-}
-
-func seedTag() {
-  for i := 0; i < SEED_TAG_DATA_SIZE; i += 1 {
-    tagSeed = append(tagSeed, generateTag())
-  }
 }
 
 func generateTag() entity.Tag {

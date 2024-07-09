@@ -14,5 +14,5 @@ service AuthorizationService {
 
 message CheckUserRequest {
   string user_id = 1;
-  repeated string expected_permissions = 2;
+  string expected_permission = 2;
 }

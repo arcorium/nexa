@@ -69,7 +69,7 @@ func (f *tokenTestSuite) SetupSuite() {
     Name:     TOKEN_DB,
     IsSecure: false,
     Timeout:  time.Second * 10,
-  }, true)
+  }, false)
   f.Require().NoError(err)
   f.db = db
 

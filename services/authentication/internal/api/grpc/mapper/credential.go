@@ -59,20 +59,15 @@ func ToRefreshTokenDTO(req *authv1.RefreshTokenRequest) (dto.RefreshTokenDTO, er
   return dtos, err
 }
 
-func ToLogoutDTO(input *authv1.LogoutRequest) (dto.LogoutDTO, error) {
+func ToLogoutDTO(req *authv1.LogoutRequest) (dto.LogoutDTO, error) {
   var fieldErrors []sharedErr.FieldError
 
-  // Determines if user id is empty
-  var userId *types.Id = nil
-  if input.UserId != nil {
-    id, err := types.IdFromString(*input.UserId)
-    userId = &id
-    if err != nil {
-      fieldErrors = append(fieldErrors, sharedErr.NewFieldError("user_id", err))
-    }
+  userId, err := types.IdFromString(req.UserId)
+  if err != nil {
+    fieldErrors = append(fieldErrors, sharedErr.NewFieldError("user_id", err))
   }
 
-  credIds, ierr := sharedUtil.CastSliceErrs(input.CredIds, types.IdFromString)
+  credIds, ierr := sharedUtil.CastSliceErrs(req.CredIds, types.IdFromString)
   if !ierr.IsNil() {
     fieldErrors = append(fieldErrors, ierr.ToFieldError("cred_ids"))
   }
@@ -82,7 +77,7 @@ func ToLogoutDTO(input *authv1.LogoutRequest) (dto.LogoutDTO, error) {
   }
 
   return dto.LogoutDTO{
-    UserId:        types.NewNullable(userId),
+    UserId:        userId,
     CredentialIds: credIds,
   }, nil
 }

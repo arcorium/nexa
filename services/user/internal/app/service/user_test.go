@@ -302,7 +302,7 @@ func Test_userService_DeleteById(t *testing.T) {
       args: args{
         userId: types.MustCreateId(),
         ctx: context.WithValue(context.Background(), sharedConst.CLAIMS_CONTEXT_KEY,
-          generateUserClaims(generateRole(constant.USER_DELETE, constant.USER_DELETE_OTHER))),
+          generateUserClaims(generateRole(constant.USER_DELETE, constant.USER_DELETE_ARB))),
       },
       want: status.FromRepository(sql.ErrNoRows, status.NullCode),
     },
@@ -326,7 +326,7 @@ func Test_userService_DeleteById(t *testing.T) {
       args: args{
         userId: types.MustCreateId(),
         ctx: context.WithValue(context.Background(), sharedConst.CLAIMS_CONTEXT_KEY,
-          generateUserClaims(generateRole(constant.USER_DELETE, constant.USER_DELETE_OTHER))),
+          generateUserClaims(generateRole(constant.USER_DELETE, constant.USER_DELETE_ARB))),
       },
       want: status.Deleted(),
     },
@@ -840,7 +840,7 @@ func Test_userService_ResetPassword(t *testing.T) {
 
       },
       args: args{
-        ctx: generateClaimsCtx(constant.USER_UPDATE_OTHER),
+        ctx: generateClaimsCtx(constant.USER_UPDATE_ARB),
         input: &dto.ResetUserPasswordDTO{
           Token:       types.SomeNullable(sharedUtil.RandomString(32)),
           LogoutAll:   true,
@@ -863,7 +863,7 @@ func Test_userService_ResetPassword(t *testing.T) {
           Return(nil)
       },
       args: args{
-        ctx: generateClaimsCtx(constant.USER_UPDATE_OTHER),
+        ctx: generateClaimsCtx(constant.USER_UPDATE_ARB),
         input: &dto.ResetUserPasswordDTO{
           //Token:       types.SomeNullable(sharedUtil.RandomString(32)),
           UserId:      types.SomeNullable(types.MustCreateId()),
@@ -881,7 +881,7 @@ func Test_userService_ResetPassword(t *testing.T) {
 
       },
       args: args{
-        ctx: generateClaimsCtx(constant.USER_UPDATE_OTHER),
+        ctx: generateClaimsCtx(constant.USER_UPDATE_ARB),
         input: &dto.ResetUserPasswordDTO{
           //UserId:      types.MustCreateId(),
           LogoutAll:   true,
@@ -980,7 +980,7 @@ func Test_userService_Update(t *testing.T) {
           Return(nil)
       },
       args: args{
-        ctx: generateClaimsCtx(constant.USER_UPDATE_OTHER),
+        ctx: generateClaimsCtx(constant.USER_UPDATE_ARB),
         input: &dto.UserUpdateDTO{
           Id:       types.MustCreateId(),
           Username: types.SomeNullable(gofakeit.Username()),
@@ -1098,7 +1098,7 @@ func Test_userService_UpdatePassword(t *testing.T) {
           Return(nil)
       },
       args: args{
-        ctx: generateClaimsCtx(constant.USER_UPDATE_OTHER),
+        ctx: generateClaimsCtx(constant.USER_UPDATE_ARB),
         input: &dto.UserUpdatePasswordDTO{
           Id:           types.MustCreateId(),
           LastPassword: types.Password(gofakeit.Username()),
@@ -1317,7 +1317,7 @@ func Test_userService_checkPermission(t *testing.T) {
   type args struct {
     ctx         context.Context
     targetId    types.Id
-    permissions []string
+    permissions string
   }
   tests := []struct {
     name    string
@@ -1330,9 +1330,9 @@ func Test_userService_checkPermission(t *testing.T) {
       setup: func(mocked *userMocked, arg any, want any) {
       },
       args: args{
-        ctx:         generateClaimsCtx(constant.USER_UPDATE, constant.USER_UPDATE_OTHER),
+        ctx:         generateClaimsCtx(constant.USER_UPDATE, constant.USER_UPDATE_ARB),
         targetId:    types.MustCreateId(),
-        permissions: []string{constant.USER_PERMISSIONS[constant.USER_UPDATE_OTHER]},
+        permissions: constant.USER_PERMISSIONS[constant.USER_UPDATE_ARB],
       },
       wantErr: false,
     },
@@ -1343,7 +1343,7 @@ func Test_userService_checkPermission(t *testing.T) {
       args: args{
         ctx:         generateClaimsCtx(constant.USER_UPDATE),
         targetId:    types.MustCreateId(),
-        permissions: []string{constant.USER_PERMISSIONS[constant.USER_UPDATE_OTHER]},
+        permissions: constant.USER_PERMISSIONS[constant.USER_UPDATE_ARB],
       },
       wantErr: true,
     },
@@ -1360,7 +1360,7 @@ func Test_userService_checkPermission(t *testing.T) {
       args: args{
         ctx:         generateClaimsCtx(constant.USER_UPDATE),
         targetId:    types.Id{}, // Set on setup
-        permissions: []string{constant.USER_PERMISSIONS[constant.USER_UPDATE_OTHER]},
+        permissions: constant.USER_PERMISSIONS[constant.USER_UPDATE_ARB],
       },
       wantErr: false,
     },
@@ -1380,7 +1380,7 @@ func Test_userService_checkPermission(t *testing.T) {
         authClient: mocked.AuthN,
       }
 
-      if err := u.checkPermission(tt.args.ctx, tt.args.targetId, tt.args.permissions...); (err != nil) != tt.wantErr {
+      if err := u.checkPermission(tt.args.ctx, tt.args.targetId, tt.args.permissions); (err != nil) != tt.wantErr {
         t.Errorf("checkPermission() error = %v, wantErr %v", err, tt.wantErr)
       }
     })

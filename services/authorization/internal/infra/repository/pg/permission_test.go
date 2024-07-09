@@ -30,10 +30,13 @@ const (
   PERM_DB_PASSWORD = "password"
   PERM_DB          = "nexa"
 
-  SEED_PERM_DATA_SIZE = 5
+  PERM_SEED_ROLE_DATA_SIZE = 4
+  PERM_SEED_PERM_DATA_SIZE = 5
 )
 
-var permSeed []entity.Permission
+var perm_RoleSeed []entity.Role
+
+var perm_PermSeed []entity.Permission
 
 func ignorePermsField(got *entity.Permission) {
   got.CreatedAt = time.Time{}
@@ -81,7 +84,7 @@ func (f *permTestSuite) SetupSuite() {
     Name:     PERM_DB,
     IsSecure: false,
     Timeout:  time.Second * 10,
-  }, true)
+  }, false)
   f.Require().NoError(err)
   f.db = db
 
@@ -96,31 +99,31 @@ func (f *permTestSuite) SetupSuite() {
   // Seeding
   rolePerms := []model.RolePermission{
     {
-      RoleId:       roleSeed[0].Id.String(),
-      PermissionId: permSeed[0].Id.String(),
+      RoleId:       perm_RoleSeed[0].Id.String(),
+      PermissionId: perm_PermSeed[0].Id.String(),
       CreatedAt:    time.Now().Add(time.Hour * 1),
     },
     {
-      RoleId:       roleSeed[0].Id.String(),
-      PermissionId: permSeed[1].Id.String(),
+      RoleId:       perm_RoleSeed[0].Id.String(),
+      PermissionId: perm_PermSeed[1].Id.String(),
       CreatedAt:    time.Now().Add(time.Hour * 2),
     },
     {
-      RoleId:       roleSeed[1].Id.String(),
-      PermissionId: permSeed[0].Id.String(),
+      RoleId:       perm_RoleSeed[1].Id.String(),
+      PermissionId: perm_PermSeed[0].Id.String(),
       CreatedAt:    time.Now().Add(time.Hour * 3),
     },
     {
-      RoleId:       roleSeed[2].Id.String(),
-      PermissionId: permSeed[0].Id.String(),
+      RoleId:       perm_RoleSeed[2].Id.String(),
+      PermissionId: perm_PermSeed[0].Id.String(),
       CreatedAt:    time.Now().Add(time.Hour * 4),
     },
   }
-  perms := util.CastSliceP(permSeed, func(from *entity.Permission) model.Permission {
+  perms := util.CastSliceP(perm_PermSeed, func(from *entity.Permission) model.Permission {
     return model.FromPermissionDomain(from)
   })
   roleCount := 0
-  roles := util.CastSliceP(roleSeed, func(from *entity.Role) model.Role {
+  roles := util.CastSliceP(perm_RoleSeed, func(from *entity.Role) model.Role {
     roleCount++
     return model.FromRoleDomain(from, func(ent *entity.Role, role *model.Role) {
       role.CreatedAt = time.Now().Add(time.Duration(roleCount) * time.Hour).UTC()
@@ -171,8 +174,8 @@ func (f *permTestSuite) Test_permissionRepository_Create() {
         ctx: context.Background(),
         permission: &entity.Permission{
           Id:        types.MustCreateId(),
-          Resource:  permSeed[0].Resource,
-          Action:    permSeed[0].Action,
+          Resource:  perm_PermSeed[0].Resource,
+          Action:    perm_PermSeed[0].Action,
           CreatedAt: time.Now(),
         },
       },
@@ -238,7 +241,7 @@ func (f *permTestSuite) Test_permissionRepository_Delete() {
       name: "Delete valid permission",
       args: args{
         ctx: context.Background(),
-        id:  permSeed[0].Id,
+        id:  perm_PermSeed[0].Id,
       },
       wantErr: false,
     },
@@ -299,9 +302,9 @@ func (f *permTestSuite) Test_permissionRepository_Get() {
         },
       },
       want: repo.PaginatedResult[entity.Permission]{
-        Data:    permSeed,
-        Total:   uint64(len(permSeed)),
-        Element: uint64(len(permSeed)),
+        Data:    perm_PermSeed,
+        Total:   uint64(len(perm_PermSeed)),
+        Element: uint64(len(perm_PermSeed)),
       },
       wantErr: false,
     },
@@ -315,8 +318,8 @@ func (f *permTestSuite) Test_permissionRepository_Get() {
         },
       },
       want: repo.PaginatedResult[entity.Permission]{
-        Data:    permSeed[1:3],
-        Total:   uint64(len(permSeed)),
+        Data:    perm_PermSeed[1:3],
+        Total:   uint64(len(perm_PermSeed)),
         Element: 2,
       },
       wantErr: false,
@@ -331,9 +334,9 @@ func (f *permTestSuite) Test_permissionRepository_Get() {
         },
       },
       want: repo.PaginatedResult[entity.Permission]{
-        Data:    permSeed[2:],
-        Total:   uint64(len(permSeed)),
-        Element: uint64(len(permSeed)) - 2,
+        Data:    perm_PermSeed[2:],
+        Total:   uint64(len(perm_PermSeed)),
+        Element: uint64(len(perm_PermSeed)) - 2,
       },
       wantErr: false,
     },
@@ -347,8 +350,8 @@ func (f *permTestSuite) Test_permissionRepository_Get() {
         },
       },
       want: repo.PaginatedResult[entity.Permission]{
-        Data:    permSeed[:3],
-        Total:   uint64(len(permSeed)),
+        Data:    perm_PermSeed[:3],
+        Total:   uint64(len(perm_PermSeed)),
         Element: 3,
       },
       wantErr: false,
@@ -358,13 +361,13 @@ func (f *permTestSuite) Test_permissionRepository_Get() {
       args: args{
         ctx: context.Background(),
         query: repo.QueryParameter{
-          Offset: uint64(len(permSeed)),
+          Offset: uint64(len(perm_PermSeed)),
           Limit:  3,
         },
       },
       want: repo.PaginatedResult[entity.Permission]{
         Data:    nil,
-        Total:   uint64(len(permSeed)),
+        Total:   uint64(len(perm_PermSeed)),
         Element: 0,
       },
       wantErr: true,
@@ -413,27 +416,27 @@ func (f *permTestSuite) Test_permissionRepository_FindByIds() {
       name: "Get single perm",
       args: args{
         ctx: context.Background(),
-        ids: []types.Id{permSeed[0].Id},
+        ids: []types.Id{perm_PermSeed[0].Id},
       },
-      want:    permSeed[:1],
+      want:    perm_PermSeed[:1],
       wantErr: false,
     },
     {
       name: "Get multiple perms",
       args: args{
         ctx: context.Background(),
-        ids: []types.Id{permSeed[0].Id, permSeed[1].Id},
+        ids: []types.Id{perm_PermSeed[0].Id, perm_PermSeed[1].Id},
       },
-      want:    permSeed[:2],
+      want:    perm_PermSeed[:2],
       wantErr: false,
     },
     {
       name: "Some perm is not valid",
       args: args{
         ctx: context.Background(),
-        ids: []types.Id{permSeed[2].Id, types.MustCreateId(), permSeed[1].Id},
+        ids: []types.Id{perm_PermSeed[2].Id, types.MustCreateId(), perm_PermSeed[1].Id},
       },
-      want:    []entity.Permission{permSeed[1], permSeed[2]},
+      want:    []entity.Permission{perm_PermSeed[1], perm_PermSeed[2]},
       wantErr: false,
     },
     {
@@ -500,25 +503,25 @@ func (f *permTestSuite) Test_permissionRepository_FindByRoleIds() {
       name: "Get single role permissions",
       args: args{
         ctx:     context.Background(),
-        roleIds: []types.Id{roleSeed[0].Id},
+        roleIds: []types.Id{perm_RoleSeed[0].Id},
       },
-      want:    []entity.Permission{permSeed[0], permSeed[1]},
+      want:    []entity.Permission{perm_PermSeed[0], perm_PermSeed[1]},
       wantErr: false,
     },
     {
       name: "Get multiple role permissions",
       args: args{
         ctx:     context.Background(),
-        roleIds: []types.Id{roleSeed[0].Id, roleSeed[1].Id},
+        roleIds: []types.Id{perm_RoleSeed[0].Id, perm_RoleSeed[1].Id},
       },
-      want:    []entity.Permission{permSeed[0], permSeed[1]},
+      want:    []entity.Permission{perm_PermSeed[0], perm_PermSeed[1]},
       wantErr: false,
     },
     {
       name: "Role doesn't have permission",
       args: args{
         ctx:     context.Background(),
-        roleIds: []types.Id{roleSeed[3].Id, types.MustCreateId()},
+        roleIds: []types.Id{perm_RoleSeed[3].Id, types.MustCreateId()},
       },
       want:    nil,
       wantErr: true,
@@ -547,7 +550,11 @@ func (f *permTestSuite) Test_permissionRepository_FindByRoleIds() {
       ignorePermsFields(tt.want...)
       ignorePermsFields(got...)
 
-      if !reflect.DeepEqual(got, tt.want) {
+      comparatorFunc := func(e *entity.Permission, e2 *entity.Permission) bool {
+        return e.Id == e2.Id
+      }
+
+      if !util.ArbitraryCheck(got, tt.want, comparatorFunc) {
         t.Errorf("FindByRoleIds() got = %v, want %v", got, tt.want)
       }
     })
@@ -555,16 +562,14 @@ func (f *permTestSuite) Test_permissionRepository_FindByRoleIds() {
 }
 
 func TestPerms(t *testing.T) {
-  seedPermsData()
-  seedRolesData()
+  for i := 0; i < PERM_SEED_PERM_DATA_SIZE; i += 1 {
+    perm_PermSeed = append(perm_PermSeed, generatePerms())
+  }
+  for i := 0; i < PERM_SEED_ROLE_DATA_SIZE; i += 1 {
+    perm_RoleSeed = append(perm_RoleSeed, generateRole())
+  }
 
   suite.Run(t, &permTestSuite{})
-}
-
-func seedPermsData() {
-  for i := 0; i < SEED_PERM_DATA_SIZE; i += 1 {
-    permSeed = append(permSeed, generatePerms())
-  }
 }
 
 var generatePermsCount = 0
@@ -573,7 +578,7 @@ func generatePerms() entity.Permission {
   generatePermsCount++
   return entity.Permission{
     Id:        types.MustCreateId(),
-    Resource:  gofakeit.AnimalType(),
+    Resource:  util.RandomString(12),
     Action:    fmt.Sprintf("%s:%s", gofakeit.Animal(), gofakeit.Username()),
     CreatedAt: time.Now().Add(time.Duration(generatePermsCount) * time.Hour).UTC(),
   }

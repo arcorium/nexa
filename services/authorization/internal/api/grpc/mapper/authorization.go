@@ -5,6 +5,7 @@ import (
   "nexa/services/authorization/internal/domain/dto"
   sharedErr "nexa/shared/errors"
   "nexa/shared/types"
+  sharedUtil "nexa/shared/util"
 )
 
 func ToIsAuthorizationDTO(request *authZv1.CheckUserRequest) (dto.IsAuthorizationDTO, error) {
@@ -13,8 +14,10 @@ func ToIsAuthorizationDTO(request *authZv1.CheckUserRequest) (dto.IsAuthorizatio
     return dto.IsAuthorizationDTO{}, sharedErr.NewFieldError("user_id", err).ToGrpcError()
   }
 
-  return dto.IsAuthorizationDTO{
+  dtos := dto.IsAuthorizationDTO{
     UserId:             id,
-    ExpectedPermission: request.ExpectedPermissions,
-  }, nil
+    ExpectedPermission: request.ExpectedPermission,
+  }
+
+  return dtos, sharedUtil.ValidateStruct(&dtos)
 }

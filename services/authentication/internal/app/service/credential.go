@@ -56,12 +56,12 @@ type credentialService struct {
   tracer trace.Tracer
 }
 
-func (c *credentialService) checkPermission(ctx context.Context, targetId types.Id, permissions ...string) error {
+func (c *credentialService) checkPermission(ctx context.Context, targetId types.Id, permissions string) error {
   // Validate permission
   claims, _ := sharedJwt.GetClaimsFromCtx(ctx)
   if !targetId.EqWithString(claims.UserId) {
     // Need permission to update other users
-    if !authUtil.ContainsPermissions(claims.Roles, permissions...) {
+    if !authUtil.ContainsPermission(claims.Roles, permissions) {
       return sharedErr.ErrUnauthorizedPermission
     }
   }
@@ -80,11 +80,15 @@ func (c *credentialService) getUserRoles(ctx context.Context, userId types.Id) (
   return jwtRoles, nil
 }
 
-func (c *credentialService) getTokenClaims(ctx context.Context, tokenStr string) (*sharedJwt.UserClaims, error) {
+func (c *credentialService) getTokenClaims(tokenStr string) (*sharedJwt.UserClaims, error) {
   token, err := jwt.ParseWithClaims(tokenStr, &sharedJwt.UserClaims{}, func(token *jwt.Token) (interface{}, error) {
     return []byte(c.config.SecretKey), nil
   })
   if err != nil {
+    return nil, errors.ErrMalformedToken
+  }
+
+  if !token.Valid {
     return nil, errors.ErrMalformedToken
   }
 
@@ -106,7 +110,7 @@ func (c *credentialService) Login(ctx context.Context, loginDto *dto.LoginDTO) (
     return dto.LoginResponseDTO{}, status.ErrExternal(err)
   }
 
-  // Get user roles and permissions
+  // Get user roles and permission
   jwtRoles, err := c.getUserRoles(ctx, user.UserId)
   if err != nil {
     spanUtil.RecordError(err, span)
@@ -179,7 +183,7 @@ func (c *credentialService) RefreshToken(ctx context.Context, refreshDto *dto.Re
   }
 
   // Parse token
-  claims, err := c.getTokenClaims(ctx, refreshDto.AccessToken)
+  claims, err := c.getTokenClaims(refreshDto.AccessToken)
   if err != nil {
     spanUtil.RecordError(err, span)
     return dto.RefreshTokenResponseDTO{}, status.ErrBadRequest(err)
@@ -206,7 +210,7 @@ func (c *credentialService) RefreshToken(ctx context.Context, refreshDto *dto.Re
     return dto.RefreshTokenResponseDTO{}, status.ErrBadRequest(errors.ErrBadRelation)
   }
 
-  // Get user roles and permissions
+  // Get user roles and permission
   jwtRoles, err := c.getUserRoles(ctx, cred.UserId)
   if err != nil {
     spanUtil.RecordError(err, span)
@@ -280,8 +284,8 @@ func (c *credentialService) Logout(ctx context.Context, logoutDTO *dto.LogoutDTO
 
   // Check if dto user id is the same with claims user id
   if !logoutDTO.UserId.EqWithString(userClaims.UserId) {
-    // Check permissions needed
-    if !authUtil.ContainsPermissions(userClaims.Roles, constant.AUTHN_PERMISSIONS[constant.AUTHN_LOGOUT_OTHER]) {
+    // Check permission needed
+    if !authUtil.ContainsPermission(userClaims.Roles, constant.AUTHN_PERMISSIONS[constant.AUTHN_LOGOUT_OTHER]) {
       spanUtil.RecordError(sharedErr.ErrUnauthorizedPermission, span)
       return status.ErrUnAuthorized(sharedErr.ErrUnauthorizedPermission)
     }

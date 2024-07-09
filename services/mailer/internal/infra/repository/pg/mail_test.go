@@ -34,16 +34,28 @@ const (
   SEED_MAIL_DATA_SIZE = 7
 )
 
-var mailSeed []entity.Mail
-
 type mailTestSuite struct {
   suite.Suite
   container *postgres.PostgresContainer
   db        bun.IDB
   tracer    trace.Tracer // Mock
+
+  tagSeed  []entity.Tag
+  mailSeed []entity.Mail
 }
 
 func (f *mailTestSuite) SetupSuite() {
+  // Create data
+  for i := 0; i < SEED_MAIL_DATA_SIZE; i += 1 {
+    f.mailSeed = append(f.mailSeed, generateMail())
+  }
+  f.mailSeed[0].DeliveredAt = time.Time{}
+  f.mailSeed[0].Status = entity.StatusPending
+
+  for i := 0; i < SEED_TAG_DATA_SIZE; i += 1 {
+    f.tagSeed = append(f.tagSeed, generateTag())
+  }
+
   ctx := context.Background()
 
   container, err := postgres.RunContainer(ctx,
@@ -85,12 +97,12 @@ func (f *mailTestSuite) SetupSuite() {
   f.Require().NoError(err)
   // Seeding
   // Mail
-  mails := util.CastSliceP(mailSeed, func(from *entity.Mail) model.Mail {
+  mails := util.CastSliceP(f.mailSeed, func(from *entity.Mail) model.Mail {
     return model.FromMailDomain(from, func(ent *entity.Mail, mail *model.Mail) {
     })
   })
   // Tag
-  tags := util.CastSliceP(tagSeed, func(from *entity.Tag) model.Tag {
+  tags := util.CastSliceP(f.tagSeed, func(from *entity.Tag) model.Tag {
     return model.FromTagDomain(from, func(ent *entity.Tag, tag *model.Tag) {
       tag.CreatedAt = time.Now()
     })
@@ -98,24 +110,24 @@ func (f *mailTestSuite) SetupSuite() {
   // Mail Tag
   mailTags := []model.MailTag{
     {
-      MailId: mailSeed[3].Id.String(),
-      TagId:  tagSeed[0].Id.String(),
+      MailId: f.mailSeed[3].Id.String(),
+      TagId:  f.tagSeed[0].Id.String(),
     },
     {
-      MailId: mailSeed[4].Id.String(),
-      TagId:  tagSeed[0].Id.String(),
+      MailId: f.mailSeed[4].Id.String(),
+      TagId:  f.tagSeed[0].Id.String(),
     },
     {
-      MailId: mailSeed[5].Id.String(),
-      TagId:  tagSeed[1].Id.String(),
+      MailId: f.mailSeed[5].Id.String(),
+      TagId:  f.tagSeed[1].Id.String(),
     },
     {
-      MailId: mailSeed[6].Id.String(),
-      TagId:  tagSeed[0].Id.String(),
+      MailId: f.mailSeed[6].Id.String(),
+      TagId:  f.tagSeed[0].Id.String(),
     },
     {
-      MailId: mailSeed[6].Id.String(),
-      TagId:  tagSeed[1].Id.String(),
+      MailId: f.mailSeed[6].Id.String(),
+      TagId:  f.tagSeed[1].Id.String(),
     },
   }
 
@@ -148,10 +160,10 @@ func (f *mailTestSuite) Test_mailRepository_AppendMultipleTags() {
         ctx: context.Background(),
         mailTags: []repository.MailTags{
           {
-            First: mailSeed[0].Id,
+            First: f.mailSeed[0].Id,
             Second: []types.Id{
-              tagSeed[0].Id,
-              tagSeed[1].Id,
+              f.tagSeed[0].Id,
+              f.tagSeed[1].Id,
             },
           },
         },
@@ -164,22 +176,22 @@ func (f *mailTestSuite) Test_mailRepository_AppendMultipleTags() {
         ctx: context.Background(),
         mailTags: []repository.MailTags{
           {
-            First: mailSeed[0].Id,
+            First: f.mailSeed[0].Id,
             Second: []types.Id{
-              tagSeed[1].Id,
+              f.tagSeed[1].Id,
             },
           },
           {
-            First: mailSeed[1].Id,
+            First: f.mailSeed[1].Id,
             Second: []types.Id{
-              tagSeed[0].Id,
+              f.tagSeed[0].Id,
             },
           },
           {
-            First: mailSeed[2].Id,
+            First: f.mailSeed[2].Id,
             Second: []types.Id{
-              tagSeed[0].Id,
-              tagSeed[1].Id,
+              f.tagSeed[0].Id,
+              f.tagSeed[1].Id,
             },
           },
         },
@@ -194,7 +206,7 @@ func (f *mailTestSuite) Test_mailRepository_AppendMultipleTags() {
           {
             First: types.MustCreateId(),
             Second: []types.Id{
-              tagSeed[0].Id,
+              f.tagSeed[0].Id,
             },
           },
         },
@@ -207,7 +219,7 @@ func (f *mailTestSuite) Test_mailRepository_AppendMultipleTags() {
         ctx: context.Background(),
         mailTags: []repository.MailTags{
           {
-            First: mailSeed[0].Id,
+            First: f.mailSeed[0].Id,
             Second: []types.Id{
               types.MustCreateId(),
             },
@@ -222,10 +234,10 @@ func (f *mailTestSuite) Test_mailRepository_AppendMultipleTags() {
         ctx: context.Background(),
         mailTags: []repository.MailTags{
           {
-            First: mailSeed[0].Id,
+            First: f.mailSeed[0].Id,
             Second: []types.Id{
               types.MustCreateId(),
-              tagSeed[1].Id,
+              f.tagSeed[1].Id,
             },
           },
         },
@@ -238,15 +250,15 @@ func (f *mailTestSuite) Test_mailRepository_AppendMultipleTags() {
         ctx: context.Background(),
         mailTags: []repository.MailTags{
           {
-            First: mailSeed[0].Id,
+            First: f.mailSeed[0].Id,
             Second: []types.Id{
-              tagSeed[0].Id,
+              f.tagSeed[0].Id,
             },
           },
           {
             First: types.MustCreateId(),
             Second: []types.Id{
-              tagSeed[1].Id,
+              f.tagSeed[1].Id,
             },
           },
         },
@@ -305,8 +317,8 @@ func (f *mailTestSuite) Test_mailRepository_AppendTags() {
       name: "Append single tag",
       args: args{
         ctx:    context.Background(),
-        mailId: mailSeed[0].Id,
-        tagIds: []types.Id{tagSeed[0].Id},
+        mailId: f.mailSeed[0].Id,
+        tagIds: []types.Id{f.tagSeed[0].Id},
       },
       wantErr: false,
     },
@@ -314,8 +326,8 @@ func (f *mailTestSuite) Test_mailRepository_AppendTags() {
       name: "Append multiple tag",
       args: args{
         ctx:    context.Background(),
-        mailId: mailSeed[0].Id,
-        tagIds: []types.Id{tagSeed[0].Id, tagSeed[1].Id},
+        mailId: f.mailSeed[0].Id,
+        tagIds: []types.Id{f.tagSeed[0].Id, f.tagSeed[1].Id},
       },
       wantErr: false,
     },
@@ -324,7 +336,7 @@ func (f *mailTestSuite) Test_mailRepository_AppendTags() {
       args: args{
         ctx:    context.Background(),
         mailId: types.MustCreateId(),
-        tagIds: []types.Id{tagSeed[0].Id},
+        tagIds: []types.Id{f.tagSeed[0].Id},
       },
       wantErr: true,
     },
@@ -332,7 +344,7 @@ func (f *mailTestSuite) Test_mailRepository_AppendTags() {
       name: "Tag not found",
       args: args{
         ctx:    context.Background(),
-        mailId: mailSeed[0].Id,
+        mailId: f.mailSeed[0].Id,
         tagIds: []types.Id{types.MustCreateId()},
       },
       wantErr: true,
@@ -341,8 +353,8 @@ func (f *mailTestSuite) Test_mailRepository_AppendTags() {
       name: "Some tag is not valid",
       args: args{
         ctx:    context.Background(),
-        mailId: mailSeed[0].Id,
-        tagIds: []types.Id{tagSeed[0].Id, types.MustCreateId()},
+        mailId: f.mailSeed[0].Id,
+        tagIds: []types.Id{f.tagSeed[0].Id, types.MustCreateId()},
       },
       wantErr: true,
     },
@@ -414,7 +426,7 @@ func (f *mailTestSuite) Test_mailRepository_Create() {
         ctx: context.Background(),
         mails: []entity.Mail{
           util.CopyWith(generateMail(), func(e *entity.Mail) {
-            e.Id = mailSeed[0].Id
+            e.Id = f.mailSeed[0].Id
           }),
         },
       },
@@ -478,9 +490,9 @@ func (f *mailTestSuite) Test_mailRepository_Get() {
         },
       },
       want: repo.PaginatedResult[entity.Mail]{
-        Data:    mailSeed,
-        Total:   uint64(len(mailSeed)),
-        Element: uint64(len(mailSeed)),
+        Data:    f.mailSeed,
+        Total:   uint64(len(f.mailSeed)),
+        Element: uint64(len(f.mailSeed)),
       },
       wantErr: false,
     },
@@ -494,8 +506,8 @@ func (f *mailTestSuite) Test_mailRepository_Get() {
         },
       },
       want: repo.PaginatedResult[entity.Mail]{
-        Data:    mailSeed[1:3],
-        Total:   uint64(len(mailSeed)),
+        Data:    f.mailSeed[1:3],
+        Total:   uint64(len(f.mailSeed)),
         Element: 2,
       },
       wantErr: false,
@@ -510,9 +522,9 @@ func (f *mailTestSuite) Test_mailRepository_Get() {
         },
       },
       want: repo.PaginatedResult[entity.Mail]{
-        Data:    mailSeed[2:],
-        Total:   uint64(len(mailSeed)),
-        Element: uint64(len(mailSeed)) - 2,
+        Data:    f.mailSeed[2:],
+        Total:   uint64(len(f.mailSeed)),
+        Element: uint64(len(f.mailSeed)) - 2,
       },
       wantErr: false,
     },
@@ -526,8 +538,8 @@ func (f *mailTestSuite) Test_mailRepository_Get() {
         },
       },
       want: repo.PaginatedResult[entity.Mail]{
-        Data:    mailSeed[:3],
-        Total:   uint64(len(mailSeed)),
+        Data:    f.mailSeed[:3],
+        Total:   uint64(len(f.mailSeed)),
         Element: 3,
       },
       wantErr: false,
@@ -537,13 +549,13 @@ func (f *mailTestSuite) Test_mailRepository_Get() {
       args: args{
         ctx: context.Background(),
         query: repo.QueryParameter{
-          Offset: uint64(len(mailSeed)),
+          Offset: uint64(len(f.mailSeed)),
           Limit:  3,
         },
       },
       want: repo.PaginatedResult[entity.Mail]{
         Data:    nil,
-        Total:   uint64(len(mailSeed)),
+        Total:   uint64(len(f.mailSeed)),
         Element: 0,
       },
       wantErr: true,
@@ -594,27 +606,27 @@ func (f *mailTestSuite) Test_mailRepository_FindByIds() {
       name: "Get single mail",
       args: args{
         ctx: context.Background(),
-        ids: []types.Id{mailSeed[0].Id},
+        ids: []types.Id{f.mailSeed[0].Id},
       },
-      want:    mailSeed[:1],
+      want:    f.mailSeed[:1],
       wantErr: false,
     },
     {
       name: "Get multiple mails",
       args: args{
         ctx: context.Background(),
-        ids: []types.Id{mailSeed[0].Id, mailSeed[1].Id},
+        ids: []types.Id{f.mailSeed[0].Id, f.mailSeed[1].Id},
       },
-      want:    mailSeed[:2],
+      want:    f.mailSeed[:2],
       wantErr: false,
     },
     {
       name: "Some mail is not valid",
       args: args{
         ctx: context.Background(),
-        ids: []types.Id{mailSeed[2].Id, types.MustCreateId(), mailSeed[1].Id},
+        ids: []types.Id{f.mailSeed[2].Id, types.MustCreateId(), f.mailSeed[1].Id},
       },
-      want:    []entity.Mail{mailSeed[1], mailSeed[2]},
+      want:    []entity.Mail{f.mailSeed[1], f.mailSeed[2]},
       wantErr: false,
     },
     {
@@ -681,16 +693,16 @@ func (f *mailTestSuite) Test_mailRepository_FindByTag() {
       name: "Valid tag with multiple mails",
       args: args{
         ctx: context.Background(),
-        tag: tagSeed[0].Id,
+        tag: f.tagSeed[0].Id,
       },
-      want:    []entity.Mail{mailSeed[3], mailSeed[4], mailSeed[6]},
+      want:    []entity.Mail{f.mailSeed[3], f.mailSeed[4], f.mailSeed[6]},
       wantErr: false,
     },
     {
       name: "Valid tag without mails",
       args: args{
         ctx: context.Background(),
-        tag: tagSeed[2].Id,
+        tag: f.tagSeed[2].Id,
       },
       want:    nil,
       wantErr: true,
@@ -748,7 +760,7 @@ func (f *mailTestSuite) Test_mailRepository_Patch() {
       args: args{
         ctx: context.Background(),
         mail: &entity.Mail{
-          Id:          mailSeed[0].Id,
+          Id:          f.mailSeed[0].Id,
           Status:      entity.StatusDelivered,
           DeliveredAt: time.Now().UTC(),
         },
@@ -760,7 +772,7 @@ func (f *mailTestSuite) Test_mailRepository_Patch() {
       args: args{
         ctx: context.Background(),
         mail: &entity.Mail{
-          Id:     mailSeed[0].Id,
+          Id:     f.mailSeed[0].Id,
           Status: entity.StatusFailed,
         },
       },
@@ -817,7 +829,7 @@ func (f *mailTestSuite) Test_mailRepository_Remove() {
       name: "Remove valid mail",
       args: args{
         ctx: context.Background(),
-        id:  mailSeed[0].Id,
+        id:  f.mailSeed[0].Id,
       },
       wantErr: false,
     },
@@ -873,8 +885,8 @@ func (f *mailTestSuite) Test_mailRepository_RemoveTags() {
       name: "Remove valid mail and single valid tags",
       args: args{
         ctx:    context.Background(),
-        mailId: mailSeed[3].Id,
-        tagIds: []types.Id{tagSeed[0].Id},
+        mailId: f.mailSeed[3].Id,
+        tagIds: []types.Id{f.tagSeed[0].Id},
       },
       wantErr: false,
     },
@@ -882,8 +894,8 @@ func (f *mailTestSuite) Test_mailRepository_RemoveTags() {
       name: "Remove valid mail and multiple valid tags",
       args: args{
         ctx:    context.Background(),
-        mailId: mailSeed[6].Id,
-        tagIds: []types.Id{tagSeed[0].Id, tagSeed[1].Id},
+        mailId: f.mailSeed[6].Id,
+        tagIds: []types.Id{f.tagSeed[0].Id, f.tagSeed[1].Id},
       },
       wantErr: false,
     },
@@ -892,7 +904,7 @@ func (f *mailTestSuite) Test_mailRepository_RemoveTags() {
       args: args{
         ctx:    context.Background(),
         mailId: types.MustCreateId(),
-        tagIds: []types.Id{tagSeed[0].Id},
+        tagIds: []types.Id{f.tagSeed[0].Id},
       },
       wantErr: true,
     },
@@ -900,8 +912,8 @@ func (f *mailTestSuite) Test_mailRepository_RemoveTags() {
       name: "Remove valid mail and invalid tags",
       args: args{
         ctx:    context.Background(),
-        mailId: mailSeed[0].Id,
-        tagIds: []types.Id{tagSeed[2].Id, types.MustCreateId()},
+        mailId: f.mailSeed[0].Id,
+        tagIds: []types.Id{f.tagSeed[2].Id, types.MustCreateId()},
       },
       wantErr: true,
     },
@@ -942,18 +954,8 @@ func (f *mailTestSuite) Test_mailRepository_RemoveTags() {
 }
 
 func TestMail(t *testing.T) {
-  seedMail()
-  seedTag()
 
   suite.Run(t, &mailTestSuite{})
-}
-
-func seedMail() {
-  for i := 0; i < SEED_MAIL_DATA_SIZE; i += 1 {
-    mailSeed = append(mailSeed, generateMail())
-  }
-  mailSeed[0].DeliveredAt = time.Time{}
-  mailSeed[0].Status = entity.StatusPending
 }
 
 var count = 0
@@ -968,7 +970,7 @@ func generateMail() entity.Mail {
     BodyType:    entity.MailBodyType(gofakeit.UintN(uint(entity.BodyTypeUnknown.Underlying()))),
     Body:        gofakeit.LoremIpsumSentence(50),
     Status:      entity.Status(gofakeit.UintN(uint(entity.StatusFailed.Underlying()))),
-    SentAt:      time.Now().Add(time.Hour * time.Duration(count)).UTC(),
+    SentAt:      time.Now().Add(time.Hour * time.Duration(count*-1)).UTC(),
     DeliveredAt: time.Now().Add(time.Hour*time.Duration(count) + time.Hour*time.Duration(gofakeit.Hour())).UTC(),
   }
 }

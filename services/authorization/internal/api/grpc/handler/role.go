@@ -136,7 +136,7 @@ func (r *RoleHandler) FindAll(ctx context.Context, input *common.PagedElementInp
     Page:    input.Page,
   }
 
-  result, stat := r.roleService.FindAll(ctx, &pagedDto)
+  result, stat := r.roleService.GetAll(ctx, &pagedDto)
   if stat.IsError() {
     spanUtil.RecordError(stat.Error, span)
     return nil, stat.ToGRPCError()
@@ -211,8 +211,8 @@ func (r *RoleHandler) RemovePermissions(ctx context.Context, request *authZv1.Re
   return nil, stat.ToGRPCErrorWithSpan(span)
 }
 
-func (p *RoleHandler) AppendSuperAdminPermissions(ctx context.Context, request *authZv1.AppendSuperAdminPermissionsRequest) (*emptypb.Empty, error) {
-  ctx, span := p.tracer.Start(ctx, "RoleHandler.AppendSuperAdminPermissions")
+func (r *RoleHandler) AppendSuperRolePermissions(ctx context.Context, request *authZv1.AppendSuperRolePermissionsRequest) (*emptypb.Empty, error) {
+  ctx, span := r.tracer.Start(ctx, "RoleHandler.AppendSuperAdminPermissions")
   defer span.End()
 
   permIds, ierr := sharedUtil.CastSliceErrs(request.PermissionIds, types.IdFromString)
@@ -221,6 +221,20 @@ func (p *RoleHandler) AppendSuperAdminPermissions(ctx context.Context, request *
     return nil, ierr.ToGRPCError("permission_ids")
   }
 
-  stat := p.roleService.AppendSuperRolesPermission(ctx, permIds...)
+  stat := r.roleService.AppendSuperRolesPermission(ctx, permIds...)
+  return nil, stat.ToGRPCErrorWithSpan(span)
+}
+
+func (r *RoleHandler) SetAsSuper(ctx context.Context, request *authZv1.SetAsSuperRequest) (*emptypb.Empty, error) {
+  ctx, span := r.tracer.Start(ctx, "RoleHandler.SetAsSuper")
+  defer span.End()
+
+  userId, err := types.IdFromString(request.UserId)
+  if err != nil {
+    spanUtil.RecordError(err, span)
+    return nil, sharedErr.NewFieldError("user_id", err).ToGrpcError()
+  }
+
+  stat := r.roleService.SetUserAsSuper(ctx, userId)
   return nil, stat.ToGRPCErrorWithSpan(span)
 }

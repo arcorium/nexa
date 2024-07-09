@@ -28,7 +28,7 @@ func main() {
 
   permissions := sharedUtil.MapToSlice(constant.USER_PERMISSIONS, func(action, perm string) *authZv1.CreatePermissionRequest {
     return &authZv1.CreatePermissionRequest{
-      Resource: constant.SERVICE_RESOURCE,
+      Resource: constant.USER_SERVICE_RESOURCE,
       Action:   action,
     }
   })

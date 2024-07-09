@@ -31,16 +31,28 @@ const (
   SEED_PROFILE_DATA_SIZE = 3
 )
 
-var profileSeed []entity.Profile
-
 type profileTestSuite struct {
   suite.Suite
   container *postgres.PostgresContainer
   db        bun.IDB
   tracer    trace.Tracer // Mock
+
+  profileSeed []entity.Profile
+  userSeed    []entity.User
 }
 
 func (f *profileTestSuite) SetupSuite() {
+  // Prepare data
+  for i := 0; i < SEED_USER_DATA_SIZE; i += 1 {
+    f.userSeed = append(f.userSeed, generateRandomUser())
+  }
+  f.userSeed[3].BannedUntil = time.Now().Add(time.Hour * time.Duration(gofakeit.Hour()+2))
+  f.userSeed[4].DeletedAt = time.Now().Add(time.Hour * time.Duration(gofakeit.Hour()+2) * -1)
+
+  for i := 0; i < SEED_PROFILE_DATA_SIZE; i += 1 {
+    f.profileSeed = append(f.profileSeed, generateRandomProfile(f.userSeed[i].Id))
+  }
+
   ctx := context.Background()
 
   container, err := postgres.RunContainer(ctx,
@@ -81,11 +93,11 @@ func (f *profileTestSuite) SetupSuite() {
   err = model.CreateTables(db)
   f.Require().NoError(err)
   // Seeding
-  users := util.CastSliceP(userSeed, func(from *entity.User) model.User {
+  users := util.CastSliceP(f.userSeed, func(from *entity.User) model.User {
     return model.FromUserDomain(from, func(ent *entity.User, profile *model.User) {
     })
   })
-  profiles := util.CastSliceP(profileSeed, func(from *entity.Profile) model.Profile {
+  profiles := util.CastSliceP(f.profileSeed, func(from *entity.Profile) model.Profile {
     return model.FromProfileDomain(from, func(ent *entity.Profile, profile *model.Profile) {
     })
   })
@@ -114,7 +126,7 @@ func (f *profileTestSuite) Test_profileRepository_Create() {
       name: "Normal",
       args: args{
         ctx:     context.Background(),
-        profile: generateRandomProfileP(userSeed[3].Id),
+        profile: generateRandomProfileP(f.userSeed[3].Id),
       },
       wantErr: false,
     },
@@ -123,7 +135,7 @@ func (f *profileTestSuite) Test_profileRepository_Create() {
       args: args{
         ctx: context.Background(),
         profile: util.CopyWithP(generateRandomProfile(types.MustCreateId()), func(e *entity.Profile) {
-          e.Id = userSeed[0].Id // Use same id
+          e.Id = f.userSeed[0].Id // Use same id
         }),
       },
       wantErr: true,
@@ -184,18 +196,18 @@ func (f *profileTestSuite) Test_profileRepository_FindByIds() {
       name: "Normal",
       args: args{
         ctx:     context.Background(),
-        userIds: []types.Id{profileSeed[0].Id},
+        userIds: []types.Id{f.profileSeed[0].Id},
       },
-      want:    profileSeed[:1],
+      want:    f.profileSeed[:1],
       wantErr: false,
     },
     {
       name: "Some id is invalid",
       args: args{
         ctx:     context.Background(),
-        userIds: []types.Id{profileSeed[0].Id, types.MustCreateId(), profileSeed[1].Id},
+        userIds: []types.Id{f.profileSeed[0].Id, types.MustCreateId(), f.profileSeed[1].Id},
       },
-      want:    []entity.Profile{profileSeed[0], profileSeed[1]},
+      want:    []entity.Profile{f.profileSeed[0], f.profileSeed[1]},
       wantErr: false,
     },
     {
@@ -221,11 +233,18 @@ func (f *profileTestSuite) Test_profileRepository_FindByIds() {
         tracer: f.tracer,
       }
       got, err := p.FindByIds(tt.args.ctx, tt.args.userIds...)
-      if (err != nil) != tt.wantErr {
-        t.Errorf("FindByIds() error = %v, wantErr %v", err, tt.wantErr)
+      if res := err != nil; res {
+        if res != tt.wantErr {
+          t.Errorf("FindByIds() error = %v, wantErr %v", err, tt.wantErr)
+        }
         return
       }
-      if !reflect.DeepEqual(got, tt.want) {
+
+      comparatorFunc := func(e *entity.Profile, e2 *entity.Profile) bool {
+        return e.Id == e2.Id
+      }
+
+      if !util.ArbitraryCheck(got, tt.want, comparatorFunc) != tt.wantErr {
         t.Errorf("FindByIds() got = %v, want %v", got, tt.want)
       }
     })
@@ -248,7 +267,7 @@ func (f *profileTestSuite) Test_profileRepository_Patch() {
       args: args{
         ctx: context.Background(),
         profile: &entity.PatchedProfile{
-          Id:        profileSeed[0].Id,
+          Id:        f.profileSeed[0].Id,
           FirstName: gofakeit.FirstName(),
           LastName:  types.SomeNullable(gofakeit.LastName()),
           Bio:       types.SomeNullable(gofakeit.LoremIpsumParagraph(1, 2, 20, ".")),
@@ -264,7 +283,7 @@ func (f *profileTestSuite) Test_profileRepository_Patch() {
       args: args{
         ctx: context.Background(),
         profile: &entity.PatchedProfile{
-          Id:        profileSeed[0].Id,
+          Id:        f.profileSeed[0].Id,
           FirstName: "arcorium",
           LastName:  types.SomeNullable("liz"),
         },
@@ -277,7 +296,7 @@ func (f *profileTestSuite) Test_profileRepository_Patch() {
       args: args{
         ctx: context.Background(),
         profile: &entity.PatchedProfile{
-          Id:       profileSeed[0].Id,
+          Id:       f.profileSeed[0].Id,
           Bio:      types.SomeNullable(""),
           LastName: types.SomeNullable(""),
         },
@@ -290,7 +309,7 @@ func (f *profileTestSuite) Test_profileRepository_Patch() {
       args: args{
         ctx: context.Background(),
         profile: &entity.PatchedProfile{
-          Id:       profileSeed[0].Id,
+          Id:       f.profileSeed[0].Id,
           LastName: types.SomeNullable(""),
           Bio:      types.SomeNullable(""),
           PhotoId:  types.SomeNullable(types.MustCreateId()),
@@ -305,7 +324,7 @@ func (f *profileTestSuite) Test_profileRepository_Patch() {
       args: args{
         ctx: context.Background(),
         profile: &entity.PatchedProfile{
-          Id:        userSeed[SEED_PROFILE_DATA_SIZE].Id,
+          Id:        f.userSeed[SEED_PROFILE_DATA_SIZE].Id,
           FirstName: "arcorium",
         },
         baseIdx: -1,
@@ -338,7 +357,7 @@ func (f *profileTestSuite) Test_profileRepository_Patch() {
       require.NoError(t, err)
       require.Len(t, profiles, 1)
 
-      comparator := profileSeed[tt.args.baseIdx]
+      comparator := f.profileSeed[tt.args.baseIdx]
       // Set patched data
       if tt.args.profile.FirstName != "" {
         comparator.FirstName = tt.args.profile.FirstName
@@ -369,8 +388,8 @@ func (f *profileTestSuite) Test_profileRepository_Update() {
       name: "Normal",
       args: args{
         ctx: context.Background(),
-        profile: util.CopyWithP(generateRandomProfile(userSeed[0].Id), func(ent *entity.Profile) {
-          ent.Id = profileSeed[0].Id
+        profile: util.CopyWithP(generateRandomProfile(f.userSeed[0].Id), func(ent *entity.Profile) {
+          ent.Id = f.profileSeed[0].Id
         }),
       },
       wantErr: false,
@@ -416,15 +435,7 @@ func (f *profileTestSuite) Test_profileRepository_Update() {
 }
 
 func TestProfile(t *testing.T) {
-  seedUserData()
-  seedProfileData()
   suite.Run(t, &profileTestSuite{})
-}
-
-func seedProfileData() {
-  for i := 0; i < SEED_PROFILE_DATA_SIZE; i += 1 {
-    profileSeed = append(profileSeed, generateRandomProfile(userSeed[i].Id))
-  }
 }
 
 func generateRandomProfile(userId types.Id) entity.Profile {

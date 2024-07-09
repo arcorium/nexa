@@ -143,13 +143,13 @@ func (s *Server) grpcServerSetup() error {
     grpc.ChainUnaryInterceptor(
       recovery.UnaryServerInterceptor(),
       logging.UnaryServerInterceptor(zapLogger), // logging
-      interceptor.UnaryServerAuth(inter.PermissionCheck, inter.AuthSelector),
+      interceptor.UnaryServerAuth(inter.PermissionCheck, inter.AuthSkipSelector),
       metrics.UnaryServerInterceptor(promProv.WithExemplarFromContext(exemplarFromCtx)),
     ),
     grpc.ChainStreamInterceptor(
       recovery.StreamServerInterceptor(),
       logging.StreamServerInterceptor(zapLogger), // logging
-      interceptor.StreamServerAuth(inter.PermissionCheck, inter.AuthSelector),
+      interceptor.StreamServerAuth(inter.PermissionCheck, inter.AuthSkipSelector),
       metrics.StreamServerInterceptor(promProv.WithExemplarFromContext(exemplarFromCtx)),
     ),
   )

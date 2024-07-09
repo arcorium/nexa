@@ -26,6 +26,7 @@ const (
   SERVICE_UNAVAILABLE_ERROR
   // Other
   OBJECT_NOT_FOUND
+  OBJECT_ALREADY_EXIST
 )
 
 var NullCode = optional.Null[Code]()

@@ -47,15 +47,16 @@ func main() {
     return model.Permission{
       Id:        types.MustCreateId().String(),
       Resource:  constant.SERVICE_RESOURCE,
-      Code:      code,
+      Action:    action,
       CreatedAt: time.Now(),
     }
   })
 
+  s := "Default roles that capable to do anything"
   superRole := model.Role{
     Id:          types.MustCreateId().String(),
     Name:        constant.DEFAULT_SUPER_ROLE_NAME,
-    Description: "Default roles that capable to do anything",
+    Description: &s,
     CreatedAt:   time.Now(),
   }
 

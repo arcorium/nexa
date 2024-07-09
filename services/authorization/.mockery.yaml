@@ -8,10 +8,6 @@ packages:
     config:
       recursive: true
       all: true
-  nexa/services/authorization/internal/domain/external:
-    config:
-      recursive: true
-      all: true
   nexa/services/authorization/internal/domain/service:
     config:
       recursive: true

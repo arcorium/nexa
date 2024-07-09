@@ -24,17 +24,17 @@ func Auth(claims *sharedJwt.UserClaims, meta interceptors.CallMeta) bool {
   case mailerv1.MailerService_FindByIds_FullMethodName:
     fallthrough
   case mailerv1.MailerService_FindByTag_FullMethodName:
-    return authUtil.ContainsPermissions(claims.Roles, constant.MAILER_PERMISSIONS[constant.MAIL_READ])
+    return authUtil.ContainsPermission(claims.Roles, constant.MAILER_PERMISSIONS[constant.MAIL_READ])
   case mailerv1.MailerService_Update_FullMethodName:
-    return authUtil.ContainsPermissions(claims.Roles, constant.MAILER_PERMISSIONS[constant.MAIL_UPDATE])
+    return authUtil.ContainsPermission(claims.Roles, constant.MAILER_PERMISSIONS[constant.MAIL_UPDATE])
   case mailerv1.MailerService_Remove_FullMethodName:
-    return authUtil.ContainsPermissions(claims.Roles, constant.MAILER_PERMISSIONS[constant.MAIL_DELETE])
+    return authUtil.ContainsPermission(claims.Roles, constant.MAILER_PERMISSIONS[constant.MAIL_DELETE])
   case mailerv1.TagService_Create_FullMethodName:
-    return authUtil.ContainsPermissions(claims.Roles, constant.MAILER_PERMISSIONS[constant.MAIL_CREATE_TAG])
+    return authUtil.ContainsPermission(claims.Roles, constant.MAILER_PERMISSIONS[constant.MAIL_CREATE_TAG])
   case mailerv1.TagService_Update_FullMethodName:
-    return authUtil.ContainsPermissions(claims.Roles, constant.MAILER_PERMISSIONS[constant.MAIL_UPDATE_TAG])
+    return authUtil.ContainsPermission(claims.Roles, constant.MAILER_PERMISSIONS[constant.MAIL_UPDATE_TAG])
   case mailerv1.TagService_Remove_FullMethodName:
-    return authUtil.ContainsPermissions(claims.Roles, constant.MAILER_PERMISSIONS[constant.MAIL_DELETE_TAG])
+    return authUtil.ContainsPermission(claims.Roles, constant.MAILER_PERMISSIONS[constant.MAIL_DELETE_TAG])
   }
   logger.Warn("Unknown method")
   return true

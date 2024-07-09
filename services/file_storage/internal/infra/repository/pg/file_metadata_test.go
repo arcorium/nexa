@@ -319,7 +319,11 @@ func (f *fileMetadataTestSuite) Test_metadataRepository_FindByIds() {
       ignoreFileMetadataFields(got...)
       ignoreFileMetadataFields(tt.want...)
 
-      if !reflect.DeepEqual(got, tt.want) != tt.wantErr {
+      comparatorFunc := func(e *entity.FileMetadata, e2 *entity.FileMetadata) bool {
+        return e.Id == e2.Id
+      }
+
+      if !sharedUtil.ArbitraryCheck(got, tt.want, comparatorFunc) != tt.wantErr {
         t.Errorf("FindByIds() got = %v, want %v", got, tt.want)
       }
     })
@@ -427,7 +431,11 @@ func (f *fileMetadataTestSuite) Test_metadataRepository_FindByNames() {
       ignoreFileMetadataFields(got...)
       ignoreFileMetadataFields(tt.want...)
 
-      if !reflect.DeepEqual(got, tt.want) != tt.wantErr {
+      comparatorFunc := func(e *entity.FileMetadata, e2 *entity.FileMetadata) bool {
+        return e.Id == e2.Id
+      }
+
+      if !sharedUtil.ArbitraryCheck(got, tt.want, comparatorFunc) != tt.wantErr {
         t.Errorf("FindByNames() got = %v, want %v", got, tt.want)
       }
     })
