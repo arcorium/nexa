@@ -2,8 +2,8 @@ package repository
 
 import (
   "context"
+  "github.com/arcorium/nexa/shared/types"
   "nexa/services/user/internal/domain/entity"
-  "nexa/shared/types"
 )
 
 type IProfile interface {

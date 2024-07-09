@@ -2,10 +2,10 @@ package util
 
 import (
   "context"
+  sharedErr "github.com/arcorium/nexa/shared/errors"
+  "github.com/arcorium/nexa/shared/types"
   "github.com/go-playground/validator/v10"
   "golang.org/x/exp/constraints"
-  sharedErr "nexa/shared/errors"
-  "nexa/shared/types"
   "sync"
 )
 

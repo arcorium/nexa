@@ -2,9 +2,9 @@ package repository
 
 import (
   "context"
+  "github.com/arcorium/nexa/shared/types"
+  "github.com/arcorium/nexa/shared/util/repo"
   "nexa/services/user/internal/domain/entity"
-  "nexa/shared/types"
-  "nexa/shared/util/repo"
 )
 
 type IUser interface {

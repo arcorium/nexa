@@ -1,4 +1,9 @@
 
+create.key:
+	openssl genpkey -algorithm RSA -out privkey.pem
+	openssl rsa -pubout -in privkey.pem -out pubkey.pem
+
+
 create.service:
 	mkdir services\$(service)
 	go mod init -C ./services/$(service) nexa/services/$(service)

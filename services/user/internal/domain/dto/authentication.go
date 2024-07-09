@@ -1,8 +1,8 @@
 package dto
 
 import (
+  "github.com/arcorium/nexa/shared/types"
   "nexa/services/user/constant"
-  "nexa/shared/types"
   "time"
 )
 

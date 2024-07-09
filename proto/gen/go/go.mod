@@ -1,4 +1,4 @@
-module nexa/proto/gen/go
+module github.com/arcorium/nexa/proto/gen/go
 
 go 1.22.4
 

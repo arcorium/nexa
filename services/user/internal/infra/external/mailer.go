@@ -2,9 +2,9 @@ package external
 
 import (
   "context"
+  mailerv1 "github.com/arcorium/nexa/proto/gen/go/mailer/v1"
   "go.opentelemetry.io/otel/trace"
   "google.golang.org/grpc"
-  mailerv1 "nexa/proto/gen/go/mailer/v1"
   "nexa/services/user/internal/domain/dto"
   "nexa/services/user/internal/domain/external"
   "nexa/services/user/util"

@@ -1,11 +1,11 @@
 package main
 
 import (
+  sharedConf "github.com/arcorium/nexa/shared/config"
+  "github.com/arcorium/nexa/shared/env"
+  "github.com/arcorium/nexa/shared/logger"
   "log"
   "nexa/services/user/config"
-  sharedConf "nexa/shared/config"
-  "nexa/shared/env"
-  "nexa/shared/logger"
 )
 
 func main() {

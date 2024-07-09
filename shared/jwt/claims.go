@@ -3,8 +3,8 @@ package jwt
 import (
   "context"
   "errors"
+  sharedConst "github.com/arcorium/nexa/shared/constant"
   "github.com/golang-jwt/jwt/v5"
-  sharedConst "nexa/shared/constant"
 )
 
 type Role struct {
@@ -21,8 +21,22 @@ type UserClaims struct {
   Roles        []Role `json:"roles"`
 }
 
-func GetClaimsFromCtx(ctx context.Context) (*UserClaims, error) {
-  value := ctx.Value(sharedConst.CLAIMS_CONTEXT_KEY)
+func GetUserClaimsFromCtx(ctx context.Context) (*UserClaims, error) {
+  value := ctx.Value(sharedConst.USER_CLAIMS_CONTEXT_KEY)
+  val, ok := value.(*UserClaims)
+  if !ok {
+    return nil, errors.New("claims not found")
+  }
+  return val, nil
+}
+
+// TemporaryClaims Claims used for temporary token. It is used to call services protected API
+type TemporaryClaims struct {
+  jwt.RegisteredClaims
+}
+
+func GetTempClaimsFromCtx(ctx context.Context) (*UserClaims, error) {
+  value := ctx.Value(sharedConst.USER_CLAIMS_CONTEXT_KEY)
   val, ok := value.(*UserClaims)
   if !ok {
     return nil, errors.New("claims not found")

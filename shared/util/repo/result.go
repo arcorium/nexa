@@ -2,9 +2,9 @@ package repo
 
 import (
   "database/sql"
+  "github.com/arcorium/nexa/shared/types"
+  spanUtil "github.com/arcorium/nexa/shared/util/span"
   "go.opentelemetry.io/otel/trace"
-  "nexa/shared/types"
-  spanUtil "nexa/shared/util/span"
 )
 
 // CheckResult check the result if the rows affected is 0 it will return sql.ErrNoRows

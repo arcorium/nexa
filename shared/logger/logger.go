@@ -1,7 +1,7 @@
 package logger
 
 import (
-  "nexa/shared/types"
+  "github.com/arcorium/nexa/shared/types"
 )
 
 var _default = types.Must(NewZapLogger(true))

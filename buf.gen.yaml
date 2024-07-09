@@ -3,7 +3,7 @@ managed:
   enabled: true
   override:
     - file_option: go_package_prefix
-      value: nexa/proto/gen/go
+      value: github.com/arcorium/nexa/proto/gen/go
 plugins:
   - local: protoc-gen-go
     out: proto/gen/go

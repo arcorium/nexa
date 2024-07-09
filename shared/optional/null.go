@@ -1,6 +1,6 @@
 package optional
 
-import "nexa/shared/types"
+import "github.com/arcorium/nexa/shared/types"
 
 var (
   NullString = Null[string]()

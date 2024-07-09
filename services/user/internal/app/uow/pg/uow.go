@@ -2,10 +2,10 @@ package pg
 
 import (
   "context"
+  sharedUOW "github.com/arcorium/nexa/shared/uow"
   "github.com/uptrace/bun"
   "nexa/services/user/internal/app/uow"
   "nexa/services/user/internal/infra/repository/pg"
-  sharedUOW "nexa/shared/uow"
 )
 
 func NewUserUOW(db bun.IDB) sharedUOW.IUnitOfWork[uow.UserStorage] {

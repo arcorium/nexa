@@ -10,5 +10,6 @@ const (
 
 // Context
 const (
-  CLAIMS_CONTEXT_KEY = "user-claims"
+  USER_CLAIMS_CONTEXT_KEY = "user-claims"
+  TEMP_CLAIMS_CONTEXT_KEY = "temp-claims"
 )

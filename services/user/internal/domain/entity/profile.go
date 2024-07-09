@@ -1,7 +1,7 @@
 package entity
 
 import (
-  "nexa/shared/types"
+  "github.com/arcorium/nexa/shared/types"
 )
 
 type Profile struct {

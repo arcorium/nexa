@@ -1,7 +1,7 @@
 package util
 
 import (
-  sharedErr "nexa/shared/errors"
+  sharedErr "github.com/arcorium/nexa/shared/errors"
 )
 
 func CastSliceP[From, To any](slice []From, f func(*From) To) []To {

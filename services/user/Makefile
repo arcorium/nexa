@@ -1,8 +1,11 @@
-.PHONY: build
+.PHONY: build build.image
 build:
-	@go build -o build/server "./cmd/server/"
-	@go build -o build/migrate "./cmd/migrate/"
-	@go build -o build/seed_perms "./cmd/seed_perms/"
+	go build -o build/server "./cmd/server/"
+	go build -o build/migrate "./cmd/migrate/"
+	go build -o build/seed_perms "./cmd/seed_perms/"
+
+build.image:
+	.
 
 run: build
 	@export NEXA_USER_RELEASE=1; \

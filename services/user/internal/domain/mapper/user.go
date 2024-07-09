@@ -1,9 +1,9 @@
 package mapper
 
 import (
+  "github.com/arcorium/nexa/shared/types"
   "nexa/services/user/internal/domain/dto"
   "nexa/services/user/internal/domain/entity"
-  "nexa/shared/types"
 )
 
 func ToUserResponse(user *entity.User) dto.UserResponseDTO {

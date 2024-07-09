@@ -2,7 +2,7 @@ package util
 
 import (
   "fmt"
-  "nexa/shared/types"
+  "github.com/arcorium/nexa/shared/types"
 )
 
 func ToUnderlyingEnum[T types.Enum[U], U any](enum T) U {

@@ -2,9 +2,9 @@ package service
 
 import (
   "context"
+  "github.com/arcorium/nexa/shared/status"
+  "github.com/arcorium/nexa/shared/types"
   "nexa/services/user/internal/domain/dto"
-  "nexa/shared/status"
-  "nexa/shared/types"
 )
 
 type IProfile interface {

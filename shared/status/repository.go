@@ -3,9 +3,9 @@ package status
 import (
   "database/sql"
   "errors"
-  "nexa/shared/optional"
-  "nexa/shared/types"
-  "nexa/shared/variadic"
+  "github.com/arcorium/nexa/shared/optional"
+  "github.com/arcorium/nexa/shared/types"
+  "github.com/arcorium/nexa/shared/variadic"
 )
 
 // FromRepository override only the code when the error is sql.ErrNoRows and use the sql.ErrNoRows as the error

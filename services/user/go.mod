@@ -26,16 +26,12 @@ require (
 )
 
 require (
+	github.com/arcorium/nexa/proto/gen/go v0.0.0-20240709165956-44aebf90ae18
+	github.com/arcorium/nexa/shared v0.0.0-20240709165956-44aebf90ae18
 	github.com/brianvoe/gofakeit/v7 v7.0.4
+	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/testcontainers/testcontainers-go v0.31.0
 	github.com/testcontainers/testcontainers-go/modules/postgres v0.31.0
-	nexa/proto/gen/go v0.0.0
-	nexa/shared v0.0.0
-)
-
-replace (
-	nexa/proto/gen/go => ../../proto/gen/go
-	nexa/shared => ../../shared/
 )
 
 require (
@@ -64,7 +60,6 @@ require (
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.19.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
-	github.com/golang-jwt/jwt/v5 v5.2.1 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.20.0 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/joho/godotenv v1.5.1 // indirect

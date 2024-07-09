@@ -1,10 +1,10 @@
 package mapper
 
 import (
-  "nexa/proto/gen/go/user/v1"
+  "github.com/arcorium/nexa/proto/gen/go/user/v1"
+  sharedErr "github.com/arcorium/nexa/shared/errors"
+  "github.com/arcorium/nexa/shared/types"
   "nexa/services/user/internal/domain/dto"
-  sharedErr "nexa/shared/errors"
-  "nexa/shared/types"
 )
 
 func ToProfileUpdateDTO(request *userv1.UpdateProfileRequest) (dto.ProfileUpdateDTO, error) {

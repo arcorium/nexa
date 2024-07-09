@@ -3,15 +3,16 @@ package database
 import (
   "context"
   "database/sql"
+  "github.com/arcorium/nexa/shared/config"
+  "github.com/arcorium/nexa/shared/types"
   "github.com/uptrace/bun"
   "github.com/uptrace/bun/dialect/pgdialect"
   "github.com/uptrace/bun/driver/pgdriver"
   "github.com/uptrace/bun/extra/bundebug"
-  "nexa/shared/config"
-  "nexa/shared/types"
+  "time"
 )
 
-func OpenPostgres(config *config.Database, log bool) (*bun.DB, error) {
+func OpenPostgresWithConfig(config *config.Database, log bool) (*bun.DB, error) {
   options := []pgdriver.Option{
     pgdriver.WithDSN(config.DSN()),
     pgdriver.WithInsecure(!config.IsSecure),
@@ -19,6 +20,29 @@ func OpenPostgres(config *config.Database, log bool) (*bun.DB, error) {
 
   if config.Timeout.Milliseconds() > 0 {
     options = append(options, pgdriver.WithTimeout(config.Timeout))
+  }
+
+  sqlDb := sql.OpenDB(pgdriver.NewConnector(options...))
+  // Test connection
+  if err := sqlDb.Ping(); err != nil {
+    return nil, err
+  }
+
+  db := bun.NewDB(sqlDb, pgdialect.New())
+  if log {
+    db.AddQueryHook(bundebug.NewQueryHook(bundebug.WithVerbose(true)))
+  }
+  return db, nil
+}
+
+func OpenPostgres(dsn string, secure bool, timeout time.Duration, log bool) (*bun.DB, error) {
+  options := []pgdriver.Option{
+    pgdriver.WithDSN(dsn),
+    pgdriver.WithInsecure(!secure),
+  }
+
+  if timeout.Milliseconds() > 0 {
+    options = append(options, pgdriver.WithTimeout(timeout))
   }
 
   sqlDb := sql.OpenDB(pgdriver.NewConnector(options...))

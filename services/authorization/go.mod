@@ -20,13 +20,6 @@ require (
 	go.opentelemetry.io/otel/trace v1.27.0
 	google.golang.org/grpc v1.64.0
 	google.golang.org/protobuf v1.34.2
-	nexa/proto/gen/go v0.0.0
-	nexa/shared v0.0.0
-)
-
-replace (
-	nexa/proto/gen/go => ../../proto/gen/go
-	nexa/shared => ../../shared/
 )
 
 require (
@@ -34,6 +27,8 @@ require (
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/Microsoft/hcsshim v0.11.5 // indirect
+	github.com/arcorium/nexa/proto/gen/go v0.0.0-20240709165956-44aebf90ae18 // indirect
+	github.com/arcorium/nexa/shared v0.0.0-20240709165956-44aebf90ae18 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/caarlos0/env/v10 v10.0.0 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect

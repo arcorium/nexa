@@ -1,8 +1,8 @@
 package mapper
 
 import (
+  authNv1 "github.com/arcorium/nexa/proto/gen/go/authentication/v1"
   "google.golang.org/protobuf/types/known/timestamppb"
-  authNv1 "nexa/proto/gen/go/authentication/v1"
   "nexa/services/user/internal/domain/dto"
   "nexa/services/user/util"
 )

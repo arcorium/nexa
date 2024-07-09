@@ -2,20 +2,20 @@ package handler
 
 import (
   "context"
+  "github.com/arcorium/nexa/proto/gen/go/user/v1"
+  sharedErr "github.com/arcorium/nexa/shared/errors"
+  "github.com/arcorium/nexa/shared/types"
+  sharedUtil "github.com/arcorium/nexa/shared/util"
+  spanUtil "github.com/arcorium/nexa/shared/util/span"
   middleware "github.com/grpc-ecosystem/go-grpc-middleware/v2"
   "go.opentelemetry.io/otel/trace"
   "google.golang.org/grpc"
   "google.golang.org/protobuf/types/known/emptypb"
   "io"
-  "nexa/proto/gen/go/user/v1"
   "nexa/services/user/internal/api/grpc/mapper"
   "nexa/services/user/internal/domain/dto"
   "nexa/services/user/internal/domain/service"
   "nexa/services/user/util"
-  sharedErr "nexa/shared/errors"
-  "nexa/shared/types"
-  sharedUtil "nexa/shared/util"
-  spanUtil "nexa/shared/util/span"
 )
 
 func NewProfileHandler(profile service.IProfile) ProfileHandler {

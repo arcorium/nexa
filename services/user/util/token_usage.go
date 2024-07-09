@@ -1,7 +1,7 @@
 package util
 
 import (
-  authNv1 "nexa/proto/gen/go/authentication/v1"
+  authNv1 "github.com/arcorium/nexa/proto/gen/go/authentication/v1"
   "nexa/services/user/internal/domain/dto"
 )
 

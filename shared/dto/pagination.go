@@ -1,8 +1,8 @@
 package dto
 
 import (
+  "github.com/arcorium/nexa/shared/util/repo"
   "math"
-  "nexa/shared/util/repo"
 )
 
 type PagedElementDTO struct {

@@ -1,7 +1,7 @@
 package config
 
 import (
-  sharedConf "nexa/shared/config"
+  sharedConf "github.com/arcorium/nexa/shared/config"
 )
 
 type Server struct {

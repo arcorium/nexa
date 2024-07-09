@@ -4,6 +4,7 @@ import (
   "context"
   "errors"
   "fmt"
+  sharedErr "github.com/arcorium/nexa/shared/errors"
   "github.com/golang-jwt/jwt/v5"
   middleware "github.com/grpc-ecosystem/go-grpc-middleware/v2"
   "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors"
@@ -12,25 +13,55 @@ import (
   "google.golang.org/grpc/codes"
   "google.golang.org/grpc/metadata"
   "google.golang.org/grpc/status"
-  "nexa/shared/constant"
-  sharedErr "nexa/shared/errors"
-  sharedJwt "nexa/shared/jwt"
-  sharedUtil "nexa/shared/util"
   "strings"
 )
 
-func parseToken(tokenStr string, config *AuthData) (*sharedJwt.UserClaims, error) {
-  var claims *sharedJwt.UserClaims
-  token, err := jwt.ParseWithClaims(tokenStr, claims, config.KeyFunc)
+//func getDataFromMD(md metadata.MD) (*AuthorizationConfig, error) {
+//  tokenStr := md.Get(constant.TOKEN_METADATA_KEY)
+//  if len(tokenStr) != 1 {
+//    return nil, errors.New("token metadata is malformed")
+//  }
+//  scheme := md.Get(constant.TOKEN_SCHEME_METADATA_KEY)
+//  if len(scheme) != 1 {
+//    return nil, errors.New("token type is malformed")
+//  }
+//  secret := md.Get(constant.JWT_SECRET_METADATA_KEY)
+//  if len(secret) != 1 {
+//    return nil, errors.New("secret key is malformed")
+//  }
+//  signingMethod := md.Get(constant.JWT_SIGNING_METHOD_METADATA_KEY)
+//  if len(signingMethod) != 1 {
+//    return nil, errors.New("signing method is malformed")
+//  }
+//
+//  return &AuthorizationConfig{
+//    Token:         tokenStr[0],
+//    SigningMethod: jwt.GetSigningMethod(signingMethod[0]),
+//    Scheme:        scheme[0],
+//    KeyFunc: func(token *jwt.Token) (interface{}, error) {
+//      return []byte(secret[0]), nil
+//    },
+//  }, nil
+//}
+
+type AuthorizationConfig[T jwt.Claims] struct {
+  SigningMethod jwt.SigningMethod
+  Scheme        string
+  ClaimsKey     string
+  KeyFunc       jwt.Keyfunc
+}
+
+func (a *AuthorizationConfig[T]) parseToken(tokenStr string) (*T, error) {
+  var claims T
+  _, err := jwt.ParseWithClaims(tokenStr, claims, a.KeyFunc)
   if err != nil {
     return nil, fmt.Errorf("invalid auth token: %v", err)
   }
-  sharedUtil.DoNothing(token)
-  return claims, nil
+  return &claims, nil
 }
 
-func getTokenFromMD(md metadata.MD, data *AuthData) (string, error) {
-  vals := md.Get(data.Scheme)
+func (a *AuthorizationConfig[T]) getTokenFromMD(md metadata.MD) (string, error) {
+  vals := md.Get(a.Scheme)
   if len(vals) != 1 {
     return "", errors.New("token metadata is malformed")
   }
@@ -39,118 +70,47 @@ func getTokenFromMD(md metadata.MD, data *AuthData) (string, error) {
   if !found {
     return "", errors.New("bad authorization string")
   }
-  if !strings.EqualFold(scheme, data.Scheme) {
+  if !strings.EqualFold(scheme, a.Scheme) {
     return "", errors.New("token type is different")
   }
   return token, nil
 }
 
-func getDataFromMD(md metadata.MD) (*AuthData, error) {
-  tokenStr := md.Get(constant.TOKEN_METADATA_KEY)
-  if len(tokenStr) != 1 {
-    return nil, errors.New("token metadata is malformed")
-  }
-  scheme := md.Get(constant.TOKEN_SCHEME_METADATA_KEY)
-  if len(scheme) != 1 {
-    return nil, errors.New("token type is malformed")
-  }
-  secret := md.Get(constant.JWT_SECRET_METADATA_KEY)
-  if len(secret) != 1 {
-    return nil, errors.New("secret key is malformed")
-  }
-  signingMethod := md.Get(constant.JWT_SIGNING_METHOD_METADATA_KEY)
-  if len(signingMethod) != 1 {
-    return nil, errors.New("signing method is malformed")
-  }
-
-  return &AuthData{
-    Token:         tokenStr[0],
-    SigningMethod: jwt.GetSigningMethod(signingMethod[0]),
-    Scheme:        scheme[0],
-    KeyFunc: func(token *jwt.Token) (interface{}, error) {
-      return []byte(secret[0]), nil
-    },
-  }, nil
-}
-
-type AuthData struct {
-  Token         string
-  SigningMethod jwt.SigningMethod
-  Scheme        string
-  KeyFunc       jwt.Keyfunc
-}
-
-func Authorization(ctx context.Context) (context.Context, error) {
-  md, found := metadata.FromIncomingContext(ctx)
-  if !found {
-    return nil, status.Error(codes.Unauthenticated, "no metadata found")
-  }
-
-  data, err := getDataFromMD(md)
-  if err != nil {
-    return ctx, status.Error(codes.Unauthenticated, err.Error())
-  }
-
-  tokenStr, err := getTokenFromMD(md, data)
-  if err != nil {
-    return ctx, status.Error(codes.Unauthenticated, err.Error())
-  }
-
-  claims, err := parseToken(tokenStr, data)
-  if err != nil {
-    return ctx, status.Error(codes.Unauthenticated, err.Error())
-  }
-
-  return context.WithValue(ctx, constant.CLAIMS_CONTEXT_KEY, claims), nil
-}
-
-type PermCheckFunc func(claims *sharedJwt.UserClaims, meta interceptors.CallMeta) bool
-
-type SelectorMatchFunc func(ctx context.Context, callMeta interceptors.CallMeta) bool
-
-func UnaryServerAuth(f PermCheckFunc, sf SelectorMatchFunc) grpc.UnaryServerInterceptor {
-  return selector.UnaryServerInterceptor(
-    permissionCheck(f),
-    selector.MatchFunc(sf),
-  )
-}
-
-func StreamServerAuth(f PermCheckFunc, sf SelectorMatchFunc) grpc.StreamServerInterceptor {
-  return selector.StreamServerInterceptor(
-    permissionCheckStream(f),
-    selector.MatchFunc(sf),
-  )
-}
-
-func permissionCheck(f PermCheckFunc) grpc.UnaryServerInterceptor {
+func unaryAuthorization[T jwt.Claims](conf AuthorizationConfig[T], checkFunc PermCheckFunc[T]) grpc.UnaryServerInterceptor {
   return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-    var err error
+    // Parse token
+    md, found := metadata.FromIncomingContext(ctx)
+    if !found {
+      return nil, status.Error(codes.Unauthenticated, "no metadata found")
+    }
 
-    // Parse and validate token
-    ctx, err = Authorization(ctx)
+    tokenStr, err := conf.getTokenFromMD(md)
     if err != nil {
-      return nil, err
+      return nil, status.Error(codes.Unauthenticated, err.Error())
     }
 
-    claims, err := sharedJwt.GetClaimsFromCtx(ctx)
-    if err != nil { // NOTE: error check is not necessary
-      return nil, status.New(codes.Unauthenticated, err.Error()).Err()
+    claims, err := conf.parseToken(tokenStr)
+    if err != nil {
+      return nil, status.Error(codes.Unauthenticated, err.Error())
     }
 
-    // Check permission based on route
+    // Check permission
     meta := interceptors.NewServerCallMeta(info.FullMethod, nil, req)
-    if !f(claims, meta) {
+    if !checkFunc(claims, meta) {
       return nil, status.New(codes.PermissionDenied, sharedErr.ErrUnauthorized.Error()).Err()
     }
+
+    ctx = context.WithValue(ctx, conf.ClaimsKey, claims)
     return handler(ctx, req)
   }
 }
 
-func permissionCheckStream(f PermCheckFunc) grpc.StreamServerInterceptor {
+func streamAuthorization[T jwt.Claims](conf AuthorizationConfig[T], checkFunc PermCheckFunc[T]) grpc.StreamServerInterceptor {
   return func(srv any, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
     var err error
     var newCtx context.Context
 
+    // Check if server stream is wrapped
     var currCtx context.Context
     wrappedStream, ok := ss.(*middleware.WrappedServerStream)
     if !ok {
@@ -159,25 +119,51 @@ func permissionCheckStream(f PermCheckFunc) grpc.StreamServerInterceptor {
       currCtx = wrappedStream.WrappedContext
     }
 
-    // Parse and validate token
-    newCtx, err = Authorization(currCtx)
-    if err != nil {
-      return err
+    // Parse token
+    md, found := metadata.FromIncomingContext(currCtx)
+    if !found {
+      return status.Error(codes.Unauthenticated, "no metadata found")
     }
 
+    tokenStr, err := conf.getTokenFromMD(md)
+    if err != nil {
+      return status.Error(codes.Unauthenticated, err.Error())
+    }
+
+    claims, err := conf.parseToken(tokenStr)
+    if err != nil {
+      return status.Error(codes.Unauthenticated, err.Error())
+    }
+
+    // Check permission
+    meta := interceptors.NewServerCallMeta(info.FullMethod, info, nil)
+    if !checkFunc(claims, meta) {
+      return status.New(codes.PermissionDenied, sharedErr.ErrUnauthorized.Error()).Err()
+    }
+
+    // Set new context
+    newCtx = context.WithValue(currCtx, conf.ClaimsKey, claims)
     wrappedServerStream := middleware.WrapServerStream(ss)
     wrappedServerStream.WrappedContext = newCtx
 
-    claims, err := sharedJwt.GetClaimsFromCtx(wrappedServerStream.WrappedContext)
-    if err != nil {
-      return status.New(codes.Unauthenticated, err.Error()).Err()
-    }
-
-    // Check permission based on route
-    meta := interceptors.NewServerCallMeta(info.FullMethod, info, nil)
-    if !f(claims, meta) {
-      return status.New(codes.PermissionDenied, sharedErr.ErrUnauthorized.Error()).Err()
-    }
     return handler(srv, wrappedServerStream)
   }
+}
+
+type PermCheckFunc[T jwt.Claims] func(claims *T, meta interceptors.CallMeta) bool
+
+type SelectorMatchFunc func(ctx context.Context, callMeta interceptors.CallMeta) bool
+
+func UnaryServerAuth[T jwt.Claims](config AuthorizationConfig[T], f PermCheckFunc[T], sf SelectorMatchFunc) grpc.UnaryServerInterceptor {
+  return selector.UnaryServerInterceptor(
+    unaryAuthorization[T](config, f),
+    selector.MatchFunc(sf),
+  )
+}
+
+func StreamServerAuth[T jwt.Claims](config AuthorizationConfig[T], f PermCheckFunc[T], sf SelectorMatchFunc) grpc.StreamServerInterceptor {
+  return selector.StreamServerInterceptor(
+    streamAuthorization[T](config, f),
+    selector.MatchFunc(sf),
+  )
 }

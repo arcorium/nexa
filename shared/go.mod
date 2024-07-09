@@ -1,4 +1,4 @@
-module nexa/shared
+module github.com/arcorium/nexa/shared
 
 go 1.22.1
 

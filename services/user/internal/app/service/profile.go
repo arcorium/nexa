@@ -2,6 +2,10 @@ package service
 
 import (
   "context"
+  "github.com/arcorium/nexa/shared/status"
+  "github.com/arcorium/nexa/shared/types"
+  sharedUtil "github.com/arcorium/nexa/shared/util"
+  spanUtil "github.com/arcorium/nexa/shared/util/span"
   "go.opentelemetry.io/otel/trace"
   "nexa/services/user/internal/domain/dto"
   "nexa/services/user/internal/domain/entity"
@@ -9,18 +13,14 @@ import (
   "nexa/services/user/internal/domain/mapper"
   "nexa/services/user/internal/domain/repository"
   "nexa/services/user/internal/domain/service"
-  util2 "nexa/services/user/util"
-  "nexa/shared/status"
-  "nexa/shared/types"
-  "nexa/shared/util"
-  spanUtil "nexa/shared/util/span"
+  "nexa/services/user/util"
 )
 
 func NewProfile(repo repository.IProfile, storageExt external.IFileStorageClient) service.IProfile {
   return &profileService{
     profileRepo: repo,
     storageExt:  storageExt,
-    tracer:      util2.GetTracer(),
+    tracer:      util.GetTracer(),
   }
 }
 
@@ -41,7 +41,7 @@ func (p profileService) Find(ctx context.Context, userIds ...types.Id) ([]dto.Pr
     spanUtil.RecordError(err, span)
     return nil, status.FromRepository(err, status.NullCode)
   }
-  return util.CastSliceP(profiles, mapper.ToProfileResponse), status.Success()
+  return sharedUtil.CastSliceP(profiles, mapper.ToProfileResponse), status.Success()
 }
 
 func (p profileService) Update(ctx context.Context, updateDto *dto.ProfileUpdateDTO) status.Object {

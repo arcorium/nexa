@@ -1,7 +1,7 @@
 package status
 
 import (
-  "nexa/shared/optional"
+  "github.com/arcorium/nexa/shared/optional"
 )
 
 type Code uint

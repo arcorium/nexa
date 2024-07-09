@@ -2,14 +2,14 @@ package external
 
 import (
   "context"
+  authNv1 "github.com/arcorium/nexa/proto/gen/go/authentication/v1"
+  "github.com/arcorium/nexa/shared/types"
+  spanUtil "github.com/arcorium/nexa/shared/util/span"
   "go.opentelemetry.io/otel/trace"
   "google.golang.org/grpc"
-  authNv1 "nexa/proto/gen/go/authentication/v1"
   "nexa/services/user/internal/domain/dto"
   "nexa/services/user/internal/domain/external"
   "nexa/services/user/util"
-  "nexa/shared/types"
-  spanUtil "nexa/shared/util/span"
 )
 
 func NewAuthenticationClient(conn grpc.ClientConnInterface) external.IAuthenticationClient {
