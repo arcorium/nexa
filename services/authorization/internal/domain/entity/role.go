@@ -1,9 +1,9 @@
 package entity
 
 import (
-  sharedJwt "nexa/shared/jwt"
-  "nexa/shared/types"
-  sharedUtil "nexa/shared/util"
+  sharedJwt "github.com/arcorium/nexa/shared/jwt"
+  "github.com/arcorium/nexa/shared/types"
+  sharedUtil "github.com/arcorium/nexa/shared/util"
 )
 
 type Role struct {

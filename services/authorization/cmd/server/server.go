@@ -2,12 +2,16 @@ package main
 
 import (
   "context"
+  "crypto/rsa"
   "errors"
+  sharedConst "github.com/arcorium/nexa/shared/constant"
   "github.com/arcorium/nexa/shared/database"
   "github.com/arcorium/nexa/shared/grpc/interceptor"
+  sharedJwt "github.com/arcorium/nexa/shared/jwt"
   "github.com/arcorium/nexa/shared/logger"
   "github.com/arcorium/nexa/shared/types"
   sharedUtil "github.com/arcorium/nexa/shared/util"
+  "github.com/golang-jwt/jwt/v5"
   promProv "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
   "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
   "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery"
@@ -55,6 +59,7 @@ type Server struct {
   dbConfig     *config.Database
   serverConfig *config.Server
   db           *bun.DB
+  publicKey    *rsa.PublicKey
 
   grpcServer     *grpc.Server
   metricServer   *http.Server
@@ -135,18 +140,42 @@ func (s *Server) grpcServerSetup() error {
     return nil
   }
 
+  interceptor.SkipSelector(inter.AuthSkipSelector)
+
+  keyFunc := func(token *jwt.Token) (any, error) {
+    return s.publicKey, nil
+  }
+
+  authConf := interceptor.CombinationAuthConfig{
+    AuthSelector: inter.AuthSkipSelector,
+    User: interceptor.AuthorizationConfig[sharedJwt.UserClaims]{
+      SigningMethod: jwt.SigningMethodHS256,
+      Scheme:        sharedConst.DEFAULT_ACCESS_TOKEN_SCHEME,
+      ClaimsKey:     sharedConst.USER_CLAIMS_CONTEXT_KEY,
+      KeyFunc:       keyFunc,
+      CheckFunc:     inter.Auth,
+    },
+    ProtectedSelector: inter.ProtectedApiSelector,
+    Protected: interceptor.AuthorizationConfig[sharedJwt.TemporaryClaims]{
+      SigningMethod: jwt.SigningMethodRS256,
+      Scheme:        sharedConst.DEFAULT_ACCESS_TOKEN_SCHEME,
+      ClaimsKey:     sharedConst.TEMP_CLAIMS_CONTEXT_KEY,
+      KeyFunc:       keyFunc,
+    },
+  }
+
   s.grpcServer = grpc.NewServer(
     grpc.StatsHandler(otelgrpc.NewServerHandler()), // tracing
     grpc.ChainUnaryInterceptor(
       recovery.UnaryServerInterceptor(),
       logging.UnaryServerInterceptor(zapLogger), // logging
-      interceptor.UnaryServerAuth(inter.Auth, interceptor.SkipSelector(inter.AuthSkipSelector)),
+      interceptor.UnaryServerCombinationAuth(authConf),
       metrics.UnaryServerInterceptor(promProv.WithExemplarFromContext(exemplarFromCtx)),
     ),
     grpc.ChainStreamInterceptor(
       recovery.StreamServerInterceptor(),
       logging.StreamServerInterceptor(zapLogger), // logging
-      interceptor.StreamServerAuth(inter.Auth, interceptor.SkipSelector(inter.AuthSkipSelector)),
+      interceptor.StreamServerCombinationAuth(authConf),
       metrics.StreamServerInterceptor(promProv.WithExemplarFromContext(exemplarFromCtx)),
     ),
   )
@@ -173,7 +202,7 @@ func (s *Server) grpcServerSetup() error {
 func (s *Server) databaseSetup() error {
   // Database
   var err error
-  s.db, err = database.OpenPostgres(&s.dbConfig.Database, true)
+  s.db, err = database.OpenPostgresWithConfig(&s.dbConfig.PostgresDatabase, true)
   if err != nil {
     return err
   }
@@ -188,6 +217,19 @@ func (s *Server) databaseSetup() error {
 
 func (s *Server) setup() error {
   s.validationSetup()
+
+  // Get public key from PEM
+  data, err := os.ReadFile("pubkey.pem")
+  if err != nil {
+    return err
+  }
+
+  publicKey, err := jwt.ParseRSAPublicKeyFromPEM(data)
+  if err != nil {
+    return err
+  }
+  s.publicKey = publicKey
+
   if err := s.grpcServerSetup(); err != nil {
     return err
   }

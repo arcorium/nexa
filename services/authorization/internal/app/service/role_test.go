@@ -3,6 +3,11 @@ package service
 import (
   "context"
   "database/sql"
+  sharedDto "github.com/arcorium/nexa/shared/dto"
+  "github.com/arcorium/nexa/shared/status"
+  "github.com/arcorium/nexa/shared/types"
+  sharedUtil "github.com/arcorium/nexa/shared/util"
+  "github.com/arcorium/nexa/shared/util/repo"
   "github.com/brianvoe/gofakeit/v7"
   "github.com/stretchr/testify/mock"
   "github.com/stretchr/testify/require"
@@ -12,11 +17,6 @@ import (
   "nexa/services/authorization/internal/domain/dto"
   "nexa/services/authorization/internal/domain/entity"
   repoMock "nexa/services/authorization/internal/domain/repository/mocks"
-  sharedDto "nexa/shared/dto"
-  "nexa/shared/status"
-  "nexa/shared/types"
-  sharedUtil "nexa/shared/util"
-  "nexa/shared/util/repo"
   "reflect"
   "testing"
 )

@@ -2,14 +2,14 @@ package handler
 
 import (
   "context"
+  authZv1 "github.com/arcorium/nexa/proto/gen/go/authorization/v1"
+  spanUtil "github.com/arcorium/nexa/shared/util/span"
   "go.opentelemetry.io/otel/trace"
   "google.golang.org/grpc"
   "google.golang.org/protobuf/types/known/emptypb"
-  authZv1 "nexa/proto/gen/go/authorization/v1"
   "nexa/services/authorization/internal/api/grpc/mapper"
   "nexa/services/authorization/internal/domain/service"
   "nexa/services/authorization/util"
-  spanUtil "nexa/shared/util/span"
 )
 
 func NewAuthorization(authorization service.IAuthorization) AuthorizationHandler {

@@ -2,19 +2,19 @@ package service
 
 import (
   "context"
+  sharedErr "github.com/arcorium/nexa/shared/errors"
+  sharedJwt "github.com/arcorium/nexa/shared/jwt"
+  "github.com/arcorium/nexa/shared/status"
+  "github.com/arcorium/nexa/shared/types"
+  sharedUtil "github.com/arcorium/nexa/shared/util"
+  "github.com/arcorium/nexa/shared/util/auth"
+  spanUtil "github.com/arcorium/nexa/shared/util/span"
   "go.opentelemetry.io/otel/trace"
   "nexa/services/authorization/internal/domain/dto"
   "nexa/services/authorization/internal/domain/entity"
   "nexa/services/authorization/internal/domain/repository"
   "nexa/services/authorization/internal/domain/service"
   "nexa/services/authorization/util"
-  sharedErr "nexa/shared/errors"
-  sharedJwt "nexa/shared/jwt"
-  "nexa/shared/status"
-  "nexa/shared/types"
-  sharedUtil "nexa/shared/util"
-  "nexa/shared/util/auth"
-  spanUtil "nexa/shared/util/span"
 )
 
 func NewAuthorization(roleRepo repository.IRole) service.IAuthorization {

@@ -2,17 +2,17 @@ package service
 
 import (
   "context"
+  sharedDto "github.com/arcorium/nexa/shared/dto"
+  "github.com/arcorium/nexa/shared/status"
+  "github.com/arcorium/nexa/shared/types"
+  sharedUtil "github.com/arcorium/nexa/shared/util"
+  spanUtil "github.com/arcorium/nexa/shared/util/span"
   "go.opentelemetry.io/otel/trace"
   "nexa/services/authorization/internal/domain/dto"
   "nexa/services/authorization/internal/domain/mapper"
   "nexa/services/authorization/internal/domain/repository"
   "nexa/services/authorization/internal/domain/service"
   "nexa/services/authorization/util"
-  sharedDto "nexa/shared/dto"
-  "nexa/shared/status"
-  "nexa/shared/types"
-  sharedUtil "nexa/shared/util"
-  spanUtil "nexa/shared/util/span"
 )
 
 func NewPermission(permission repository.IPermission) service.IPermission {

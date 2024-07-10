@@ -1,9 +1,9 @@
 package mapper
 
 import (
+  "github.com/arcorium/nexa/shared/util"
   "nexa/services/authorization/internal/domain/dto"
   "nexa/services/authorization/internal/domain/entity"
-  "nexa/shared/util"
 )
 
 func ToRoleResponseDTO(role *entity.Role) dto.RoleResponseDTO {

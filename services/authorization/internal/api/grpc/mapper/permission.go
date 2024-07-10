@@ -1,9 +1,9 @@
 package mapper
 
 import (
-  authZv1 "nexa/proto/gen/go/authorization/v1"
+  authZv1 "github.com/arcorium/nexa/proto/gen/go/authorization/v1"
+  sharedUtil "github.com/arcorium/nexa/shared/util"
   "nexa/services/authorization/internal/domain/dto"
-  sharedUtil "nexa/shared/util"
 )
 
 func ToCreatePermissionDTO(input *authZv1.CreatePermissionRequest) (dto.PermissionCreateDTO, error) {

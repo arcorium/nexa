@@ -1,0 +1,103 @@
+services:
+  db:
+    image: postgres
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U nexa -d nexa-authz" ]
+      interval: 5s
+      retries: 10
+    environment:
+      - POSTGRES_DB=nexa-authz
+      - POSTGRES_USER=nexa
+      - POSTGRES_PASSWORD=nexa
+    networks:
+      - me_network
+  jaeger:
+    image: jaegertracing/all-in-one:1.58
+    ports:
+      - 6831:6831/udp
+      - 6832:6832/udp
+      - 5778:5778
+      - 16686:16686
+      - 4317:4317
+      - 4318:4318
+      - 14250:14250
+      - 14268:14268
+      - 14269:14269
+      - 9411:9411
+    environment:
+      - COLLECTOR_ZIPKIN_HOST_PORT=:9411
+    networks:
+      - me_network
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - ./docker/prometheus.yml:/etc/prometheus/prometheus.yml:Z
+    ports:
+      - 9090
+    networks:
+      - me_network
+  nexa-auth-migrate:
+    build:
+      dockerfile: ./docker/migrate.Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - PG_ADDRESS=db
+      - PG_USERNAME=nexa
+      - PG_PASSWORD=nexa
+      - PG_DB_NAME=nexa-authz
+      - PG_IS_SECURE=false
+    networks:
+      - me_network
+  nexa-auth-seed:
+    build:
+      dockerfile: ./docker/seed.Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+      nexa-auth-migrate:
+        condition: service_completed_successfully
+        restart: false
+    environment:
+      - PG_ADDRESS=db
+      - PG_USERNAME=nexa
+      - PG_PASSWORD=nexa
+      - PG_DB_NAME=nexa-authz
+      - PG_IS_SECURE=false
+    networks:
+      - me_network
+  nexa-authz:
+    build:
+      dockerfile: ./docker/app.Dockerfile
+    restart: unless-stopped
+    depends_on:
+      nexa-auth-seed:
+        condition: service_completed_successfully
+        restart: false
+      nexa-auth-migrate:
+        condition: service_completed_successfully
+        restart: false
+      jaeger:
+        condition: service_started
+      prometheus:
+        condition: service_started
+    environment:
+      - SERVER_IP=0.0.0.0
+      - SERVER_PORT=8080
+      - METRIC_PORT=8081
+      - PG_ADDRESS=db
+      - PG_USERNAME=nexa
+      - PG_PASSWORD=nexa
+      - PG_DB_NAME=nexa-authz
+      - PG_PARAMETER=application_name=nexa-authorization
+      - PG_IS_SECURE=false
+      - OTLP_GRPC_COLLECTOR_ADDRESS=jaeger:4317
+    ports:
+      - 8080:8080
+      - 8081:8081
+    networks:
+      - me_network
+networks:
+  me_network:
+    driver: bridge

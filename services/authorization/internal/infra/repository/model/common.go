@@ -1,9 +1,9 @@
 package model
 
 import (
+  "github.com/arcorium/nexa/shared/database"
+  "github.com/arcorium/nexa/shared/types"
   "github.com/uptrace/bun"
-  "nexa/shared/database"
-  "nexa/shared/types"
 )
 
 var models = []any{

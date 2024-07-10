@@ -18,7 +18,8 @@ func AuthSkipSelector(_ context.Context, callMeta interceptors.CallMeta) bool {
 }
 
 func ProtectedApiSelector(_ context.Context, callMeta interceptors.CallMeta) bool {
-  return callMeta.FullMethod() == authZv1.RoleService_AppendSuperRolePermissions_FullMethodName
+  return callMeta.FullMethod() == authZv1.RoleService_AppendSuperRolePermissions_FullMethodName ||
+      callMeta.FullMethod() == authZv1.RoleService_SetAsSuper_FullMethodName
 }
 
 func Auth(claims *sharedJwt.UserClaims, meta interceptors.CallMeta) bool {
@@ -41,8 +42,9 @@ func Auth(claims *sharedJwt.UserClaims, meta interceptors.CallMeta) bool {
     fallthrough
   case authZv1.RoleService_RemovePermissions_FullMethodName:
     return authUtil.ContainsPermission(claims.Roles, constant.AUTHZ_PERMISSIONS[constant.AUTHZ_MODIFY_USER_ROLE])
+  default:
+    logger.Warnf("Unknown method: %s", meta.FullMethod())
   }
 
-  logger.Warn("Unknown method")
   return true
 }

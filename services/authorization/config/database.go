@@ -1,7 +1,7 @@
 package config
 
-import sharedConf "nexa/shared/config"
+import sharedConf "github.com/arcorium/nexa/shared/config"
 
 type Database struct {
-  sharedConf.Database
+  sharedConf.PostgresDatabase
 }

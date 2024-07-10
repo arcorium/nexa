@@ -14,6 +14,7 @@ func main() {
   }
 
   db, err := database.OpenPostgresWithConfig(dbConfig, true)
+  //db, err := database.OpenPostgres("postgres://postgres:password@localhost:5432/postgres", false, 0, true)
   if err != nil {
     log.Fatalln(err)
   }
@@ -24,4 +25,6 @@ func main() {
   if err = model.CreateTables(db); err != nil {
     log.Fatalln(err)
   }
+
+  log.Println("Success migrate database: ", dbConfig.DSN())
 }

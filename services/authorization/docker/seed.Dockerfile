@@ -12,7 +12,7 @@ COPY . .
 RUN go mod tidy
 RUN go mod download
 
-RUN go build -o build/server "./cmd/server/"
+RUN go build -o build/seed "./cmd/seed/"
 
 # Run tester
 FROM builder AS test-runner
@@ -22,13 +22,8 @@ RUN go test ./...
 # Runner
 FROM alpine:latest AS runner
 
-COPY --from=builder /app/build/* /app/pubkey.pem /app/
+COPY --from=builder /app/build/* /app/
 
 WORKDIR /app
 
-# Grpc Server
-EXPOSE 8080
-# Metric Server
-EXPOSE 8081
-
-ENTRYPOINT ["./server"]
+ENTRYPOINT ["./seed"]

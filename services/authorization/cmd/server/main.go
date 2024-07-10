@@ -1,17 +1,19 @@
 package main
 
 import (
+  sharedConf "github.com/arcorium/nexa/shared/config"
+  "github.com/arcorium/nexa/shared/env"
+  "github.com/arcorium/nexa/shared/logger"
   "log"
   "nexa/services/authorization/config"
-  sharedConf "nexa/shared/config"
-  "nexa/shared/env"
-  "nexa/shared/logger"
 )
 
 func main() {
-  err := env.LoadEnvs("dev.env")
-  if err != nil {
-    log.Fatalln(err)
+  var err error
+  if config.IsDebug() {
+    err = env.LoadEnvs("dev.env")
+  } else {
+    err = env.LoadEnvs()
   }
 
   // Config
@@ -22,7 +24,7 @@ func main() {
 
   serverConfig, err := sharedConf.Load[config.Server]()
   if err != nil {
-    log.Fatalln(err)
+    env.LogError(err, -1)
   }
 
   // Init global logger

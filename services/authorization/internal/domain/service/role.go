@@ -2,10 +2,10 @@ package service
 
 import (
   "context"
+  sharedDto "github.com/arcorium/nexa/shared/dto"
+  "github.com/arcorium/nexa/shared/status"
+  "github.com/arcorium/nexa/shared/types"
   "nexa/services/authorization/internal/domain/dto"
-  sharedDto "nexa/shared/dto"
-  "nexa/shared/status"
-  "nexa/shared/types"
 )
 
 type IRole interface {

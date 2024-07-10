@@ -1,12 +1,12 @@
 package model
 
 import (
+  "github.com/arcorium/nexa/shared/types"
+  "github.com/arcorium/nexa/shared/util"
+  "github.com/arcorium/nexa/shared/util/repo"
+  "github.com/arcorium/nexa/shared/variadic"
   "github.com/uptrace/bun"
   "nexa/services/authorization/internal/domain/entity"
-  "nexa/shared/types"
-  "nexa/shared/util"
-  "nexa/shared/util/repo"
-  "nexa/shared/variadic"
   "time"
 )
 
@@ -44,7 +44,7 @@ type Role struct {
   bun.BaseModel `bun:"table:roles"`
 
   Id          string  `bun:",nullzero,type:uuid,pk"`
-  Name        string  `bun:",nullzero,unique"`
+  Name        string  `bun:",nullzero,notnull,unique"`
   Description *string `bun:","`
 
   UpdatedAt time.Time `bun:",nullzero"`

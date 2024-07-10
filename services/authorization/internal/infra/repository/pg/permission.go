@@ -2,16 +2,16 @@ package pg
 
 import (
   "context"
+  "github.com/arcorium/nexa/shared/types"
+  sharedUtil "github.com/arcorium/nexa/shared/util"
+  "github.com/arcorium/nexa/shared/util/repo"
+  spanUtil "github.com/arcorium/nexa/shared/util/span"
   "github.com/uptrace/bun"
   "go.opentelemetry.io/otel/trace"
   "nexa/services/authorization/internal/domain/entity"
   "nexa/services/authorization/internal/domain/repository"
   "nexa/services/authorization/internal/infra/repository/model"
   "nexa/services/authorization/util"
-  "nexa/shared/types"
-  sharedUtil "nexa/shared/util"
-  "nexa/shared/util/repo"
-  spanUtil "nexa/shared/util/span"
   "time"
 )
 

@@ -2,8 +2,8 @@ package service
 
 import (
   "context"
+  "github.com/arcorium/nexa/shared/status"
   "nexa/services/authorization/internal/domain/dto"
-  "nexa/shared/status"
 )
 
 type IAuthorization interface {

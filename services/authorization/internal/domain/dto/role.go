@@ -1,8 +1,8 @@
 package dto
 
 import (
+  "github.com/arcorium/nexa/shared/types"
   "nexa/services/authorization/internal/domain/entity"
-  "nexa/shared/types"
 )
 
 type RoleCreateDTO struct {

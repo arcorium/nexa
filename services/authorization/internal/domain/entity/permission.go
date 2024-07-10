@@ -2,7 +2,7 @@ package entity
 
 import (
   "fmt"
-  "nexa/shared/types"
+  "github.com/arcorium/nexa/shared/types"
   "time"
 )
 

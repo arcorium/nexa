@@ -1,8 +1,27 @@
 
-create.key:
-	openssl genpkey -algorithm RSA -out privkey.pem
-	openssl rsa -pubout -in privkey.pem -out pubkey.pem
+PRIVATE_KEY=privkey.pem
+PUBLIC_KEY=pubkey.pem
 
+prepare: create.key distribute.key
+
+create.key:
+	openssl genpkey -algorithm RSA -out $(PRIVATE_KEY)
+	openssl rsa -pubout -in $(PRIVATE_KEY) -out $(PUBLIC_KEY)
+
+distribute.key:
+	@echo "Distribute public key"
+	@for svc in ./services/*; do \
+		if [ -d $$svc ]; then \
+			cp $(PUBLIC_KEY) $$svc/; \
+			echo "Public key copied to $$svc"; \
+	  	fi \
+	done
+	@rm $(PUBLIC_KEY)
+	@echo "Distribute private key"
+	@cp $(PRIVATE_KEY) ./services/authentication/
+	@cp $(PRIVATE_KEY) ./token_generator/
+	@rm $(PRIVATE_KEY)
+	@echo "Distributing done"
 
 create.service:
 	mkdir services\$(service)
