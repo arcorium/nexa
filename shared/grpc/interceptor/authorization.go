@@ -53,6 +53,10 @@ type AuthorizationConfig[T jwt.Claims] struct {
   CheckFunc     PermCheckFunc[T]
 }
 
+func (a *AuthorizationConfig[T]) Valid() bool {
+  return a.SigningMethod != nil && len(a.Scheme) != 0 && len(a.ClaimsKey) != 0 && a.KeyFunc != nil
+}
+
 func (a *AuthorizationConfig[T]) extract(ctx context.Context) (*T, error) {
   // Parse token
   md, found := metadata.FromIncomingContext(ctx)
@@ -183,17 +187,24 @@ type CombinationAuthConfig struct {
   Protected         AuthorizationConfig[sharedJwt.TemporaryClaims]
 }
 
+func (c *CombinationAuthConfig) Valid() bool {
+  return c.User.Valid() && c.Protected.Valid()
+}
+
 // UnaryServerCombinationAuth create unary server interceptor for authorization both for user and protected API.
 // It is used for minimalize checking redundancy with bypassing the user authorization check when it is
 // already handled by protected API authorization. Authorization selector only will be called if only
 // the request(rpc) is not handled by protected API authorization.
 func UnaryServerCombinationAuth(conf CombinationAuthConfig) grpc.UnaryServerInterceptor {
+  if !conf.Valid() {
+    panic("Config has empty values on non-nilable field")
+  }
   return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
     meta := interceptors.NewServerCallMeta(info.FullMethod, nil, req)
     // Run selector
     if conf.ProtectedSelector(ctx, meta) {
       // Handle for auth
-      return unaryAuthorization(conf.Protected)(ctx, req, info, handler)
+      return unaryAuthorization(conf.Protected)(ctx, req, info, handler) // WARN: Save it as variable outside closure?
     }
 
     // Doesn't need authorization
@@ -201,18 +212,22 @@ func UnaryServerCombinationAuth(conf CombinationAuthConfig) grpc.UnaryServerInte
       return handler(ctx, req)
     }
 
-    return unaryAuthorization(conf.User)(ctx, req, info, handler)
+    return unaryAuthorization(conf.User)(ctx, req, info, handler) // WARN: Save it as variable outside closure?
   }
 }
 
 // StreamServerCombinationAuth works the same as UnaryServerCombinationAuth, but it works for stream.
 func StreamServerCombinationAuth(conf CombinationAuthConfig) grpc.StreamServerInterceptor {
+  if !conf.Valid() {
+    panic("Config has empty values on non-nilable field")
+  }
+
   return func(srv any, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
     meta := interceptors.NewServerCallMeta(info.FullMethod, info, nil)
     // Run selector
     if conf.ProtectedSelector(ss.Context(), meta) {
       // Handle for auth
-      return streamAuthorization(conf.Protected)(srv, ss, info, handler)
+      return streamAuthorization(conf.Protected)(srv, ss, info, handler) // WARN: Save it as variable outside closure?
     }
 
     // Doesn't need authorization
@@ -220,6 +235,6 @@ func StreamServerCombinationAuth(conf CombinationAuthConfig) grpc.StreamServerIn
       return handler(srv, ss)
     }
 
-    return streamAuthorization(conf.User)(srv, ss, info, handler)
+    return streamAuthorization(conf.User)(srv, ss, info, handler) // WARN: Save it as variable outside closure?
   }
 }

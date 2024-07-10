@@ -12,7 +12,7 @@ import (
   "time"
 )
 
-func OpenPostgresWithConfig(config *config.Database, log bool) (*bun.DB, error) {
+func OpenPostgresWithConfig(config *config.PostgresDatabase, log bool) (*bun.DB, error) {
   options := []pgdriver.Option{
     pgdriver.WithDSN(config.DSN()),
     pgdriver.WithInsecure(!config.IsSecure),
