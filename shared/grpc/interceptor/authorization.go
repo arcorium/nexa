@@ -5,6 +5,7 @@ import (
   "errors"
   "fmt"
   sharedErr "github.com/arcorium/nexa/shared/errors"
+  sharedJwt "github.com/arcorium/nexa/shared/jwt"
   "github.com/golang-jwt/jwt/v5"
   middleware "github.com/grpc-ecosystem/go-grpc-middleware/v2"
   "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors"
@@ -49,6 +50,27 @@ type AuthorizationConfig[T jwt.Claims] struct {
   Scheme        string
   ClaimsKey     string
   KeyFunc       jwt.Keyfunc
+  CheckFunc     PermCheckFunc[T]
+}
+
+func (a *AuthorizationConfig[T]) extract(ctx context.Context) (*T, error) {
+  // Parse token
+  md, found := metadata.FromIncomingContext(ctx)
+  if !found {
+    return nil, errors.New("no metadata found")
+  }
+
+  tokenStr, err := a.getTokenFromMD(md)
+  if err != nil {
+    return nil, err
+  }
+
+  claims, err := a.parseToken(tokenStr)
+  if err != nil {
+    return nil, err
+  }
+
+  return claims, nil
 }
 
 func (a *AuthorizationConfig[T]) parseToken(tokenStr string) (*T, error) {
@@ -76,27 +98,19 @@ func (a *AuthorizationConfig[T]) getTokenFromMD(md metadata.MD) (string, error) 
   return token, nil
 }
 
-func unaryAuthorization[T jwt.Claims](conf AuthorizationConfig[T], checkFunc PermCheckFunc[T]) grpc.UnaryServerInterceptor {
+// unaryAuthorization extract claims from context and check the permission based on argument. If the permission check function is nil
+// it will bypass it and only do the claim extraction.
+func unaryAuthorization[T jwt.Claims](conf AuthorizationConfig[T]) grpc.UnaryServerInterceptor {
   return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-    // Parse token
-    md, found := metadata.FromIncomingContext(ctx)
-    if !found {
-      return nil, status.Error(codes.Unauthenticated, "no metadata found")
-    }
-
-    tokenStr, err := conf.getTokenFromMD(md)
-    if err != nil {
-      return nil, status.Error(codes.Unauthenticated, err.Error())
-    }
-
-    claims, err := conf.parseToken(tokenStr)
+    // extract claims from token in context
+    claims, err := conf.extract(ctx)
     if err != nil {
       return nil, status.Error(codes.Unauthenticated, err.Error())
     }
 
     // Check permission
     meta := interceptors.NewServerCallMeta(info.FullMethod, nil, req)
-    if !checkFunc(claims, meta) {
+    if conf.CheckFunc != nil && !conf.CheckFunc(claims, meta) {
       return nil, status.New(codes.PermissionDenied, sharedErr.ErrUnauthorized.Error()).Err()
     }
 
@@ -105,7 +119,8 @@ func unaryAuthorization[T jwt.Claims](conf AuthorizationConfig[T], checkFunc Per
   }
 }
 
-func streamAuthorization[T jwt.Claims](conf AuthorizationConfig[T], checkFunc PermCheckFunc[T]) grpc.StreamServerInterceptor {
+// streamAuthorization works like unaryAuthorization but for stream
+func streamAuthorization[T jwt.Claims](conf AuthorizationConfig[T]) grpc.StreamServerInterceptor {
   return func(srv any, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
     var err error
     var newCtx context.Context
@@ -119,25 +134,14 @@ func streamAuthorization[T jwt.Claims](conf AuthorizationConfig[T], checkFunc Pe
       currCtx = wrappedStream.WrappedContext
     }
 
-    // Parse token
-    md, found := metadata.FromIncomingContext(currCtx)
-    if !found {
-      return status.Error(codes.Unauthenticated, "no metadata found")
-    }
-
-    tokenStr, err := conf.getTokenFromMD(md)
-    if err != nil {
-      return status.Error(codes.Unauthenticated, err.Error())
-    }
-
-    claims, err := conf.parseToken(tokenStr)
+    claims, err := conf.extract(currCtx)
     if err != nil {
       return status.Error(codes.Unauthenticated, err.Error())
     }
 
     // Check permission
     meta := interceptors.NewServerCallMeta(info.FullMethod, info, nil)
-    if !checkFunc(claims, meta) {
+    if conf.CheckFunc != nil && !conf.CheckFunc(claims, meta) {
       return status.New(codes.PermissionDenied, sharedErr.ErrUnauthorized.Error()).Err()
     }
 
@@ -154,16 +158,68 @@ type PermCheckFunc[T jwt.Claims] func(claims *T, meta interceptors.CallMeta) boo
 
 type SelectorMatchFunc func(ctx context.Context, callMeta interceptors.CallMeta) bool
 
-func UnaryServerAuth[T jwt.Claims](config AuthorizationConfig[T], f PermCheckFunc[T], sf SelectorMatchFunc) grpc.UnaryServerInterceptor {
+// UnaryServerAuth create unary server interceptor for authorization which will extract token into claims
+// and doing the permission check based on the config. Selector used to determine if the request should be forwarded
+// to authorization or not. type T is used to determine the structure of the claims
+func UnaryServerAuth[T jwt.Claims](config AuthorizationConfig[T], sf SelectorMatchFunc) grpc.UnaryServerInterceptor {
   return selector.UnaryServerInterceptor(
-    unaryAuthorization[T](config, f),
+    unaryAuthorization[T](config),
     selector.MatchFunc(sf),
   )
 }
 
-func StreamServerAuth[T jwt.Claims](config AuthorizationConfig[T], f PermCheckFunc[T], sf SelectorMatchFunc) grpc.StreamServerInterceptor {
+// StreamServerAuth works the same as UnaryServerAuth, but it works for stream.
+func StreamServerAuth[T jwt.Claims](config AuthorizationConfig[T], sf SelectorMatchFunc) grpc.StreamServerInterceptor {
   return selector.StreamServerInterceptor(
-    streamAuthorization[T](config, f),
+    streamAuthorization[T](config),
     selector.MatchFunc(sf),
   )
+}
+
+type CombinationAuthConfig struct {
+  AuthSelector      SelectorMatchFunc
+  User              AuthorizationConfig[sharedJwt.UserClaims]
+  ProtectedSelector SelectorMatchFunc
+  Protected         AuthorizationConfig[sharedJwt.TemporaryClaims]
+}
+
+// UnaryServerCombinationAuth create unary server interceptor for authorization both for user and protected API.
+// It is used for minimalize checking redundancy with bypassing the user authorization check when it is
+// already handled by protected API authorization. Authorization selector only will be called if only
+// the request(rpc) is not handled by protected API authorization.
+func UnaryServerCombinationAuth(conf CombinationAuthConfig) grpc.UnaryServerInterceptor {
+  return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
+    meta := interceptors.NewServerCallMeta(info.FullMethod, nil, req)
+    // Run selector
+    if conf.ProtectedSelector(ctx, meta) {
+      // Handle for auth
+      return unaryAuthorization(conf.Protected)(ctx, req, info, handler)
+    }
+
+    // Doesn't need authorization
+    if !conf.AuthSelector(ctx, meta) {
+      return handler(ctx, req)
+    }
+
+    return unaryAuthorization(conf.User)(ctx, req, info, handler)
+  }
+}
+
+// StreamServerCombinationAuth works the same as UnaryServerCombinationAuth, but it works for stream.
+func StreamServerCombinationAuth(conf CombinationAuthConfig) grpc.StreamServerInterceptor {
+  return func(srv any, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+    meta := interceptors.NewServerCallMeta(info.FullMethod, info, nil)
+    // Run selector
+    if conf.ProtectedSelector(ss.Context(), meta) {
+      // Handle for auth
+      return streamAuthorization(conf.Protected)(srv, ss, info, handler)
+    }
+
+    // Doesn't need authorization
+    if !conf.AuthSelector(ss.Context(), meta) {
+      return handler(srv, ss)
+    }
+
+    return streamAuthorization(conf.User)(srv, ss, info, handler)
+  }
 }

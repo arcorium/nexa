@@ -2,12 +2,12 @@ package interceptor
 
 import (
   "context"
+  authZv1 "github.com/arcorium/nexa/proto/gen/go/authorization/v1"
+  sharedJwt "github.com/arcorium/nexa/shared/jwt"
+  "github.com/arcorium/nexa/shared/logger"
+  authUtil "github.com/arcorium/nexa/shared/util/auth"
   "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors"
-  authZv1 "nexa/proto/gen/go/authorization/v1"
   "nexa/services/authorization/constant"
-  sharedJwt "nexa/shared/jwt"
-  "nexa/shared/logger"
-  authUtil "nexa/shared/util/auth"
   "strings"
 )
 
@@ -15,6 +15,10 @@ func AuthSkipSelector(_ context.Context, callMeta interceptors.CallMeta) bool {
   return callMeta.Service == authZv1.PermissionService_ServiceDesc.ServiceName ||
       strings.EqualFold(callMeta.FullMethod(), authZv1.RoleService_GetUsers_FullMethodName) ||
       strings.EqualFold(callMeta.FullMethod(), authZv1.RoleService_AppendSuperRolePermissions_FullMethodName)
+}
+
+func ProtectedApiSelector(_ context.Context, callMeta interceptors.CallMeta) bool {
+  return callMeta.FullMethod() == authZv1.RoleService_AppendSuperRolePermissions_FullMethodName
 }
 
 func Auth(claims *sharedJwt.UserClaims, meta interceptors.CallMeta) bool {

@@ -27,8 +27,8 @@ require (
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/Microsoft/hcsshim v0.11.5 // indirect
-	github.com/arcorium/nexa/proto/gen/go v0.0.0-20240709165956-44aebf90ae18 // indirect
-	github.com/arcorium/nexa/shared v0.0.0-20240709165956-44aebf90ae18 // indirect
+	github.com/arcorium/nexa/proto/gen/go v0.0.0-20240710024709-34d7738a9a61 // indirect
+	github.com/arcorium/nexa/shared v0.0.0-20240710024709-34d7738a9a61 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/caarlos0/env/v10 v10.0.0 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect

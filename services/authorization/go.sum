@@ -10,8 +10,12 @@ github.com/Microsoft/hcsshim v0.11.5 h1:haEcLNpj9Ka1gd3B3tAEs9CpE0c+1IhoL59w/exY
 github.com/Microsoft/hcsshim v0.11.5/go.mod h1:MV8xMfmECjl5HdO7U/3/hFVnkmSBjAjmA09d4bExKcU=
 github.com/arcorium/nexa/proto/gen/go v0.0.0-20240709165956-44aebf90ae18 h1:2lPFiZ9bPqsCc4U1IyKlMRSxC4EgsTM+4xxtBP6CQtA=
 github.com/arcorium/nexa/proto/gen/go v0.0.0-20240709165956-44aebf90ae18/go.mod h1:iNK4pbds+qZ1Lf0s+MYFT3cNBDs96K2YeB6vYAPmlgY=
+github.com/arcorium/nexa/proto/gen/go v0.0.0-20240710024709-34d7738a9a61 h1:iK+L5U27iBerR3Kt9UAa92YUP3OBsTDcyzwa+tlV2ZE=
+github.com/arcorium/nexa/proto/gen/go v0.0.0-20240710024709-34d7738a9a61/go.mod h1:iNK4pbds+qZ1Lf0s+MYFT3cNBDs96K2YeB6vYAPmlgY=
 github.com/arcorium/nexa/shared v0.0.0-20240709165956-44aebf90ae18 h1:wQ4OsCGKShCw3Uv0Vpiob8qw3WUGbdGdLMCjPQGQYz8=
 github.com/arcorium/nexa/shared v0.0.0-20240709165956-44aebf90ae18/go.mod h1:LI4pgmPsTfmcSDTt80IKLbn6vmkmyQZSVeuNFGMR/CM=
+github.com/arcorium/nexa/shared v0.0.0-20240710024709-34d7738a9a61 h1:/XyI3tKbJRA/7y53dcBIj5DFvSm3mM4/leSH3gZg3uo=
+github.com/arcorium/nexa/shared v0.0.0-20240710024709-34d7738a9a61/go.mod h1:LI4pgmPsTfmcSDTt80IKLbn6vmkmyQZSVeuNFGMR/CM=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
 github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6rlkpw=
 github.com/brianvoe/gofakeit/v7 v7.0.4 h1:Mkxwz9jYg8Ad8NvT9HA27pCMZGFQo08MK6jD0QTKEww=
