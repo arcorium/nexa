@@ -6,6 +6,7 @@ import (
   middleware "github.com/grpc-ecosystem/go-grpc-middleware/v2"
   "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors"
   "google.golang.org/grpc"
+  "google.golang.org/grpc/health/grpc_health_v1"
 )
 
 func GetWrappedServerStream(server grpc.ServerStream) (*middleware.WrappedServerStream, error) {
@@ -16,9 +17,17 @@ func GetWrappedServerStream(server grpc.ServerStream) (*middleware.WrappedServer
   return stream, nil
 }
 
-// SkipSelector will negate the returned condition
+// SkipSelector will negate the returned condition and add  HealthCheckSkipSelector to skip healthcheck endpoint
 func SkipSelector(matchFunc SelectorMatchFunc) SelectorMatchFunc {
   return func(ctx context.Context, callMeta interceptors.CallMeta) bool {
-    return !matchFunc(ctx, callMeta)
+    return !HealthCheckSkipSelector(ctx, callMeta) || !matchFunc(ctx, callMeta)
   }
+}
+
+func HealthCheckSkipSelector(_ context.Context, meta interceptors.CallMeta) bool {
+  return meta.Service == grpc_health_v1.Health_ServiceDesc.ServiceName
+}
+
+func HealthCheckSelector(_ context.Context, meta interceptors.CallMeta) bool {
+  return meta.Service != grpc_health_v1.Health_ServiceDesc.ServiceName
 }

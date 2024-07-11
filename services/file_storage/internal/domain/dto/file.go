@@ -16,7 +16,7 @@ type FileResponseDTO struct {
 }
 
 type FileStoreDTO struct {
-  Name     string // Filename is ignored and only extension is used
+  Name     string
   Data     []byte `validate:"required"`
   IsPublic bool   `validate:"required"`
 }
@@ -28,7 +28,7 @@ func (s *FileStoreDTO) ToDomain(provider entity.StorageProvider) (entity.File, e
   }
 
   ext := path.Ext(s.Name)
-  filename := fmt.Sprintf("%s.%s", id.Hash(sha512.New()), ext)
+  filename := fmt.Sprintf("%s%s", id.Hash(sha512.New()), ext)
 
   file := entity.File{
     Name:     filename,
@@ -39,7 +39,7 @@ func (s *FileStoreDTO) ToDomain(provider entity.StorageProvider) (entity.File, e
 
   metadata := entity.FileMetadata{
     Id:       id,
-    Name:     filename,
+    Name:     s.Name,
     MimeType: util.GetMimeType(s.Name),
     Size:     uint64(len(s.Data)),
     IsPublic: s.IsPublic,

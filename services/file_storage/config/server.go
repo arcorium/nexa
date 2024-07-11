@@ -4,8 +4,9 @@ import "github.com/arcorium/nexa/shared/config"
 
 type Server struct {
   config.Server
-  PublicKeyPath string `env:"PUBLIC_KEY_PATH"`
   Storage       Storage
+  PublicKeyPath string `env:"PUBLIC_KEY_PATH"`
+  BucketName    string `env:"BUCKET_NAME,notEmpty"`
 }
 
 type Storage struct {

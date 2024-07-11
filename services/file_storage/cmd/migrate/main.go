@@ -14,7 +14,6 @@ func main() {
   if config.IsDebug() {
     envName = "dev.env"
   }
-
   _ = env.LoadEnvs(envName)
 
   dbConfig, err := sharedConf.Load[sharedConf.PostgresDatabase]()
@@ -33,4 +32,6 @@ func main() {
   if err = model.CreateTables(db); err != nil {
     log.Fatalln(err)
   }
+
+  log.Println("Succeed migrate database: ", dbConfig.DSN())
 }

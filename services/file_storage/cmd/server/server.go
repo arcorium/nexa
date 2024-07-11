@@ -121,6 +121,7 @@ func (s *Server) setupOtel() (*promProv.ServerMetrics, *prometheus.Registry, err
 
 func (s *Server) grpcServerSetup() error {
   // Log
+  s.logger = logger.GetGlobal()
   zaplogger, ok := s.logger.(*logger.ZapLogger)
   if !ok {
     return errors.New("logger is not of expected type, expected zap")
@@ -216,7 +217,6 @@ func (s *Server) setup() error {
   if err := s.setupKey(); err != nil {
     return err
   }
-
   if err := s.grpcServerSetup(); err != nil {
     return err
   }
@@ -226,7 +226,7 @@ func (s *Server) setup() error {
 
   // External client
   {
-    storageClient, err := external.NewMinIOStorage(false, "public", &external.MinIOClientConfig{
+    storageClient, err := external.NewMinIOStorage(false, s.serverConfig.BucketName, &external.MinIOClientConfig{
       Address:         s.serverConfig.Storage.Address,
       AccessKeyID:     s.serverConfig.Storage.AccessKey,
       SecretAccessKey: s.serverConfig.Storage.SecretKey,

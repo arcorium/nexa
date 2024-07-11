@@ -4,10 +4,8 @@ import (
   "context"
   "crypto/rsa"
   "errors"
-  sharedConst "github.com/arcorium/nexa/shared/constant"
   "github.com/arcorium/nexa/shared/database"
   "github.com/arcorium/nexa/shared/grpc/interceptor"
-  sharedJwt "github.com/arcorium/nexa/shared/jwt"
   "github.com/arcorium/nexa/shared/logger"
   "github.com/arcorium/nexa/shared/types"
   sharedUtil "github.com/arcorium/nexa/shared/util"
@@ -140,28 +138,11 @@ func (s *Server) grpcServerSetup() error {
     return nil
   }
 
-  interceptor.SkipSelector(inter.AuthSkipSelector)
-
-  keyFunc := func(token *jwt.Token) (any, error) {
-    return s.publicKey, nil
-  }
-
   authConf := interceptor.CombinationAuthConfig{
-    AuthSelector: inter.AuthSkipSelector,
-    User: interceptor.AuthorizationConfig[sharedJwt.UserClaims]{
-      SigningMethod: jwt.SigningMethodHS256,
-      Scheme:        sharedConst.DEFAULT_ACCESS_TOKEN_SCHEME,
-      ClaimsKey:     sharedConst.USER_CLAIMS_CONTEXT_KEY,
-      KeyFunc:       keyFunc,
-      CheckFunc:     inter.Auth,
-    },
+    AuthSelector:      interceptor.SkipSelector(inter.AuthSkipSelector),
+    User:              interceptor.NewUserAuthorizationConfig(s.publicKey, inter.Auth),
     ProtectedSelector: inter.ProtectedApiSelector,
-    Protected: interceptor.AuthorizationConfig[sharedJwt.TemporaryClaims]{
-      SigningMethod: jwt.SigningMethodRS256,
-      Scheme:        sharedConst.DEFAULT_ACCESS_TOKEN_SCHEME,
-      ClaimsKey:     sharedConst.TEMP_CLAIMS_CONTEXT_KEY,
-      KeyFunc:       keyFunc,
-    },
+    Protected:         interceptor.NewProtectedAuthorizationConfig(s.publicKey, nil),
   }
 
   s.grpcServer = grpc.NewServer(

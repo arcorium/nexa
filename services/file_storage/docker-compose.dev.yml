@@ -1,0 +1,64 @@
+services:
+  db:
+    image: postgres
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U nexa -d nexa-file" ]
+      interval: 5s
+      retries: 10
+    environment:
+      - POSTGRES_DB=nexa-file
+      - POSTGRES_USER=nexa
+      - POSTGRES_PASSWORD=nexa
+    ports:
+      - "5432:5432"
+    networks:
+      - nf_network
+  minio:
+    image: quay.io/minio/minio
+    healthcheck:
+      test: ["CMD-SHELL", "mc ready local"]
+      retries: 10
+      interval: 5s
+    environment:
+      - MINIO_ROOT_USER=root
+      - MINIO_ROOT_PASSWORD=rootroot123
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    command: 'server /data --console-address ":9001"'
+    networks:
+      - nf_network
+  jaeger:
+    image: jaegertracing/all-in-one:1.58
+    ports:
+      - 6831:6831/udp
+      - 6832:6832/udp
+      - 5778:5778
+      - 16686:16686
+      - 4317:4317
+      - 4318:4318
+      - 14250:14250
+      - 14268:14268
+      - 14269:14269
+      - 9411:9411
+    environment:
+      - COLLECTOR_ZIPKIN_HOST_PORT=:9411
+    networks:
+      - nf_network
+  nexa-storage-migrate:
+    build:
+      dockerfile: ./docker/migrate.Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - PG_ADDRESS=db
+      - PG_USERNAME=nexa
+      - PG_PASSWORD=nexa
+      - PG_DB_NAME=nexa-file
+      - PG_IS_SECURE=false
+    networks:
+      - nf_network
+networks:
+  nf_network:
+    driver: bridge

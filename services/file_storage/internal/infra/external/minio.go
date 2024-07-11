@@ -3,6 +3,7 @@ package external
 import (
   "bytes"
   "context"
+  "fmt"
   "github.com/arcorium/nexa/shared/types"
   spanUtil "github.com/arcorium/nexa/shared/util/span"
   "github.com/minio/minio-go/v7"
@@ -12,6 +13,7 @@ import (
   domain "nexa/services/file_storage/internal/domain/entity"
   "nexa/services/file_storage/internal/domain/external"
   "nexa/services/file_storage/util"
+  "strings"
   "time"
 )
 
@@ -85,24 +87,25 @@ func (m *MinIO) setup() error {
     // This policy allow the data to be read by anonymous
     policy := `
     {
-      "Version": "2012-10-17",
-      "Statement": [
-        {
-          "Effect": "Allow",
-          "Principal": {
-            "AWS": [
-              "*"
-            ]
-          },
-          "Action": [
-            "s3:GetObject"
-          ],
-          "Resource": [
-            "arn:aws:s3:::` + m.Bucket + `/*"
-          ]
-        }
-      ]
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Principal": {
+                    "AWS": [
+                        "*"
+                    ]
+                },
+                "Action": [
+                    "s3:GetObject"
+                ],
+                "Resource": [
+                    "arn:aws:s3:::` + m.Bucket + `/public/*"
+                ]
+            }
+        ]
     }`
+
     err = m.client.SetBucketPolicy(ctx, m.Bucket, policy)
     if err != nil {
       return err
@@ -111,8 +114,12 @@ func (m *MinIO) setup() error {
   return nil
 }
 
-func (m *MinIO) filepath(filename string) string {
-  return filename
+func (m *MinIO) GetProviderPath(filename string, expectedPublic bool) types.FilePath {
+  if expectedPublic {
+    return types.FilePathFromString(fmt.Sprintf("public/%s", filename))
+  }
+  // Disallow public/ prefix for non-public file
+  return types.FilePathFromString(strings.TrimPrefix(filename, "public/"))
 }
 
 func (m *MinIO) Find(ctx context.Context, filename string) (domain.File, error) {
@@ -149,7 +156,7 @@ func (m *MinIO) Store(ctx context.Context, file *domain.File) (string, error) {
     ContentType: util.GetMimeType(file.Name),
   }
 
-  info, err := m.client.PutObject(ctx, m.Bucket, file.Name, reader, int64(file.Size), opt)
+  info, err := m.client.PutObject(ctx, m.Bucket, m.GetProviderPath(file.Name, file.IsPublic).String(), reader, int64(file.Size), opt)
   if err != nil {
     spanUtil.RecordError(err, span)
     return "", err
@@ -172,7 +179,7 @@ func (m *MinIO) GetFullPath(ctx context.Context, filename string) (types.FilePat
   ctx, span := m.tracer.Start(ctx, "MinIOStorage.GetFullPath")
   defer span.End()
 
-  url, err := m.client.PresignedGetObject(ctx, m.Bucket, m.filepath(filename), time.Hour*24, nil)
+  url, err := m.client.PresignedGetObject(ctx, m.Bucket, filename, time.Hour*24, nil)
   if err != nil {
     spanUtil.RecordError(err, span)
     return "", err
@@ -182,13 +189,14 @@ func (m *MinIO) GetFullPath(ctx context.Context, filename string) (types.FilePat
 }
 
 func (m *MinIO) Copy(ctx context.Context, src, dest string) (string, error) {
-  ctx, span := m.tracer.Start(ctx, "MinIOStorage.Move")
+  ctx, span := m.tracer.Start(ctx, "MinIOStorage.Copy")
   defer span.End()
 
   srcOpt := minio.CopySrcOptions{
     Bucket: m.Bucket,
     Object: src,
   }
+
   dstOpt := minio.CopyDestOptions{
     Bucket: m.Bucket,
     Object: dest,

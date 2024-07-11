@@ -11,7 +11,7 @@ import (
 // FromRepository override only the code when the error is sql.ErrNoRows and use the sql.ErrNoRows as the error
 func FromRepository(err error, notFoundCode optional.Object[Code]) Object {
   if errors.Is(err, sql.ErrNoRows) {
-    return New(notFoundCode.ValueOr(OBJECT_NOT_FOUND), err)
+    return NewWithMessage(notFoundCode.ValueOr(OBJECT_NOT_FOUND), "Object not found")
   }
   return Error(REPOSITORY_ERROR, err)
 }
@@ -20,10 +20,6 @@ func FromRepository(err error, notFoundCode optional.Object[Code]) Object {
 func FromRepositoryOverride(err error, notFoundOver ...types.Pair[Code, error]) Object {
   va := variadic.New(notFoundOver...)
   if errors.Is(err, sql.ErrNoRows) && va.HasValue() {
-    if len(va.Values()) > 1 {
-      panic("Too many values, expected only single object")
-    }
-
     over, _ := va.First()
     return New(over.First, over.Second)
   }

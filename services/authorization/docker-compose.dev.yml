@@ -28,14 +28,6 @@ services:
       - COLLECTOR_ZIPKIN_HOST_PORT=:9411
     networks:
       - naz_network
-  prometheus:
-    image: prom/prometheus
-    volumes:
-      - ./docker/prometheus.yml:/etc/prometheus/prometheus.yml:Z
-    ports:
-      - 9090
-    networks:
-      - naz_network
   nexa-auth-migrate:
     build:
       dockerfile: ./docker/migrate.Dockerfile
@@ -79,8 +71,6 @@ services:
         condition: service_completed_successfully
         restart: false
       jaeger:
-        condition: service_started
-      prometheus:
         condition: service_started
     environment:
       - PG_ADDRESS=db

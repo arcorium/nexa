@@ -2,15 +2,30 @@ services:
   db:
     image: postgres
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U nexa -d nexa-authz" ]
+      test: [ "CMD-SHELL", "pg_isready -U nexa -d nexa-file" ]
       interval: 5s
       retries: 10
     environment:
-      - POSTGRES_DB=nexa-authz
+      - POSTGRES_DB=nexa-file
       - POSTGRES_USER=nexa
       - POSTGRES_PASSWORD=nexa
     networks:
-      - naz_network
+      - nf_network
+  minio:
+    image: quay.io/minio/minio
+    healthcheck:
+      test: ["CMD-SHELL", "mc ready local"]
+      retries: 10
+      interval: 5s
+    environment:
+      - MINIO_ROOT_USER=root
+      - MINIO_ROOT_PASSWORD=rootroot123
+    ports:
+      - "9000"
+      - "9001"
+    command: server /data
+    networks:
+      - nf_network
   jaeger:
     image: jaegertracing/all-in-one:1.58
     ports:
@@ -27,16 +42,8 @@ services:
     environment:
       - COLLECTOR_ZIPKIN_HOST_PORT=:9411
     networks:
-      - naz_network
-  prometheus:
-    image: prom/prometheus
-    volumes:
-      - ./docker/prometheus.yml:/etc/prometheus/prometheus.yml:Z
-    ports:
-      - 9090
-    networks:
-      - naz_network
-  nexa-auth-migrate:
+      - nf_network
+  nexa-storage-migrate:
     build:
       dockerfile: ./docker/migrate.Dockerfile
     depends_on:
@@ -46,55 +53,40 @@ services:
       - PG_ADDRESS=db
       - PG_USERNAME=nexa
       - PG_PASSWORD=nexa
-      - PG_DB_NAME=nexa-authz
+      - PG_DB_NAME=nexa-file
       - PG_IS_SECURE=false
     networks:
-      - naz_network
-  nexa-auth-seed:
-    build:
-      dockerfile: ./docker/seed.Dockerfile
-    depends_on:
-      db:
-        condition: service_healthy
-      nexa-auth-migrate:
-        condition: service_completed_successfully
-        restart: false
-    environment:
-      - PG_ADDRESS=db
-      - PG_USERNAME=nexa
-      - PG_PASSWORD=nexa
-      - PG_DB_NAME=nexa-authz
-      - PG_IS_SECURE=false
-    networks:
-      - naz_network
-  nexa-authz:
+      - nf_network
+  nexa-storage:
     build:
       dockerfile: ./docker/app.Dockerfile
     restart: unless-stopped
     depends_on:
-      nexa-auth-seed:
-        condition: service_completed_successfully
-        restart: false
-      nexa-auth-migrate:
+      nexa-storage-migrate:
         condition: service_completed_successfully
         restart: false
       jaeger:
         condition: service_started
       prometheus:
         condition: service_started
+      minio:
+        condition: service_healthy
     environment:
       - PG_ADDRESS=db
       - PG_USERNAME=nexa
       - PG_PASSWORD=nexa
-      - PG_DB_NAME=nexa-authz
-      - PG_PARAMETER=application_name=nexa-authorization
+      - PG_DB_NAME=nexa-file
+      - PG_PARAMETER=application_name=nexa-file
       - PG_IS_SECURE=false
       - OTLP_GRPC_COLLECTOR_ADDRESS=jaeger:4317
+      - MINIO_ADDRESS=minio:9000
+      - MINIO_ACCESS_KEY_ID=root
+      - MINIO_SECRET_KEY=rootroot123
     ports:
       - "8080:8080"
       - "8081"
     networks:
-      - naz_network
+      - nf_network
 networks:
-  naz_network:
+  nf_network:
     driver: bridge

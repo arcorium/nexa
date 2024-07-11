@@ -3,7 +3,6 @@ package service
 import (
   "context"
   "errors"
-  "fmt"
   "github.com/arcorium/nexa/shared/status"
   "github.com/arcorium/nexa/shared/types"
   sharedUow "github.com/arcorium/nexa/shared/uow"
@@ -32,16 +31,12 @@ type fileStorage struct {
   tracer trace.Tracer
 }
 
-func (f *fileStorage) publicPath(filename string) string {
-  return fmt.Sprintf("/public/%s", filename)
-}
-
-func (f *fileStorage) Store(ctx context.Context, fileDto *dto.FileStoreDTO) (types.Id, status.Object) {
+func (f *fileStorage) Store(ctx context.Context, storeDto *dto.FileStoreDTO) (types.Id, status.Object) {
   ctx, span := f.tracer.Start(ctx, "FileStorageService.Store")
   defer span.End()
 
   // Map to domain
-  file, metadata, err := fileDto.ToDomain(f.storageExt.GetProvider())
+  file, metadata, err := storeDto.ToDomain(f.storageExt.GetProvider())
   if err != nil {
     spanUtil.RecordError(err, span)
     return types.NullId(), status.ErrInternal(err)
@@ -60,7 +55,7 @@ func (f *fileStorage) Store(ctx context.Context, fileDto *dto.FileStoreDTO) (typ
     }
 
     defer func() {
-      // Delete file when it error on get full path or creating metadata
+      // Delete file when there is an error on get full path or creating metadata
       if err == nil {
         return
       }
@@ -76,7 +71,7 @@ func (f *fileStorage) Store(ctx context.Context, fileDto *dto.FileStoreDTO) (typ
     metadata.ProviderPath = relativePath
 
     // Get fullpath for public file
-    if fileDto.IsPublic {
+    if storeDto.IsPublic {
       path, err := f.storageExt.GetFullPath(ctx, relativePath)
       if err != nil {
         spanUtil.RecordError(err, span)
@@ -124,6 +119,8 @@ func (f *fileStorage) Find(ctx context.Context, id types.Id) (dto.FileResponseDT
     return dto.FileResponseDTO{}, status.ErrExternal(err)
   }
 
+  // set original name as name
+  file.Name = metadata[0].Name
   return mapper.ToFileResponse(&file), status.Success()
 }
 
@@ -204,12 +201,11 @@ func (f *fileStorage) Move(ctx context.Context, updateDto *dto.UpdateFileMetadat
     ctx, span = f.tracer.Start(ctx, "UOW.Move")
     defer span.End()
 
+    // Get destination path
+    dest := f.storageExt.GetProviderPath(metadata[0].ProviderPath, updateDto.IsPublic)
+
     // Copy file
-    dest := metadata[0].Name
-    if updateDto.IsPublic {
-      dest = f.publicPath(dest)
-    }
-    newPath, err := f.storageExt.Copy(ctx, metadata[0].ProviderPath, dest)
+    newPath, err := f.storageExt.Copy(ctx, metadata[0].ProviderPath, dest.String())
     if err != nil {
       spanUtil.RecordError(err, span)
       stat = status.ErrExternal(err)

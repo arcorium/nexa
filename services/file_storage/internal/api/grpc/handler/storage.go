@@ -5,7 +5,6 @@ import (
   storagev1 "github.com/arcorium/nexa/proto/gen/go/file_storage/v1"
   sharedErr "github.com/arcorium/nexa/shared/errors"
   "github.com/arcorium/nexa/shared/grpc/interceptor"
-  "github.com/arcorium/nexa/shared/logger"
   "github.com/arcorium/nexa/shared/types"
   sharedUtil "github.com/arcorium/nexa/shared/util"
   spanUtil "github.com/arcorium/nexa/shared/util/span"
@@ -39,12 +38,12 @@ func (s *StorageHandler) Register(server *grpc.Server) {
 
 func (s *StorageHandler) Find(request *storagev1.FindFileRequest, server storagev1.FileStorageService_FindServer) error {
   stream, err := interceptor.GetWrappedServerStream(server)
-  if err != nil {
-    logger.Fatal(err.Error())
-    return err
+  ctx := server.Context()
+  if err == nil {
+    ctx = stream.WrappedContext
   }
 
-  ctx, span := s.tracer.Start(stream.WrappedContext, "StorageHandler.Find")
+  ctx, span := s.tracer.Start(ctx, "StorageHandler.Find")
   defer span.End()
 
   id, err := types.IdFromString(request.FileId)
@@ -98,12 +97,12 @@ func (s *StorageHandler) FindMetadata(ctx context.Context, request *storagev1.Fi
 
 func (s *StorageHandler) Store(server storagev1.FileStorageService_StoreServer) error {
   stream, err := interceptor.GetWrappedServerStream(server)
-  if err != nil {
-    logger.Fatal(err.Error())
-    return err
+  ctx := server.Context()
+  if err == nil {
+    ctx = stream.WrappedContext
   }
 
-  ctx, span := s.tracer.Start(stream.WrappedContext, "StorageHandler.FindMetadata")
+  ctx, span := s.tracer.Start(ctx, "StorageHandler.FindMetadata")
   defer span.End()
 
   storeDto := dto.FileStoreDTO{}
@@ -117,6 +116,7 @@ func (s *StorageHandler) Store(server storagev1.FileStorageService_StoreServer) 
       return err
     }
     storeDto.Name = req.Filename
+    storeDto.IsPublic = req.IsPublic
     storeDto.Data = append(storeDto.Data, req.Chunk...)
   }
 
@@ -137,7 +137,7 @@ func (s *StorageHandler) Store(server storagev1.FileStorageService_StoreServer) 
 }
 
 func (s *StorageHandler) Update(ctx context.Context, request *storagev1.UpdateFileRequest) (*emptypb.Empty, error) {
-  ctx, span := s.tracer.Start(ctx, "StorageHandler.Move")
+  ctx, span := s.tracer.Start(ctx, "StorageHandler.Update")
   defer span.End()
 
   dtos, err := mapper.ToUpdateMetadataDTO(request)

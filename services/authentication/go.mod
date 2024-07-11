@@ -26,9 +26,6 @@ require (
 	google.golang.org/protobuf v1.34.2
 )
 
-replace (
-	github.com/arcorium/nexa/shared => ../../shared
-)
 
 require (
 	dario.cat/mergo v1.0.0 // indirect

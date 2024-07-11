@@ -17,5 +17,9 @@ type IStorage interface {
   Delete(ctx context.Context, filename string) error
   // GetFullPath get download path for specific file
   GetFullPath(ctx context.Context, filename string) (types.FilePath, error)
+  // GetProviderPath will return the path for expected location. it should not call any external client,
+  // instead it should just create new path. for example for filename.png as filename and public is true
+  // it should return something like public/filename.png or only filename.png for public is false
+  GetProviderPath(filename string, public bool) types.FilePath
   GetProvider() domain.StorageProvider
 }

@@ -46,7 +46,7 @@ type FileMetadata struct {
   bun.BaseModel `bun:"table:file_metadata"`
 
   Id       string       `bun:",type:uuid,pk,nullzero"`
-  Filename string       `bun:",unique,notnull,nullzero"`
+  Filename string       `bun:",notnull,nullzero"`
   MimeType string       `bun:",nullzero,notnull"`
   Size     uint64       `bun:",notnull,nullzero"`
   IsPublic sql.NullBool `bun:",notnull,default:false"`
@@ -78,6 +78,7 @@ func (m *FileMetadata) ToDomain() (entity.FileMetadata, error) {
     IsPublic:     m.IsPublic.Bool,
     Provider:     provider,
     ProviderPath: m.StoragePath,
+    FullPath:     types.OnNil(m.FullPath, ""),
     CreatedAt:    m.CreatedAt,
     LastModified: m.UpdatedAt,
   }, nil

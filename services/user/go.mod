@@ -34,10 +34,6 @@ require (
 	github.com/testcontainers/testcontainers-go/modules/postgres v0.31.0
 )
 
-replace (
-github.com/arcorium/nexa/shared => ../../shared
-)
-
 require (
 	dario.cat/mergo v1.0.0 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
