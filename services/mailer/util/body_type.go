@@ -2,7 +2,7 @@ package util
 
 import (
   "errors"
-  mailerv1 "nexa/proto/gen/go/mailer/v1"
+  mailerv1 "github.com/arcorium/nexa/proto/gen/go/mailer/v1"
   domain "nexa/services/mailer/internal/domain/entity"
 )
 

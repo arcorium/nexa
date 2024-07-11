@@ -1,8 +1,8 @@
 package dto
 
 import (
+  "github.com/arcorium/nexa/shared/types"
   domain "nexa/services/mailer/internal/domain/entity"
-  "nexa/shared/types"
 )
 
 type CreateTagDTO struct {

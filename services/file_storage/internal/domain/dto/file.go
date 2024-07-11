@@ -3,9 +3,9 @@ package dto
 import (
   "crypto/sha512"
   "fmt"
+  "github.com/arcorium/nexa/shared/types"
   entity "nexa/services/file_storage/internal/domain/entity"
   "nexa/services/file_storage/util"
-  "nexa/shared/types"
   "path"
 )
 

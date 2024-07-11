@@ -2,9 +2,9 @@ package repository
 
 import (
   "context"
+  "github.com/arcorium/nexa/shared/types"
+  "github.com/arcorium/nexa/shared/util/repo"
   domain "nexa/services/mailer/internal/domain/entity"
-  "nexa/shared/types"
-  "nexa/shared/util/repo"
 )
 
 type MailTags = types.Pair[types.Id, []types.Id]

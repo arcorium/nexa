@@ -280,7 +280,7 @@ func Test_userService_DeleteById(t *testing.T) {
       },
       args: args{
         userId: types.Must(types.IdFromString(self.UserId)),
-        ctx: context.WithValue(context.Background(), sharedConst.CLAIMS_CONTEXT_KEY,
+        ctx: context.WithValue(context.Background(), sharedConst.USER_CLAIMS_CONTEXT_KEY,
           self),
       },
       want: status.Deleted(),
@@ -301,7 +301,7 @@ func Test_userService_DeleteById(t *testing.T) {
       },
       args: args{
         userId: types.MustCreateId(),
-        ctx: context.WithValue(context.Background(), sharedConst.CLAIMS_CONTEXT_KEY,
+        ctx: context.WithValue(context.Background(), sharedConst.USER_CLAIMS_CONTEXT_KEY,
           generateUserClaims(generateRole(constant.USER_DELETE, constant.USER_DELETE_ARB))),
       },
       want: status.FromRepository(sql.ErrNoRows, status.NullCode),
@@ -325,7 +325,7 @@ func Test_userService_DeleteById(t *testing.T) {
       },
       args: args{
         userId: types.MustCreateId(),
-        ctx: context.WithValue(context.Background(), sharedConst.CLAIMS_CONTEXT_KEY,
+        ctx: context.WithValue(context.Background(), sharedConst.USER_CLAIMS_CONTEXT_KEY,
           generateUserClaims(generateRole(constant.USER_DELETE, constant.USER_DELETE_ARB))),
       },
       want: status.Deleted(),
@@ -367,7 +367,7 @@ func Test_userService_EmailVerificationRequest(t *testing.T) {
       name: "Success request an email verification",
       setup: func(mocked *userMocked, arg any, want any) {
         a := arg.(*args)
-        claims, _ := sharedJwt.GetClaimsFromCtx(a.ctx)
+        claims, _ := sharedJwt.GetUserClaimsFromCtx(a.ctx)
         userId := types.Must(types.IdFromString(claims.UserId))
 
         mocked.AuthN.EXPECT().
@@ -404,7 +404,7 @@ func Test_userService_EmailVerificationRequest(t *testing.T) {
       name: "User not found",
       setup: func(mocked *userMocked, arg any, want any) {
         a := arg.(*args)
-        claims, _ := sharedJwt.GetClaimsFromCtx(a.ctx)
+        claims, _ := sharedJwt.GetUserClaimsFromCtx(a.ctx)
         userId := types.Must(types.IdFromString(claims.UserId))
 
         mocked.UOW.EXPECT().
@@ -426,7 +426,7 @@ func Test_userService_EmailVerificationRequest(t *testing.T) {
       name: "Failed generate token",
       setup: func(mocked *userMocked, arg any, want any) {
         a := arg.(*args)
-        claims, _ := sharedJwt.GetClaimsFromCtx(a.ctx)
+        claims, _ := sharedJwt.GetUserClaimsFromCtx(a.ctx)
         userId := types.Must(types.IdFromString(claims.UserId))
 
         mocked.AuthN.EXPECT().
@@ -946,7 +946,7 @@ func Test_userService_Update(t *testing.T) {
 
         mocked.defaultUOWMock()
 
-        claims, err := sharedJwt.GetClaimsFromCtx(a.ctx)
+        claims, err := sharedJwt.GetUserClaimsFromCtx(a.ctx)
         require.NoError(t, err)
 
         a.input.Id = types.Must(types.IdFromString(claims.UserId))
@@ -1045,7 +1045,7 @@ func Test_userService_UpdatePassword(t *testing.T) {
 
         mocked.defaultUOWMock()
 
-        claims, err := sharedJwt.GetClaimsFromCtx(a.ctx)
+        claims, err := sharedJwt.GetUserClaimsFromCtx(a.ctx)
         require.NoError(t, err)
 
         a.input.Id = types.Must(types.IdFromString(claims.UserId))
@@ -1352,7 +1352,7 @@ func Test_userService_checkPermission(t *testing.T) {
       setup: func(mocked *userMocked, arg any, want any) {
         a := arg.(*args)
 
-        claims, err := sharedJwt.GetClaimsFromCtx(a.ctx)
+        claims, err := sharedJwt.GetUserClaimsFromCtx(a.ctx)
         require.NoError(t, err)
 
         a.targetId = types.Must(types.IdFromString(claims.UserId))
@@ -1415,5 +1415,5 @@ func generateUserClaims(roles ...sharedJwt.Role) *sharedJwt.UserClaims {
 }
 
 func generateClaimsCtx(actions ...string) context.Context {
-  return context.WithValue(context.Background(), sharedConst.CLAIMS_CONTEXT_KEY, generateUserClaims(generateRole(actions...)))
+  return context.WithValue(context.Background(), sharedConst.USER_CLAIMS_CONTEXT_KEY, generateUserClaims(generateRole(actions...)))
 }

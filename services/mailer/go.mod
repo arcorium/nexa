@@ -21,17 +21,17 @@ require (
 )
 
 require (
+	github.com/arcorium/nexa/proto/gen/go v0.0.0-20240710160026-c4fecbbcc734
+	github.com/arcorium/nexa/shared v0.0.0-20240710160026-c4fecbbcc734
 	github.com/brianvoe/gofakeit/v7 v7.0.3
+	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/stretchr/testify v1.9.0
+	github.com/testcontainers/testcontainers-go v0.32.0
+	github.com/testcontainers/testcontainers-go/modules/postgres v0.32.0
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
-	nexa/proto/gen/go v0.0.0
-	nexa/shared v0.0.0
 )
 
-replace (
-	nexa/proto/gen/go => ../../proto/gen/go
-	nexa/shared => ../../shared/
-)
+replace github.com/arcorium/nexa/shared => ../../shared
 
 require (
 	dario.cat/mergo v1.0.0 // indirect
@@ -61,7 +61,6 @@ require (
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.19.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
-	github.com/golang-jwt/jwt/v5 v5.2.1 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.20.0 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/joho/godotenv v1.5.1 // indirect
@@ -89,8 +88,6 @@ require (
 	github.com/shoenig/go-m1cpu v0.1.6 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
-	github.com/testcontainers/testcontainers-go v0.32.0 // indirect
-	github.com/testcontainers/testcontainers-go/modules/postgres v0.32.0 // indirect
 	github.com/tklauser/go-sysconf v0.3.12 // indirect
 	github.com/tklauser/numcpus v0.6.1 // indirect
 	github.com/tmthrgd/go-hex v0.0.0-20190904060850-447a3041c3bc // indirect

@@ -2,17 +2,17 @@ package service
 
 import (
   "context"
+  sharedDto "github.com/arcorium/nexa/shared/dto"
+  "github.com/arcorium/nexa/shared/status"
+  "github.com/arcorium/nexa/shared/types"
+  sharedUtil "github.com/arcorium/nexa/shared/util"
+  spanUtil "github.com/arcorium/nexa/shared/util/span"
   "go.opentelemetry.io/otel/trace"
   "nexa/services/mailer/internal/domain/dto"
   "nexa/services/mailer/internal/domain/mapper"
   "nexa/services/mailer/internal/domain/repository"
   "nexa/services/mailer/internal/domain/service"
   "nexa/services/mailer/util"
-  sharedDto "nexa/shared/dto"
-  "nexa/shared/status"
-  "nexa/shared/types"
-  sharedUtil "nexa/shared/util"
-  spanUtil "nexa/shared/util/span"
 )
 
 func NewTag(repo repository.ITag) service.ITag {

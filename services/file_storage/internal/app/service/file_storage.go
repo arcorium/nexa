@@ -4,6 +4,10 @@ import (
   "context"
   "errors"
   "fmt"
+  "github.com/arcorium/nexa/shared/status"
+  "github.com/arcorium/nexa/shared/types"
+  sharedUow "github.com/arcorium/nexa/shared/uow"
+  spanUtil "github.com/arcorium/nexa/shared/util/span"
   "go.opentelemetry.io/otel/trace"
   "nexa/services/file_storage/internal/app/uow"
   "nexa/services/file_storage/internal/domain/dto"
@@ -11,10 +15,6 @@ import (
   "nexa/services/file_storage/internal/domain/mapper"
   "nexa/services/file_storage/internal/domain/service"
   "nexa/services/file_storage/util"
-  "nexa/shared/status"
-  "nexa/shared/types"
-  sharedUow "nexa/shared/uow"
-  spanUtil "nexa/shared/util/span"
 )
 
 func NewFileStorage(unit sharedUow.IUnitOfWork[uow.FileMetadataStorage], storage external.IStorage) service.IFileStorage {

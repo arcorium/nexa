@@ -1,12 +1,12 @@
 package mapper
 
 import (
+  authv1 "github.com/arcorium/nexa/proto/gen/go/authentication/v1"
+  sharedErr "github.com/arcorium/nexa/shared/errors"
+  "github.com/arcorium/nexa/shared/types"
   "google.golang.org/protobuf/types/known/timestamppb"
-  authv1 "nexa/proto/gen/go/authentication/v1"
   "nexa/services/authentication/internal/domain/dto"
   "nexa/services/authentication/internal/domain/entity"
-  sharedErr "nexa/shared/errors"
-  "nexa/shared/types"
 )
 
 func ToCreateTokenDTO(req *authv1.TokenCreateRequest) (dto.TokenCreateDTO, error) {

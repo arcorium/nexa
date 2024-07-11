@@ -1,38 +1,39 @@
 package config
 
 import (
+  sharedConf "github.com/arcorium/nexa/shared/config"
+  sharedJwt "github.com/arcorium/nexa/shared/jwt"
   "github.com/golang-jwt/jwt/v5"
-  sharedConf "nexa/shared/config"
   "time"
 )
 
 type Server struct {
   sharedConf.Server
-  TokenExpiration           time.Duration
-  JWTAccessTokenExpiration  time.Duration
-  JWTRefreshTokenExpiration time.Duration
-  JWTSigningMethod          string
-  JWTSecretKey              string
+  TokenExpiration           time.Duration `env:"TOKEN_EXPIRATION" envDefault:"24h"`
+  JWTAccessTokenExpiration  time.Duration `env:"JWT_ACCESS_TOKEN_EXP" envDefault:"5m"`
+  JWTRefreshTokenExpiration time.Duration `env:"JWT_REFRESH_TOKEN_EXP" envDefault:"30d"`
+  JWTSigningMethod          string        `env:"JWT_SIGNING_METHOD"`
+  PrivateKeyPath            string        `env:"PRIVATE_KEY_PATH"`
+  PublicKeyPath             string        `env:"PUBLIC_KEY_PATH"`
 
-  AuthorizationClientAddress string
-  UserClientAddress          string
+  Service Service
 
   signingMethod jwt.SigningMethod
 }
 
 func (s *Server) SigningMethod() jwt.SigningMethod {
   if s.signingMethod == nil {
-    s.signingMethod = jwt.GetSigningMethod(s.JWTSigningMethod)
+    if len(s.JWTSigningMethod) == 0 {
+      s.signingMethod = sharedJwt.DefaultSigningMethod
+    } else {
+      s.signingMethod = jwt.GetSigningMethod(s.JWTSigningMethod)
+    }
   }
   return s.signingMethod
 }
 
-func (s *Server) SecretKey() []byte {
-  return []byte(s.JWTSecretKey)
-}
-
-func (s *Server) KeyFunc() jwt.Keyfunc {
-  return func(token *jwt.Token) (interface{}, error) {
-    return s.SecretKey(), nil
-  }
+type Service struct {
+  Authorization string `env:"AUTHZ_SERVICE_ADDR,notEmpty"`
+  User          string `env:"USER_SERVICE_ADDR,notEmpty"`
+  Mailer        string `env:"MAILER_SERVICE_ADDR,notEmpty"`
 }

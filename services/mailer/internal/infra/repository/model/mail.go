@@ -2,13 +2,13 @@ package model
 
 import (
   "database/sql"
+  sharedErr "github.com/arcorium/nexa/shared/errors"
+  "github.com/arcorium/nexa/shared/types"
+  "github.com/arcorium/nexa/shared/util"
+  "github.com/arcorium/nexa/shared/util/repo"
+  "github.com/arcorium/nexa/shared/variadic"
   "github.com/uptrace/bun"
   domain "nexa/services/mailer/internal/domain/entity"
-  sharedErr "nexa/shared/errors"
-  "nexa/shared/types"
-  "nexa/shared/util"
-  "nexa/shared/util/repo"
-  "nexa/shared/variadic"
   "time"
 )
 

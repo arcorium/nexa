@@ -1,6 +1,6 @@
 package constant
 
-import sharedConst "nexa/shared/constant"
+import sharedConst "github.com/arcorium/nexa/shared/constant"
 
 const CLAIMS_ISSUER = "nexa-auth"
 

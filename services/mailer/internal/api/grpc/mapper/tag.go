@@ -1,11 +1,11 @@
 package mapper
 
 import (
-  mailerv1 "nexa/proto/gen/go/mailer/v1"
+  mailerv1 "github.com/arcorium/nexa/proto/gen/go/mailer/v1"
+  sharedErr "github.com/arcorium/nexa/shared/errors"
+  "github.com/arcorium/nexa/shared/types"
+  sharedUtil "github.com/arcorium/nexa/shared/util"
   "nexa/services/mailer/internal/domain/dto"
-  sharedErr "nexa/shared/errors"
-  "nexa/shared/types"
-  sharedUtil "nexa/shared/util"
 )
 
 func ToCreateTagDTO(request *mailerv1.CreateTagRequest) (dto.CreateTagDTO, error) {

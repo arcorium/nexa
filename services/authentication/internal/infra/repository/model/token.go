@@ -1,11 +1,11 @@
 package model
 
 import (
+  "github.com/arcorium/nexa/shared/types"
+  "github.com/arcorium/nexa/shared/util/repo"
+  "github.com/arcorium/nexa/shared/variadic"
   "github.com/uptrace/bun"
   "nexa/services/authentication/internal/domain/entity"
-  "nexa/shared/types"
-  "nexa/shared/util/repo"
-  "nexa/shared/variadic"
   "time"
 )
 

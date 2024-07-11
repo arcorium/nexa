@@ -1,12 +1,12 @@
 package main
 
 import (
+  sharedConf "github.com/arcorium/nexa/shared/config"
+  "github.com/arcorium/nexa/shared/database"
+  "github.com/arcorium/nexa/shared/env"
   "log"
   "nexa/services/mailer/config"
   "nexa/services/mailer/internal/infra/repository/model"
-  sharedConf "nexa/shared/config"
-  "nexa/shared/database"
-  "nexa/shared/env"
 )
 
 func main() {
@@ -15,16 +15,14 @@ func main() {
     envName = "dev.env"
   }
 
-  if err := env.LoadEnvs(envName); err != nil {
-    log.Println(err)
-  }
+  _ = env.LoadEnvs(envName)
 
-  dbConfig, err := sharedConf.LoadDatabase()
+  dbConfig, err := sharedConf.Load[sharedConf.PostgresDatabase]()
   if err != nil {
     log.Fatalln(err)
   }
 
-  db, err := database.OpenPostgres(dbConfig, true)
+  db, err := database.OpenPostgresWithConfig(dbConfig, true)
   if err != nil {
     log.Fatalln(err)
   }
@@ -36,8 +34,5 @@ func main() {
     log.Fatalln(err)
   }
 
-  // Seed data
-  if err = model.SeedDefaultTags(db); err != nil {
-    log.Fatalln(err)
-  }
+  log.Println("Succeed migrate database: ", dbConfig.DSN())
 }

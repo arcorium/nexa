@@ -2,6 +2,12 @@ package pg
 
 import (
   "context"
+  "fmt"
+  sharedConf "github.com/arcorium/nexa/shared/config"
+  "github.com/arcorium/nexa/shared/database"
+  "github.com/arcorium/nexa/shared/types"
+  "github.com/arcorium/nexa/shared/util"
+  "github.com/arcorium/nexa/shared/util/repo"
   "github.com/brianvoe/gofakeit/v7"
   "github.com/stretchr/testify/suite"
   "github.com/testcontainers/testcontainers-go"
@@ -14,14 +20,8 @@ import (
   "nexa/services/mailer/internal/domain/entity"
   "nexa/services/mailer/internal/domain/repository"
   "nexa/services/mailer/internal/infra/repository/model"
-  sharedConf "nexa/shared/config"
-  "nexa/shared/database"
-  "nexa/shared/types"
-  "nexa/shared/util"
-  "nexa/shared/util/repo"
   "reflect"
   "slices"
-  "strconv"
   "testing"
   "time"
 )
@@ -74,10 +74,8 @@ func (f *mailTestSuite) SetupSuite() {
   ports := inspect.NetworkSettings.Ports
   mapped := ports["5432/tcp"]
 
-  db, err := database.OpenPostgres(&sharedConf.Database{
-    Protocol: "postgres",
-    Host:     types.Must(container.Host(ctx)),
-    Port:     uint16(types.Must(strconv.Atoi(mapped[0].HostPort))),
+  db, err := database.OpenPostgresWithConfig(&sharedConf.PostgresDatabase{
+    Address:  fmt.Sprintf("%s:%s", types.Must(container.Host(ctx)), mapped[0].HostPort),
     Username: MAIL_DB_USERNAME,
     Password: MAIL_DB_PASSWORD,
     Name:     MAIL_DB,

@@ -2,12 +2,14 @@ package main
 
 import (
   "context"
+  "crypto/rsa"
   "errors"
   "github.com/arcorium/nexa/shared/database"
   "github.com/arcorium/nexa/shared/grpc/interceptor"
   "github.com/arcorium/nexa/shared/logger"
   "github.com/arcorium/nexa/shared/types"
   sharedUtil "github.com/arcorium/nexa/shared/util"
+  "github.com/golang-jwt/jwt/v5"
   promProv "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
   "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
   "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery"
@@ -58,6 +60,7 @@ type Server struct {
   serverConfig          *config.Server
   db                    *bun.DB
   grpcClientConnections []*grpc.ClientConn
+  publicKey             *rsa.PublicKey
 
   grpcServer     *grpc.Server
   metricServer   *http.Server
@@ -138,18 +141,22 @@ func (s *Server) grpcServerSetup() error {
     return nil
   }
 
+  authzConf := interceptor.NewUserAuthorizationConfig(s.publicKey, inter.PermissionCheck)
+
   s.grpcServer = grpc.NewServer(
     grpc.StatsHandler(otelgrpc.NewServerHandler()), // tracing
     grpc.ChainUnaryInterceptor(
       recovery.UnaryServerInterceptor(),
       logging.UnaryServerInterceptor(zapLogger), // logging
-      interceptor.UnaryServerAuth(inter.PermissionCheck, inter.AuthSkipSelector),
+      interceptor.UnaryServerAuth(&authzConf,
+        interceptor.SkipSelector(inter.AuthSkipSelector)),
       metrics.UnaryServerInterceptor(promProv.WithExemplarFromContext(exemplarFromCtx)),
     ),
     grpc.ChainStreamInterceptor(
       recovery.StreamServerInterceptor(),
       logging.StreamServerInterceptor(zapLogger), // logging
-      interceptor.StreamServerAuth(inter.PermissionCheck, inter.AuthSkipSelector),
+      interceptor.StreamServerAuth(&authzConf,
+        interceptor.SkipSelector(inter.AuthSkipSelector)),
       metrics.StreamServerInterceptor(promProv.WithExemplarFromContext(exemplarFromCtx)),
     ),
   )
@@ -176,7 +183,7 @@ func (s *Server) grpcServerSetup() error {
 func (s *Server) databaseSetup() error {
   // Token Database
   var err error
-  s.db, err = database.OpenPostgres(&s.dbConfig.Database, true)
+  s.db, err = database.OpenPostgresWithConfig(&s.dbConfig.PostgresDatabase, config.IsDebug())
   if err != nil {
     return err
   }
@@ -189,8 +196,32 @@ func (s *Server) databaseSetup() error {
   return nil
 }
 
+func (s *Server) setupKey() error {
+  // Get public key from PEM
+  pubkeyPath := "pubkey.pem"
+  if s.serverConfig.PublicKeyPath != "" {
+    pubkeyPath = s.serverConfig.PublicKeyPath
+  }
+  data, err := os.ReadFile(pubkeyPath)
+  if err != nil {
+    return err
+  }
+
+  publicKey, err := jwt.ParseRSAPublicKeyFromPEM(data)
+  if err != nil {
+    return err
+  }
+
+  s.publicKey = publicKey
+  return nil
+}
+
 func (s *Server) setup() error {
   s.validationSetup()
+
+  if err := s.setupKey(); err != nil {
+    return err
+  }
   if err := s.grpcServerSetup(); err != nil {
     return err
   }
@@ -200,19 +231,19 @@ func (s *Server) setup() error {
 
   // External client
   credsOpt := grpc.WithTransportCredentials(insecure.NewCredentials())
-  fileConn, err := grpc.NewClient(s.serverConfig.FileStorageServiceAddress, credsOpt)
+  fileConn, err := grpc.NewClient(s.serverConfig.Service.FileStorage, credsOpt)
   if err != nil {
     return err
   }
   fileStorageClient := external.NewFileStorageClient(fileConn)
 
-  mailerConn, err := grpc.NewClient(s.serverConfig.MailerServiceAddress, credsOpt)
+  mailerConn, err := grpc.NewClient(s.serverConfig.Service.Mailer, credsOpt)
   if err != nil {
     return err
   }
   mailerClient := external.NewMailerClient(mailerConn)
 
-  authConn, err := grpc.NewClient(s.serverConfig.AuthenticationServiceAddress, credsOpt)
+  authConn, err := grpc.NewClient(s.serverConfig.Service.Authentication, credsOpt)
   if err != nil {
     return err
   }

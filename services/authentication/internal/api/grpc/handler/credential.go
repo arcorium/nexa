@@ -2,17 +2,17 @@ package handler
 
 import (
   "context"
+  authNv1 "github.com/arcorium/nexa/proto/gen/go/authentication/v1"
+  sharedErr "github.com/arcorium/nexa/shared/errors"
+  "github.com/arcorium/nexa/shared/types"
+  sharedUtil "github.com/arcorium/nexa/shared/util"
+  spanUtil "github.com/arcorium/nexa/shared/util/span"
   "go.opentelemetry.io/otel/trace"
   "google.golang.org/grpc"
   "google.golang.org/protobuf/types/known/emptypb"
-  authNv1 "nexa/proto/gen/go/authentication/v1"
   "nexa/services/authentication/internal/api/grpc/mapper"
   "nexa/services/authentication/internal/domain/service"
   "nexa/services/authentication/util"
-  sharedErr "nexa/shared/errors"
-  "nexa/shared/types"
-  sharedUtil "nexa/shared/util"
-  spanUtil "nexa/shared/util/span"
 )
 
 func NewCredential(svc service.ICredential) CredentialHandler {

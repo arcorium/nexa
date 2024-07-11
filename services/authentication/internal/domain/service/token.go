@@ -2,9 +2,9 @@ package service
 
 import (
   "context"
+  "github.com/arcorium/nexa/shared/status"
+  "github.com/arcorium/nexa/shared/types"
   "nexa/services/authentication/internal/domain/dto"
-  "nexa/shared/status"
-  "nexa/shared/types"
 )
 
 type IToken interface {

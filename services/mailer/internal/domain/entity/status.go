@@ -1,7 +1,7 @@
 package entity
 
 import (
-  sharedErr "nexa/shared/errors"
+  sharedErr "github.com/arcorium/nexa/shared/errors"
 )
 
 type Status uint8

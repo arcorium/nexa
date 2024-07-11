@@ -42,7 +42,7 @@ type userService struct {
 
 func (u userService) checkPermission(ctx context.Context, targetId types.Id, permission string) error {
   // Validate permission
-  claims, _ := sharedJwt.GetClaimsFromCtx(ctx)
+  claims, _ := sharedJwt.GetUserClaimsFromCtx(ctx)
   if !targetId.EqWithString(claims.UserId) {
     // Need permission to update other users
     if !authUtil.ContainsPermission(claims.Roles, permission) {
@@ -275,7 +275,7 @@ func (u userService) EmailVerificationRequest(ctx context.Context) (dto.TokenRes
   ctx, span := u.tracer.Start(ctx, "UserService.EmailVerificationRequest")
   defer span.End()
 
-  userClaims, _ := sharedJwt.GetClaimsFromCtx(ctx)
+  userClaims, _ := sharedJwt.GetUserClaimsFromCtx(ctx)
   userId, err := types.IdFromString(userClaims.UserId)
   if err != nil {
     spanUtil.RecordError(err, span)
@@ -363,7 +363,7 @@ func (u userService) ResetPassword(ctx context.Context, input *dto.ResetUserPass
     }
 
     // Check claims
-    userClaims, err := sharedJwt.GetClaimsFromCtx(ctx)
+    userClaims, err := sharedJwt.GetUserClaimsFromCtx(ctx)
     if err != nil {
       spanUtil.RecordError(err, span)
       return status.ErrUnAuthenticated(err)

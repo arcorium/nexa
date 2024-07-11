@@ -2,10 +2,10 @@ package pg
 
 import (
   "context"
+  sharedUOW "github.com/arcorium/nexa/shared/uow"
   "github.com/uptrace/bun"
   "nexa/services/mailer/internal/app/uow"
   "nexa/services/mailer/internal/infra/repository/pg"
-  sharedUOW "nexa/shared/uow"
 )
 
 func NewMailUOW(db bun.IDB) sharedUOW.IUnitOfWork[uow.MailStorage] {

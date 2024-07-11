@@ -7,7 +7,7 @@ WORKDIR /app
 ENV CGO_ENABLED=0
 ENV GOOS=linux
 
-COPY . .
+COPY .. .
 
 RUN go mod tidy
 RUN go mod download

@@ -1,6 +1,6 @@
 package constant
 
-import authUtil "nexa/shared/util/auth"
+import authUtil "github.com/arcorium/nexa/shared/util/auth"
 
 const (
   AUTHN_GET_OTHER_CREDENTIALS = "read:cred:other"

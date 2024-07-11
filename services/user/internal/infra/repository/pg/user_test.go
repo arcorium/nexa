@@ -2,6 +2,12 @@ package pg
 
 import (
   "context"
+  "fmt"
+  sharedConf "github.com/arcorium/nexa/shared/config"
+  "github.com/arcorium/nexa/shared/database"
+  "github.com/arcorium/nexa/shared/types"
+  "github.com/arcorium/nexa/shared/util"
+  "github.com/arcorium/nexa/shared/util/repo"
   "github.com/brianvoe/gofakeit/v7"
   "github.com/stretchr/testify/require"
   "github.com/stretchr/testify/suite"
@@ -13,13 +19,7 @@ import (
   "go.opentelemetry.io/otel/trace/noop"
   "nexa/services/user/internal/domain/entity"
   "nexa/services/user/internal/infra/repository/model"
-  sharedConf "nexa/shared/config"
-  "nexa/shared/database"
-  "nexa/shared/types"
-  "nexa/shared/util"
-  "nexa/shared/util/repo"
   "reflect"
-  "strconv"
   "testing"
   "time"
 )
@@ -72,10 +72,8 @@ func (f *userTestSuite) SetupSuite() {
   ports := inspect.NetworkSettings.Ports
   mapped := ports["5432/tcp"]
 
-  db, err := database.OpenPostgres(&sharedConf.Database{
-    Protocol: "postgres",
-    Host:     types.Must(container.Host(ctx)),
-    Port:     uint16(types.Must(strconv.Atoi(mapped[0].HostPort))),
+  db, err := database.OpenPostgresWithConfig(&sharedConf.PostgresDatabase{
+    Address:  fmt.Sprintf("%s:%s", types.Must(container.Host(ctx)), mapped[0].HostPort),
     Username: USER_DB_USERNAME,
     Password: USER_DB_PASSWORD,
     Name:     USER_DB,
@@ -837,9 +835,8 @@ func generateRandomUserP() *entity.User {
 }
 
 func ignoreUserFieldsP(got *entity.User) {
-  got.BannedUntil = util.RoundTimeToSecond(got.BannedUntil)
-  got.CreatedAt = util.RoundTimeToSecond(got.CreatedAt)
-  got.DeletedAt = util.RoundTimeToSecond(got.DeletedAt)
+  got.BannedUntil = got.BannedUntil.Round(time.Minute).UTC()
+  got.DeletedAt = got.DeletedAt.Round(time.Minute).UTC()
   got.CreatedAt = time.Time{}
   got.Password = "" // Same characters could make different hash
   got.Profile = nil

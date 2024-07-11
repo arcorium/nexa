@@ -3,6 +3,8 @@ package external
 import (
   "bytes"
   "context"
+  "github.com/arcorium/nexa/shared/types"
+  spanUtil "github.com/arcorium/nexa/shared/util/span"
   "github.com/minio/minio-go/v7"
   "github.com/minio/minio-go/v7/pkg/credentials"
   "go.opentelemetry.io/otel/trace"
@@ -10,8 +12,6 @@ import (
   domain "nexa/services/file_storage/internal/domain/entity"
   "nexa/services/file_storage/internal/domain/external"
   "nexa/services/file_storage/util"
-  "nexa/shared/types"
-  spanUtil "nexa/shared/util/span"
   "time"
 )
 

@@ -7,7 +7,7 @@ WORKDIR /app
 ENV CGO_ENABLED=0
 ENV GOOS=linux
 
-COPY . .
+COPY .. .
 
 RUN go mod tidy
 RUN go mod download
@@ -26,9 +26,4 @@ WORKDIR /
 
 COPY --from=builder /app /app
 
-# Grpc Server
-EXPOSE 8080
-# Metric Server
-EXPOSE 8081
-
-ENTRYPOINT ["./app/build/server"]
+ENTRYPOINT ["/app/build/migrate"]

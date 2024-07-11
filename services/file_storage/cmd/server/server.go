@@ -2,7 +2,14 @@ package main
 
 import (
   "context"
+  "crypto/rsa"
   "errors"
+  "github.com/arcorium/nexa/shared/database"
+  "github.com/arcorium/nexa/shared/grpc/interceptor"
+  "github.com/arcorium/nexa/shared/logger"
+  "github.com/arcorium/nexa/shared/types"
+  sharedUtil "github.com/arcorium/nexa/shared/util"
+  "github.com/golang-jwt/jwt/v5"
   promProv "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
   "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
   "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery"
@@ -31,11 +38,6 @@ import (
   domainExt "nexa/services/file_storage/internal/domain/external"
   "nexa/services/file_storage/internal/infra/external"
   "nexa/services/file_storage/internal/infra/repository/model"
-  "nexa/shared/database"
-  "nexa/shared/grpc/interceptor"
-  "nexa/shared/logger"
-  "nexa/shared/types"
-  sharedUtil "nexa/shared/util"
   "os"
   "os/signal"
   "sync"
@@ -57,6 +59,7 @@ type Server struct {
   serverConfig  *config.Server
   db            *bun.DB
   storageClient domainExt.IStorage
+  publicKey     *rsa.PublicKey
 
   grpcServer     *grpc.Server
   metricServer   *http.Server
@@ -174,7 +177,7 @@ func (s *Server) grpcServerSetup() error {
 func (s *Server) databaseSetup() error {
   // Token Database
   var err error
-  s.db, err = database.OpenPostgres(&s.dbConfig.Database, true)
+  s.db, err = database.OpenPostgresWithConfig(&s.dbConfig.PostgresDatabase, config.IsDebug())
   if err != nil {
     return err
   }
@@ -187,8 +190,32 @@ func (s *Server) databaseSetup() error {
   return nil
 }
 
+func (s *Server) setupKey() error {
+  // Get public key from PEM
+  pubkeyPath := "pubkey.pem"
+  if s.serverConfig.PublicKeyPath != "" {
+    pubkeyPath = s.serverConfig.PublicKeyPath
+  }
+  data, err := os.ReadFile(pubkeyPath)
+  if err != nil {
+    return err
+  }
+
+  publicKey, err := jwt.ParseRSAPublicKeyFromPEM(data)
+  if err != nil {
+    return err
+  }
+
+  s.publicKey = publicKey
+  return nil
+}
+
 func (s *Server) setup() error {
   s.validationSetup()
+
+  if err := s.setupKey(); err != nil {
+    return err
+  }
 
   if err := s.grpcServerSetup(); err != nil {
     return err
@@ -200,9 +227,9 @@ func (s *Server) setup() error {
   // External client
   {
     storageClient, err := external.NewMinIOStorage(false, "public", &external.MinIOClientConfig{
-      Address:         s.serverConfig.MinIOAddress,
-      AccessKeyID:     s.serverConfig.MinIOAccessKey,
-      SecretAccessKey: s.serverConfig.MinIOSecretKey,
+      Address:         s.serverConfig.Storage.Address,
+      AccessKeyID:     s.serverConfig.Storage.AccessKey,
+      SecretAccessKey: s.serverConfig.Storage.SecretKey,
     })
     if err != nil {
       return err

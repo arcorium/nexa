@@ -1,9 +1,9 @@
 package mapper
 
 import (
+  "github.com/arcorium/nexa/shared/util"
   "nexa/services/mailer/internal/domain/dto"
   domain "nexa/services/mailer/internal/domain/entity"
-  "nexa/shared/util"
 )
 
 func ToMailResponseDTO(mail *domain.Mail) dto.MailResponseDTO {

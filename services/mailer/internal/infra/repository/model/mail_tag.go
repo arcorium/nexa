@@ -1,10 +1,10 @@
 package model
 
 import (
+  "github.com/arcorium/nexa/shared/types"
+  sharedUtil "github.com/arcorium/nexa/shared/util"
   "github.com/uptrace/bun"
   "nexa/services/mailer/internal/domain/repository"
-  "nexa/shared/types"
-  sharedUtil "nexa/shared/util"
 )
 
 func FromMailTags(mailTags ...repository.MailTags) []MailTag {

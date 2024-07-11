@@ -2,8 +2,8 @@ package external
 
 import (
   "context"
+  "github.com/arcorium/nexa/shared/types"
   "nexa/services/authentication/internal/domain/dto"
-  "nexa/shared/types"
 )
 
 type IRoleClient interface {

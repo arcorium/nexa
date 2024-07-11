@@ -1,11 +1,11 @@
 package mapper
 
 import (
-  authv1 "nexa/proto/gen/go/authentication/v1"
+  authv1 "github.com/arcorium/nexa/proto/gen/go/authentication/v1"
+  sharedErr "github.com/arcorium/nexa/shared/errors"
+  "github.com/arcorium/nexa/shared/types"
+  sharedUtil "github.com/arcorium/nexa/shared/util"
   "nexa/services/authentication/internal/domain/dto"
-  sharedErr "nexa/shared/errors"
-  "nexa/shared/types"
-  sharedUtil "nexa/shared/util"
 )
 
 func ToLoginDTO(req *authv1.LoginRequest) (dto.LoginDTO, error) {

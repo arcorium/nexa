@@ -6,7 +6,12 @@ import (
 
 type Server struct {
   sharedConf.Server
-  AuthenticationServiceAddress string `env:"AUTHENTICATION_SERVICE_ADDRESS,notEmpty"`
-  FileStorageServiceAddress    string `env:"FILE_STORAGE_SERVICE_ADDR,notEmpty"`
-  MailerServiceAddress         string `env:"MAILER_SERVICE_ADDR,notEmpty"`
+  Service       Service
+  PublicKeyPath string `env:"PUBLIC_KEY_PATH"`
+}
+
+type Service struct {
+  Authentication string `env:"AUTHN_SERVICE_ADDR,notEmpty"`
+  FileStorage    string `env:"FILE_STORAGE_SERVICE_ADDR,notEmpty"`
+  Mailer         string `env:"MAILER_SERVICE_ADDR,notEmpty"`
 }

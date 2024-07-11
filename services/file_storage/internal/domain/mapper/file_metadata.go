@@ -1,9 +1,9 @@
 package mapper
 
 import (
+  "github.com/arcorium/nexa/shared/types"
   "nexa/services/file_storage/internal/domain/dto"
   domain "nexa/services/file_storage/internal/domain/entity"
-  "nexa/shared/types"
 )
 
 func ToFileMetadataResponse(metadata *domain.FileMetadata) dto.FileMetadataResponseDTO {

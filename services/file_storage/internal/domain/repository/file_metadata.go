@@ -2,8 +2,8 @@ package repository
 
 import (
   "context"
+  "github.com/arcorium/nexa/shared/types"
   domain "nexa/services/file_storage/internal/domain/entity"
-  "nexa/shared/types"
 )
 
 type IFileMetadata interface {

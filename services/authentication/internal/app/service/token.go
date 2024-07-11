@@ -3,6 +3,9 @@ package service
 import (
   "context"
   "database/sql"
+  "github.com/arcorium/nexa/shared/status"
+  "github.com/arcorium/nexa/shared/types"
+  spanUtil "github.com/arcorium/nexa/shared/util/span"
   "go.opentelemetry.io/otel/trace"
   "nexa/services/authentication/internal/domain/dto"
   "nexa/services/authentication/internal/domain/entity"
@@ -11,9 +14,6 @@ import (
   "nexa/services/authentication/internal/domain/service"
   "nexa/services/authentication/util"
   "nexa/services/authentication/util/errors"
-  "nexa/shared/status"
-  "nexa/shared/types"
-  spanUtil "nexa/shared/util/span"
   "time"
 )
 

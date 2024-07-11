@@ -2,6 +2,12 @@ package service
 
 import (
   "context"
+  sharedDto "github.com/arcorium/nexa/shared/dto"
+  "github.com/arcorium/nexa/shared/status"
+  "github.com/arcorium/nexa/shared/types"
+  sharedUOW "github.com/arcorium/nexa/shared/uow"
+  sharedUtil "github.com/arcorium/nexa/shared/util"
+  spanUtil "github.com/arcorium/nexa/shared/util/span"
   "go.opentelemetry.io/otel/trace"
   "log"
   "nexa/services/mailer/internal/app/uow"
@@ -12,12 +18,6 @@ import (
   "nexa/services/mailer/internal/domain/repository"
   "nexa/services/mailer/internal/domain/service"
   "nexa/services/mailer/util"
-  sharedDto "nexa/shared/dto"
-  "nexa/shared/status"
-  "nexa/shared/types"
-  sharedUOW "nexa/shared/uow"
-  sharedUtil "nexa/shared/util"
-  spanUtil "nexa/shared/util/span"
   "sync/atomic"
   "time"
 )

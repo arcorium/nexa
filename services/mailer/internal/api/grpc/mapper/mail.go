@@ -1,13 +1,13 @@
 package mapper
 
 import (
+  mailerv1 "github.com/arcorium/nexa/proto/gen/go/mailer/v1"
+  sharedErr "github.com/arcorium/nexa/shared/errors"
+  "github.com/arcorium/nexa/shared/types"
+  sharedUtil "github.com/arcorium/nexa/shared/util"
   "google.golang.org/protobuf/types/known/timestamppb"
-  mailerv1 "nexa/proto/gen/go/mailer/v1"
   "nexa/services/mailer/internal/domain/dto"
   "nexa/services/mailer/util"
-  sharedErr "nexa/shared/errors"
-  "nexa/shared/types"
-  sharedUtil "nexa/shared/util"
 )
 
 func ToSendMailDTO(request *mailerv1.SendMailRequest) (dto.SendMailDTO, error) {

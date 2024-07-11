@@ -2,8 +2,8 @@ package model
 
 import (
   "context"
+  "github.com/arcorium/nexa/shared/types"
   "github.com/uptrace/bun"
-  "nexa/shared/types"
   "time"
 )
 

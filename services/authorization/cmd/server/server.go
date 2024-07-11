@@ -169,13 +169,13 @@ func (s *Server) grpcServerSetup() error {
     grpc.ChainUnaryInterceptor(
       recovery.UnaryServerInterceptor(),
       logging.UnaryServerInterceptor(zapLogger), // logging
-      interceptor.UnaryServerCombinationAuth(authConf),
+      interceptor.UnaryServerCombinationAuth(&authConf),
       metrics.UnaryServerInterceptor(promProv.WithExemplarFromContext(exemplarFromCtx)),
     ),
     grpc.ChainStreamInterceptor(
       recovery.StreamServerInterceptor(),
       logging.StreamServerInterceptor(zapLogger), // logging
-      interceptor.StreamServerCombinationAuth(authConf),
+      interceptor.StreamServerCombinationAuth(&authConf),
       metrics.StreamServerInterceptor(promProv.WithExemplarFromContext(exemplarFromCtx)),
     ),
   )
@@ -202,7 +202,7 @@ func (s *Server) grpcServerSetup() error {
 func (s *Server) databaseSetup() error {
   // Database
   var err error
-  s.db, err = database.OpenPostgresWithConfig(&s.dbConfig.PostgresDatabase, true)
+  s.db, err = database.OpenPostgresWithConfig(&s.dbConfig.PostgresDatabase, config.IsDebug())
   if err != nil {
     return err
   }
@@ -215,11 +215,13 @@ func (s *Server) databaseSetup() error {
   return nil
 }
 
-func (s *Server) setup() error {
-  s.validationSetup()
-
+func (s *Server) setupKey() error {
   // Get public key from PEM
-  data, err := os.ReadFile("pubkey.pem")
+  pubkeyPath := "pubkey.pem"
+  if s.serverConfig.PublicKeyPath != "" {
+    pubkeyPath = s.serverConfig.PublicKeyPath
+  }
+  data, err := os.ReadFile(pubkeyPath)
   if err != nil {
     return err
   }
@@ -228,7 +230,17 @@ func (s *Server) setup() error {
   if err != nil {
     return err
   }
+
   s.publicKey = publicKey
+  return nil
+}
+
+func (s *Server) setup() error {
+  s.validationSetup()
+
+  if err := s.setupKey(); err != nil {
+    return err
+  }
 
   if err := s.grpcServerSetup(); err != nil {
     return err

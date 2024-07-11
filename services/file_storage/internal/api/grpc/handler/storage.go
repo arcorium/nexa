@@ -2,21 +2,21 @@ package handler
 
 import (
   "context"
+  storagev1 "github.com/arcorium/nexa/proto/gen/go/file_storage/v1"
+  sharedErr "github.com/arcorium/nexa/shared/errors"
+  "github.com/arcorium/nexa/shared/grpc/interceptor"
+  "github.com/arcorium/nexa/shared/logger"
+  "github.com/arcorium/nexa/shared/types"
+  sharedUtil "github.com/arcorium/nexa/shared/util"
+  spanUtil "github.com/arcorium/nexa/shared/util/span"
   "go.opentelemetry.io/otel/trace"
   "google.golang.org/grpc"
   "google.golang.org/protobuf/types/known/emptypb"
   "io"
-  storagev1 "nexa/proto/gen/go/file_storage/v1"
   "nexa/services/file_storage/internal/api/grpc/mapper"
   "nexa/services/file_storage/internal/domain/dto"
   "nexa/services/file_storage/internal/domain/service"
   "nexa/services/file_storage/util"
-  sharedErr "nexa/shared/errors"
-  "nexa/shared/grpc/interceptor"
-  "nexa/shared/logger"
-  "nexa/shared/types"
-  sharedUtil "nexa/shared/util"
-  spanUtil "nexa/shared/util/span"
 )
 
 func NewFileStorage(file service.IFileStorage) StorageHandler {

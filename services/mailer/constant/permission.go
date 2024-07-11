@@ -1,6 +1,6 @@
 package constant
 
-import "nexa/shared/util/auth"
+import "github.com/arcorium/nexa/shared/util/auth"
 
 const (
   MAIL_CREATE_TAG = "create:tag"

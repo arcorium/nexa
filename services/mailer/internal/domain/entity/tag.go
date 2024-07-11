@@ -1,6 +1,6 @@
 package entity
 
-import "nexa/shared/types"
+import "github.com/arcorium/nexa/shared/types"
 
 type Tag struct {
   Id          types.Id

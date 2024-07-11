@@ -1,10 +1,10 @@
 package dto
 
 import (
+  "github.com/arcorium/nexa/shared/types"
+  sharedUtil "github.com/arcorium/nexa/shared/util"
   "nexa/services/mailer/constant"
   domain "nexa/services/mailer/internal/domain/entity"
-  "nexa/shared/types"
-  sharedUtil "nexa/shared/util"
   "time"
 )
 

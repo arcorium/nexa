@@ -26,12 +26,16 @@ require (
 )
 
 require (
-	github.com/arcorium/nexa/proto/gen/go v0.0.0-20240709165956-44aebf90ae18
-	github.com/arcorium/nexa/shared v0.0.0-20240709165956-44aebf90ae18
+	github.com/arcorium/nexa/proto/gen/go v0.0.0-20240710160026-c4fecbbcc734
+	github.com/arcorium/nexa/shared v0.0.0-20240710160026-c4fecbbcc734
 	github.com/brianvoe/gofakeit/v7 v7.0.4
 	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/testcontainers/testcontainers-go v0.31.0
 	github.com/testcontainers/testcontainers-go/modules/postgres v0.31.0
+)
+
+replace (
+github.com/arcorium/nexa/shared => ../../shared
 )
 
 require (

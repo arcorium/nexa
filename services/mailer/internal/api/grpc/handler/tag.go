@@ -2,19 +2,19 @@ package handler
 
 import (
   "context"
+  "github.com/arcorium/nexa/proto/gen/go/common"
+  mailerv1 "github.com/arcorium/nexa/proto/gen/go/mailer/v1"
+  "github.com/arcorium/nexa/shared/dto"
+  sharedErr "github.com/arcorium/nexa/shared/errors"
+  "github.com/arcorium/nexa/shared/types"
+  sharedUtil "github.com/arcorium/nexa/shared/util"
+  spanUtil "github.com/arcorium/nexa/shared/util/span"
   "go.opentelemetry.io/otel/trace"
   "google.golang.org/grpc"
   "google.golang.org/protobuf/types/known/emptypb"
-  "nexa/proto/gen/go/common"
-  "nexa/proto/gen/go/mailer/v1"
   "nexa/services/mailer/internal/api/grpc/mapper"
   "nexa/services/mailer/internal/domain/service"
   "nexa/services/mailer/util"
-  "nexa/shared/dto"
-  sharedErr "nexa/shared/errors"
-  "nexa/shared/types"
-  sharedUtil "nexa/shared/util"
-  spanUtil "nexa/shared/util/span"
 )
 
 func NewTag(tag service.ITag) TagHandler {

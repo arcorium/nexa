@@ -1,10 +1,14 @@
 package config
 
-import sharedConf "nexa/shared/config"
+import sharedConf "github.com/arcorium/nexa/shared/config"
 
 type Database struct {
-  sharedConf.Database
-  SessionDatabaseAddress  string `env:"REDIS_ADDRESS"`
-  SessionDatabaseUsername string `env:"REDIS_USERNAME"`
-  SessionDatabasePassword string `env:"REDIS_PASSWORD"`
+  Postgres sharedConf.PostgresDatabase
+  Session  Redis
+}
+
+type Redis struct {
+  Address  string `env:"REDIS_ADDRESS"`
+  Username string `env:"REDIS_USERNAME"`
+  Password string `env:"REDIS_PASSWORD"`
 }

@@ -24,8 +24,10 @@ require (
 	golang.org/x/crypto v0.23.0
 	google.golang.org/grpc v1.64.0
 	google.golang.org/protobuf v1.34.2
-	nexa/proto/gen/go v0.0.0-00010101000000-000000000000
-	nexa/shared v0.0.0
+)
+
+replace (
+	github.com/arcorium/nexa/shared => ../../shared
 )
 
 require (
@@ -33,6 +35,8 @@ require (
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/Microsoft/hcsshim v0.11.5 // indirect
+	github.com/arcorium/nexa/proto/gen/go v0.0.0-20240710160026-c4fecbbcc734 // indirect
+	github.com/arcorium/nexa/shared v0.0.0-20240710160026-c4fecbbcc734 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/caarlos0/env/v10 v10.0.0 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
@@ -109,9 +113,4 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240617180043-68d350f18fd4 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	mellium.im/sasl v0.3.1 // indirect
-)
-
-replace (
-	nexa/proto/gen/go => ../../proto/gen/go
-	nexa/shared => ../../shared/
 )

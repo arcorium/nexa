@@ -2,15 +2,15 @@ package external
 
 import (
   "context"
+  authZv1 "github.com/arcorium/nexa/proto/gen/go/authorization/v1"
+  "github.com/arcorium/nexa/shared/types"
+  sharedUtil "github.com/arcorium/nexa/shared/util"
+  spanUtil "github.com/arcorium/nexa/shared/util/span"
   "go.opentelemetry.io/otel/trace"
   "google.golang.org/grpc"
-  authZv1 "nexa/proto/gen/go/authorization/v1"
   "nexa/services/authentication/internal/domain/dto"
   "nexa/services/authentication/internal/domain/external"
   "nexa/services/authentication/util"
-  "nexa/shared/types"
-  sharedUtil "nexa/shared/util"
-  spanUtil "nexa/shared/util/span"
 )
 
 func NewRoleClient(conn grpc.ClientConnInterface) external.IRoleClient {

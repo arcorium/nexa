@@ -1,11 +1,11 @@
 package mapper
 
 import (
+  storagev1 "github.com/arcorium/nexa/proto/gen/go/file_storage/v1"
+  sharedErr "github.com/arcorium/nexa/shared/errors"
+  "github.com/arcorium/nexa/shared/types"
   "google.golang.org/protobuf/types/known/timestamppb"
-  storagev1 "nexa/proto/gen/go/file_storage/v1"
   "nexa/services/file_storage/internal/domain/dto"
-  sharedErr "nexa/shared/errors"
-  "nexa/shared/types"
 )
 
 func ToUpdateMetadataDTO(request *storagev1.UpdateFileRequest) (dto.UpdateFileMetadataDTO, error) {

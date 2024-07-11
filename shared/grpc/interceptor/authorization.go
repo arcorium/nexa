@@ -2,8 +2,10 @@ package interceptor
 
 import (
   "context"
+  "crypto/rsa"
   "errors"
   "fmt"
+  sharedConst "github.com/arcorium/nexa/shared/constant"
   sharedErr "github.com/arcorium/nexa/shared/errors"
   sharedJwt "github.com/arcorium/nexa/shared/jwt"
   "github.com/golang-jwt/jwt/v5"
@@ -44,6 +46,46 @@ import (
 //    },
 //  }, nil
 //}
+
+type UserAuthorizationConfig = AuthorizationConfig[sharedJwt.UserClaims]
+
+type AuthorizationOption[T jwt.Claims] func(config *AuthorizationConfig[T])
+
+func NewUserAuthorizationConfig(pubkey *rsa.PublicKey, checkFunc PermCheckFunc[sharedJwt.UserClaims], opts ...AuthorizationOption[sharedJwt.UserClaims]) UserAuthorizationConfig {
+  def := UserAuthorizationConfig{
+    SigningMethod: sharedJwt.DefaultSigningMethod,
+    Scheme:        sharedConst.DEFAULT_ACCESS_TOKEN_SCHEME,
+    ClaimsKey:     sharedConst.USER_CLAIMS_CONTEXT_KEY,
+    KeyFunc: func(token *jwt.Token) (interface{}, error) {
+      return pubkey, nil
+    },
+    CheckFunc: checkFunc,
+  }
+
+  for _, opt := range opts {
+    opt(&def)
+  }
+  return def
+}
+
+type ProtectedAuthorizationConfig = AuthorizationConfig[sharedJwt.TemporaryClaims]
+
+func NewProtectedAuthorizationConfig(pubkey *rsa.PublicKey, checkFunc PermCheckFunc[sharedJwt.TemporaryClaims], opts ...AuthorizationOption[sharedJwt.TemporaryClaims]) ProtectedAuthorizationConfig {
+  def := ProtectedAuthorizationConfig{
+    SigningMethod: sharedJwt.DefaultSigningMethod,
+    Scheme:        sharedConst.DEFAULT_ACCESS_TOKEN_SCHEME,
+    ClaimsKey:     sharedConst.TEMP_CLAIMS_CONTEXT_KEY,
+    KeyFunc: func(token *jwt.Token) (interface{}, error) {
+      return pubkey, nil
+    },
+    CheckFunc: checkFunc,
+  }
+
+  for _, opt := range opts {
+    opt(&def)
+  }
+  return def
+}
 
 type AuthorizationConfig[T jwt.Claims] struct {
   SigningMethod jwt.SigningMethod
@@ -104,7 +146,7 @@ func (a *AuthorizationConfig[T]) getTokenFromMD(md metadata.MD) (string, error) 
 
 // unaryAuthorization extract claims from context and check the permission based on argument. If the permission check function is nil
 // it will bypass it and only do the claim extraction.
-func unaryAuthorization[T jwt.Claims](conf AuthorizationConfig[T]) grpc.UnaryServerInterceptor {
+func unaryAuthorization[T jwt.Claims](conf *AuthorizationConfig[T]) grpc.UnaryServerInterceptor {
   return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
     // extract claims from token in context
     claims, err := conf.extract(ctx)
@@ -124,7 +166,7 @@ func unaryAuthorization[T jwt.Claims](conf AuthorizationConfig[T]) grpc.UnarySer
 }
 
 // streamAuthorization works like unaryAuthorization but for stream
-func streamAuthorization[T jwt.Claims](conf AuthorizationConfig[T]) grpc.StreamServerInterceptor {
+func streamAuthorization[T jwt.Claims](conf *AuthorizationConfig[T]) grpc.StreamServerInterceptor {
   return func(srv any, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
     var err error
     var newCtx context.Context
@@ -165,7 +207,7 @@ type SelectorMatchFunc func(ctx context.Context, callMeta interceptors.CallMeta)
 // UnaryServerAuth create unary server interceptor for authorization which will extract token into claims
 // and doing the permission check based on the config. Selector used to determine if the request should be forwarded
 // to authorization or not. type T is used to determine the structure of the claims
-func UnaryServerAuth[T jwt.Claims](config AuthorizationConfig[T], sf SelectorMatchFunc) grpc.UnaryServerInterceptor {
+func UnaryServerAuth[T jwt.Claims](config *AuthorizationConfig[T], sf SelectorMatchFunc) grpc.UnaryServerInterceptor {
   return selector.UnaryServerInterceptor(
     unaryAuthorization[T](config),
     selector.MatchFunc(sf),
@@ -173,7 +215,7 @@ func UnaryServerAuth[T jwt.Claims](config AuthorizationConfig[T], sf SelectorMat
 }
 
 // StreamServerAuth works the same as UnaryServerAuth, but it works for stream.
-func StreamServerAuth[T jwt.Claims](config AuthorizationConfig[T], sf SelectorMatchFunc) grpc.StreamServerInterceptor {
+func StreamServerAuth[T jwt.Claims](config *AuthorizationConfig[T], sf SelectorMatchFunc) grpc.StreamServerInterceptor {
   return selector.StreamServerInterceptor(
     streamAuthorization[T](config),
     selector.MatchFunc(sf),
@@ -187,6 +229,8 @@ type CombinationAuthConfig struct {
   Protected         AuthorizationConfig[sharedJwt.TemporaryClaims]
 }
 
+type CombinationAuthOption func(*CombinationAuthConfig)
+
 func (c *CombinationAuthConfig) Valid() bool {
   return c.User.Valid() && c.Protected.Valid()
 }
@@ -195,7 +239,7 @@ func (c *CombinationAuthConfig) Valid() bool {
 // It is used for minimalize checking redundancy with bypassing the user authorization check when it is
 // already handled by protected API authorization. Authorization selector only will be called if only
 // the request(rpc) is not handled by protected API authorization.
-func UnaryServerCombinationAuth(conf CombinationAuthConfig) grpc.UnaryServerInterceptor {
+func UnaryServerCombinationAuth(conf *CombinationAuthConfig) grpc.UnaryServerInterceptor {
   if !conf.Valid() {
     panic("Config has empty values on non-nilable field")
   }
@@ -204,7 +248,7 @@ func UnaryServerCombinationAuth(conf CombinationAuthConfig) grpc.UnaryServerInte
     // Run selector
     if conf.ProtectedSelector(ctx, meta) {
       // Handle for auth
-      return unaryAuthorization(conf.Protected)(ctx, req, info, handler) // WARN: Save it as variable outside closure?
+      return unaryAuthorization(&conf.Protected)(ctx, req, info, handler) // WARN: Save it as variable outside closure?
     }
 
     // Doesn't need authorization
@@ -212,12 +256,12 @@ func UnaryServerCombinationAuth(conf CombinationAuthConfig) grpc.UnaryServerInte
       return handler(ctx, req)
     }
 
-    return unaryAuthorization(conf.User)(ctx, req, info, handler) // WARN: Save it as variable outside closure?
+    return unaryAuthorization(&conf.User)(ctx, req, info, handler) // WARN: Save it as variable outside closure?
   }
 }
 
 // StreamServerCombinationAuth works the same as UnaryServerCombinationAuth, but it works for stream.
-func StreamServerCombinationAuth(conf CombinationAuthConfig) grpc.StreamServerInterceptor {
+func StreamServerCombinationAuth(conf *CombinationAuthConfig) grpc.StreamServerInterceptor {
   if !conf.Valid() {
     panic("Config has empty values on non-nilable field")
   }
@@ -227,7 +271,7 @@ func StreamServerCombinationAuth(conf CombinationAuthConfig) grpc.StreamServerIn
     // Run selector
     if conf.ProtectedSelector(ss.Context(), meta) {
       // Handle for auth
-      return streamAuthorization(conf.Protected)(srv, ss, info, handler) // WARN: Save it as variable outside closure?
+      return streamAuthorization(&conf.Protected)(srv, ss, info, handler) // WARN: Save it as variable outside closure?
     }
 
     // Doesn't need authorization
@@ -235,6 +279,6 @@ func StreamServerCombinationAuth(conf CombinationAuthConfig) grpc.StreamServerIn
       return handler(srv, ss)
     }
 
-    return streamAuthorization(conf.User)(srv, ss, info, handler) // WARN: Save it as variable outside closure?
+    return streamAuthorization(&conf.User)(srv, ss, info, handler) // WARN: Save it as variable outside closure?
   }
 }

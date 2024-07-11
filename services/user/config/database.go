@@ -5,5 +5,5 @@ import (
 )
 
 type Database struct {
-  sharedConf.Database
+  sharedConf.PostgresDatabase
 }

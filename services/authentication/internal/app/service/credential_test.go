@@ -2,8 +2,17 @@ package service
 
 import (
   "context"
+  "crypto/rand"
+  "crypto/rsa"
   "database/sql"
   "fmt"
+  sharedConst "github.com/arcorium/nexa/shared/constant"
+  sharedErr "github.com/arcorium/nexa/shared/errors"
+  sharedJwt "github.com/arcorium/nexa/shared/jwt"
+  "github.com/arcorium/nexa/shared/optional"
+  "github.com/arcorium/nexa/shared/status"
+  "github.com/arcorium/nexa/shared/types"
+  sharedUtil "github.com/arcorium/nexa/shared/util"
   "github.com/brianvoe/gofakeit/v7"
   "github.com/golang-jwt/jwt/v5"
   "github.com/stretchr/testify/mock"
@@ -16,13 +25,6 @@ import (
   extMock "nexa/services/authentication/internal/domain/external/mocks"
   repoMock "nexa/services/authentication/internal/domain/repository/mocks"
   "nexa/services/authentication/util/errors"
-  sharedConst "nexa/shared/constant"
-  sharedErr "nexa/shared/errors"
-  sharedJwt "nexa/shared/jwt"
-  "nexa/shared/optional"
-  "nexa/shared/status"
-  "nexa/shared/types"
-  sharedUtil "nexa/shared/util"
   "reflect"
   "testing"
   "time"
@@ -32,12 +34,16 @@ func newCredentialMocked(t *testing.T) credentialMocked {
   // Tracer
   provider := noop.NewTracerProvider()
 
+  privkey, err := rsa.GenerateKey(rand.Reader, 2048)
+  require.NoError(t, err)
+
   return credentialMocked{
     Config: CredentialServiceConfig{
-      SigningMethod:          jwt.SigningMethodHS512,
+      SigningMethod:          jwt.SigningMethodRS256,
       AccessTokenExpiration:  time.Minute * 5,
       RefreshTokenExpiration: time.Hour * 24 * 7,
-      SecretKey:              sharedUtil.RandomString(32),
+      PrivateKey:             privkey,
+      PublicKey:              &privkey.PublicKey,
     },
     Cred:       repoMock.NewCredentialMock(t),
     Token:      repoMock.NewTokenMock(t),
@@ -78,7 +84,7 @@ func Test_credentialService_GetCredentials(t *testing.T) {
         a := arg.(*args)
         w := want.([]dto.CredentialResponseDTO)
 
-        claims, err := sharedJwt.GetClaimsFromCtx(a.ctx)
+        claims, err := sharedJwt.GetUserClaimsFromCtx(a.ctx)
         require.NoError(t, err)
 
         a.userId = types.Must(types.IdFromString(claims.UserId))
@@ -717,7 +723,7 @@ func Test_credentialService_RefreshToken(t *testing.T) {
         // Generate access token
         claims := generateUserClaims()
         token := jwt.NewWithClaims(mocked.Config.SigningMethod, claims)
-        tokenStr, err := token.SignedString([]byte(mocked.Config.SecretKey))
+        tokenStr, err := token.SignedString(mocked.Config.PrivateKey)
         require.NoError(t, err)
 
         a.refreshDto.AccessToken = tokenStr
@@ -802,7 +808,7 @@ func Test_credentialService_RefreshToken(t *testing.T) {
         // Generate access token
         claims := generateUserClaims()
         token := jwt.NewWithClaims(mocked.Config.SigningMethod, claims)
-        tokenStr, err := token.SignedString([]byte(mocked.Config.SecretKey))
+        tokenStr, err := token.SignedString(mocked.Config.PrivateKey)
         require.NoError(t, err)
 
         a.refreshDto.AccessToken = tokenStr
@@ -839,7 +845,7 @@ func Test_credentialService_RefreshToken(t *testing.T) {
         // Generate access token
         claims := generateUserClaims()
         token := jwt.NewWithClaims(mocked.Config.SigningMethod, claims)
-        tokenStr, err := token.SignedString([]byte(mocked.Config.SecretKey))
+        tokenStr, err := token.SignedString(mocked.Config.PrivateKey)
         require.NoError(t, err)
 
         a.refreshDto.AccessToken = tokenStr
@@ -880,7 +886,7 @@ func Test_credentialService_RefreshToken(t *testing.T) {
         // Generate access token
         claims := generateUserClaims()
         token := jwt.NewWithClaims(mocked.Config.SigningMethod, claims)
-        tokenStr, err := token.SignedString([]byte(mocked.Config.SecretKey))
+        tokenStr, err := token.SignedString(mocked.Config.PrivateKey)
         require.NoError(t, err)
 
         a.refreshDto.AccessToken = tokenStr
@@ -1153,7 +1159,7 @@ func Test_credentialService_checkPermission(t *testing.T) {
       setup: func(mocked *credentialMocked, arg any, want any) {
         a := arg.(*args)
 
-        claims, err := sharedJwt.GetClaimsFromCtx(a.ctx)
+        claims, err := sharedJwt.GetUserClaimsFromCtx(a.ctx)
         require.NoError(t, err)
 
         a.targetId = types.Must(types.IdFromString(claims.UserId))
@@ -1219,5 +1225,5 @@ func generateUserClaims(roles ...sharedJwt.Role) *sharedJwt.UserClaims {
 }
 
 func generateClaimsCtx(actions ...string) context.Context {
-  return context.WithValue(context.Background(), sharedConst.CLAIMS_CONTEXT_KEY, generateUserClaims(generateRole(actions...)))
+  return context.WithValue(context.Background(), sharedConst.USER_CLAIMS_CONTEXT_KEY, generateUserClaims(generateRole(actions...)))
 }

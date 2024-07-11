@@ -2,7 +2,14 @@ package main
 
 import (
   "context"
+  "crypto/rsa"
   "errors"
+  "github.com/arcorium/nexa/shared/database"
+  "github.com/arcorium/nexa/shared/grpc/interceptor"
+  "github.com/arcorium/nexa/shared/logger"
+  "github.com/arcorium/nexa/shared/types"
+  sharedUtil "github.com/arcorium/nexa/shared/util"
+  "github.com/golang-jwt/jwt/v5"
   promProv "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
   "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
   "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery"
@@ -32,11 +39,6 @@ import (
   external2 "nexa/services/mailer/internal/domain/external"
   "nexa/services/mailer/internal/infra/external"
   "nexa/services/mailer/internal/infra/repository/model"
-  "nexa/shared/database"
-  "nexa/shared/grpc/interceptor"
-  "nexa/shared/logger"
-  "nexa/shared/types"
-  sharedUtil "nexa/shared/util"
   "os"
   "os/signal"
   "sync"
@@ -58,6 +60,7 @@ type Server struct {
   serverConfig *config.Server
   db           *bun.DB
   mailClient   external2.IMail
+  publicKey    *rsa.PublicKey
 
   grpcServer     *grpc.Server
   metricServer   *http.Server
@@ -138,18 +141,20 @@ func (s *Server) grpcServerSetup() error {
     return nil
   }
 
+  authzConf := interceptor.NewUserAuthorizationConfig(s.publicKey, inter.Auth)
+
   s.grpcServer = grpc.NewServer(
     grpc.StatsHandler(otelgrpc.NewServerHandler()), // tracing
     grpc.ChainUnaryInterceptor(
       recovery.UnaryServerInterceptor(),
       logging.UnaryServerInterceptor(zapLogger), // logging
-      interceptor.UnaryServerAuth(inter.Auth, inter.AuthSelector),
+      interceptor.UnaryServerAuth(&authzConf, interceptor.SkipSelector(inter.AuthSkipSelector)),
       metrics.UnaryServerInterceptor(promProv.WithExemplarFromContext(exemplarFromCtx)),
     ),
     grpc.ChainStreamInterceptor(
       recovery.StreamServerInterceptor(),
       logging.StreamServerInterceptor(zapLogger), // logging
-      interceptor.StreamServerAuth(inter.Auth, inter.AuthSelector),
+      interceptor.StreamServerAuth(&authzConf, interceptor.SkipSelector(inter.AuthSkipSelector)),
       metrics.StreamServerInterceptor(promProv.WithExemplarFromContext(exemplarFromCtx)),
     ),
   )
@@ -176,7 +181,7 @@ func (s *Server) grpcServerSetup() error {
 func (s *Server) databaseSetup() error {
   // Token Database
   var err error
-  s.db, err = database.OpenPostgres(&s.dbConfig.Database, true)
+  s.db, err = database.OpenPostgresWithConfig(&s.dbConfig.PostgresDatabase, config.IsDebug())
   if err != nil {
     return err
   }
@@ -189,8 +194,32 @@ func (s *Server) databaseSetup() error {
   return nil
 }
 
+func (s *Server) setupKey() error {
+  // Get public key from PEM
+  pubkeyPath := "pubkey.pem"
+  if s.serverConfig.PublicKeyPath != "" {
+    pubkeyPath = s.serverConfig.PublicKeyPath
+  }
+  data, err := os.ReadFile(pubkeyPath)
+  if err != nil {
+    return err
+  }
+
+  publicKey, err := jwt.ParseRSAPublicKeyFromPEM(data)
+  if err != nil {
+    return err
+  }
+
+  s.publicKey = publicKey
+  return nil
+}
+
 func (s *Server) setup() error {
   s.validationSetup()
+
+  if err := s.setupKey(); err != nil {
+    return err
+  }
 
   if err := s.grpcServerSetup(); err != nil {
     return err
@@ -202,10 +231,10 @@ func (s *Server) setup() error {
   // External client
   {
     smtpClient, err := external.NewSMTP(&external.SMTPConfig{
-      Host:     s.serverConfig.SMTPHost,
-      Port:     s.serverConfig.SMTPPort,
-      Username: s.serverConfig.SMTPUsername,
-      Password: s.serverConfig.SMTPPassword,
+      Host:     s.serverConfig.SMTP.Host,
+      Port:     s.serverConfig.SMTP.Port,
+      Username: s.serverConfig.SMTP.Username,
+      Password: s.serverConfig.SMTP.Password,
     })
     if err != nil {
       return err

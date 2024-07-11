@@ -2,14 +2,14 @@ package external
 
 import (
   "context"
+  userv1 "github.com/arcorium/nexa/proto/gen/go/user/v1"
+  "github.com/arcorium/nexa/shared/types"
+  spanUtil "github.com/arcorium/nexa/shared/util/span"
   "go.opentelemetry.io/otel/trace"
   "google.golang.org/grpc"
-  userv1 "nexa/proto/gen/go/user/v1"
   "nexa/services/authentication/internal/domain/dto"
   "nexa/services/authentication/internal/domain/external"
   "nexa/services/authentication/util"
-  "nexa/shared/types"
-  spanUtil "nexa/shared/util/span"
 )
 
 func NewUserClient(conn grpc.ClientConnInterface) external.IUserClient {

@@ -2,6 +2,7 @@ package service
 
 import (
   "context"
+  "crypto/rsa"
   "database/sql"
   sharedErr "github.com/arcorium/nexa/shared/errors"
   sharedJwt "github.com/arcorium/nexa/shared/jwt"
@@ -41,7 +42,8 @@ type CredentialServiceConfig struct {
   SigningMethod          jwt.SigningMethod
   AccessTokenExpiration  time.Duration
   RefreshTokenExpiration time.Duration
-  SecretKey              string
+  PrivateKey             *rsa.PrivateKey
+  PublicKey              *rsa.PublicKey
 }
 
 type credentialService struct {
@@ -58,7 +60,7 @@ type credentialService struct {
 
 func (c *credentialService) checkPermission(ctx context.Context, targetId types.Id, permissions string) error {
   // Validate permission
-  claims, _ := sharedJwt.GetClaimsFromCtx(ctx)
+  claims, _ := sharedJwt.GetUserClaimsFromCtx(ctx)
   if !targetId.EqWithString(claims.UserId) {
     // Need permission to update other users
     if !authUtil.ContainsPermission(claims.Roles, permissions) {
@@ -82,7 +84,7 @@ func (c *credentialService) getUserRoles(ctx context.Context, userId types.Id) (
 
 func (c *credentialService) getTokenClaims(tokenStr string) (*sharedJwt.UserClaims, error) {
   token, err := jwt.ParseWithClaims(tokenStr, &sharedJwt.UserClaims{}, func(token *jwt.Token) (interface{}, error) {
-    return []byte(c.config.SecretKey), nil
+    return c.config.PublicKey, nil
   })
   if err != nil {
     return nil, errors.ErrMalformedToken
@@ -276,7 +278,7 @@ func (c *credentialService) Logout(ctx context.Context, logoutDTO *dto.LogoutDTO
   defer span.End()
 
   // Get claims
-  userClaims, err := sharedJwt.GetClaimsFromCtx(ctx)
+  userClaims, err := sharedJwt.GetUserClaimsFromCtx(ctx)
   if err != nil {
     spanUtil.RecordError(err, span)
     return status.ErrUnAuthenticated(err)
@@ -375,7 +377,7 @@ func (c *CredentialServiceConfig) generateAccessToken(username string, userId, r
     Roles:        roles,
   }
   accessToken := jwt.NewWithClaims(c.SigningMethod, accessClaims)
-  accessSignedString, err := accessToken.SignedString([]byte(c.SecretKey))
+  accessSignedString, err := accessToken.SignedString(c.PrivateKey)
   if err != nil {
     return types.Null[entity.JWTToken](), err
   }

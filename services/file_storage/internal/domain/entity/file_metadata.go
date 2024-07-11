@@ -2,7 +2,7 @@ package entity
 
 import (
   "database/sql"
-  "nexa/shared/types"
+  "github.com/arcorium/nexa/shared/types"
   "time"
 )
 

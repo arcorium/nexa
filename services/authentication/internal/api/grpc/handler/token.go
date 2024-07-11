@@ -2,13 +2,13 @@ package handler
 
 import (
   "context"
+  authNv1 "github.com/arcorium/nexa/proto/gen/go/authentication/v1"
+  spanUtil "github.com/arcorium/nexa/shared/util/span"
   "go.opentelemetry.io/otel/trace"
   "google.golang.org/grpc"
-  authNv1 "nexa/proto/gen/go/authentication/v1"
   "nexa/services/authentication/internal/api/grpc/mapper"
   "nexa/services/authentication/internal/domain/service"
   "nexa/services/authentication/util"
-  spanUtil "nexa/shared/util/span"
 )
 
 func NewToken(token service.IToken) TokenHandler {

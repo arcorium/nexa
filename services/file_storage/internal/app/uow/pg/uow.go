@@ -2,10 +2,10 @@ package pg
 
 import (
   "context"
+  sharedUOW "github.com/arcorium/nexa/shared/uow"
   "github.com/uptrace/bun"
   "nexa/services/file_storage/internal/app/uow"
   "nexa/services/file_storage/internal/infra/repository/pg"
-  sharedUOW "nexa/shared/uow"
 )
 
 func NewStorageUOW(db bun.IDB) sharedUOW.IUnitOfWork[uow.FileMetadataStorage] {

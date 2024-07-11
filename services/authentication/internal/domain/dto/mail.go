@@ -1,6 +1,6 @@
 package dto
 
-import "nexa/shared/types"
+import "github.com/arcorium/nexa/shared/types"
 
 type SendVerificationEmailDTO struct {
   Recipient types.Email

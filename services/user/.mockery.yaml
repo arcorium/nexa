@@ -13,3 +13,7 @@ packages:
     config:
       recursive: true
       all: true
+  nexa/services/user/internal/domain/service:
+    config:
+      recursive: true
+      all: true

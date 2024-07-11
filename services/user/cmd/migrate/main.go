@@ -3,18 +3,25 @@ package main
 import (
   sharedConf "github.com/arcorium/nexa/shared/config"
   "github.com/arcorium/nexa/shared/database"
+  "github.com/arcorium/nexa/shared/env"
   "log"
   "nexa/services/user/config"
   "nexa/services/user/internal/infra/repository/model"
 )
 
 func main() {
-  dbConfig, err := sharedConf.Load[config.PostgresDatabase]()
+  envName := ".env"
+  if config.IsDebug() {
+    envName = "dev.env"
+  }
+  _ = env.LoadEnvs(envName)
+
+  dbConfig, err := sharedConf.Load[sharedConf.PostgresDatabase]()
   if err != nil {
     log.Fatalln(err)
   }
 
-  db, err := database.OpenPostgres(dbConfig.DSN(), dbConfig.IsSecure, dbConfig.Timeout, true)
+  db, err := database.OpenPostgresWithConfig(dbConfig, true)
   if err != nil {
     log.Fatalln(err)
   }
@@ -25,4 +32,6 @@ func main() {
   if err = model.CreateTables(db); err != nil {
     log.Fatalln(err)
   }
+
+  log.Println("Succeed migrate database: ", dbConfig.DSN())
 }

@@ -7,6 +7,8 @@ import (
   "github.com/golang-jwt/jwt/v5"
 )
 
+var DefaultSigningMethod = jwt.SigningMethodRS256
+
 type Role struct {
   Id          string   `json:"id"`
   Role        string   `json:"role"`

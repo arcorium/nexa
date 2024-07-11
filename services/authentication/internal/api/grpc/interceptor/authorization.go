@@ -2,9 +2,9 @@ package interceptor
 
 import (
   "context"
+  authNv1 "github.com/arcorium/nexa/proto/gen/go/authentication/v1"
+  sharedJwt "github.com/arcorium/nexa/shared/jwt"
   "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors"
-  authNv1 "nexa/proto/gen/go/authentication/v1"
-  sharedJwt "nexa/shared/jwt"
   "strings"
 )
 

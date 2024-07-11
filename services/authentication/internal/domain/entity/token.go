@@ -1,9 +1,9 @@
 package entity
 
 import (
-  sharedErr "nexa/shared/errors"
-  sharedJwt "nexa/shared/jwt"
-  "nexa/shared/types"
+  sharedErr "github.com/arcorium/nexa/shared/errors"
+  sharedJwt "github.com/arcorium/nexa/shared/jwt"
+  "github.com/arcorium/nexa/shared/types"
   "time"
 )
 

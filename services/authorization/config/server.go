@@ -6,4 +6,5 @@ import (
 
 type Server struct {
   sharedConf.Server
+  PublicKeyPath string `env:"PUBLIC_KEY_PATH"`
 }

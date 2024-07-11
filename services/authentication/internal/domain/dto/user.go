@@ -1,7 +1,7 @@
 package dto
 
 import (
-  "nexa/shared/types"
+  "github.com/arcorium/nexa/shared/types"
 )
 
 type UserResponseDTO struct {

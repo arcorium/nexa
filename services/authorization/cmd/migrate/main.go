@@ -26,5 +26,5 @@ func main() {
     log.Fatalln(err)
   }
 
-  log.Println("Success migrate database: ", dbConfig.DSN())
+  log.Println("Succeed migrate database: ", dbConfig.DSN())
 }

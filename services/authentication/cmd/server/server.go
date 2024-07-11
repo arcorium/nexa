@@ -2,7 +2,14 @@ package main
 
 import (
   "context"
+  "crypto/rsa"
   "errors"
+  "github.com/arcorium/nexa/shared/database"
+  "github.com/arcorium/nexa/shared/grpc/interceptor"
+  "github.com/arcorium/nexa/shared/logger"
+  "github.com/arcorium/nexa/shared/types"
+  sharedUtil "github.com/arcorium/nexa/shared/util"
+  "github.com/golang-jwt/jwt/v5"
   promProv "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
   "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
   "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery"
@@ -35,11 +42,6 @@ import (
   "nexa/services/authentication/internal/infra/repository/pg"
   redisRepo "nexa/services/authentication/internal/infra/repository/redis"
   "nexa/services/authentication/util"
-  "nexa/shared/database"
-  "nexa/shared/grpc/interceptor"
-  "nexa/shared/logger"
-  "nexa/shared/types"
-  sharedUtil "nexa/shared/util"
   "os"
   "os/signal"
   "sync"
@@ -62,6 +64,8 @@ type Server struct {
   tokenDb               *bun.DB
   credDb                *redis.Client
   grpcClientConnections []*grpc.ClientConn
+  publicKey             *rsa.PublicKey
+  privateKey            *rsa.PrivateKey
 
   grpcServer     *grpc.Server
   metricServer   *http.Server
@@ -143,19 +147,21 @@ func (s *Server) grpcServerSetup() error {
     return nil
   }
 
+  authorizationConfig := interceptor.NewUserAuthorizationConfig(s.publicKey, inter.PermissionCheck)
+
   s.grpcServer = grpc.NewServer(
     grpc.StatsHandler(otelgrpc.NewServerHandler()), // tracing
     grpc.ChainUnaryInterceptor(
       recovery.UnaryServerInterceptor(),
       logging.UnaryServerInterceptor(zapLogger), // logging
-      interceptor.UnaryServerAuth(inter.PermissionCheck,
+      interceptor.UnaryServerAuth(&authorizationConfig,
         interceptor.SkipSelector(inter.AuthSkipSelector)),
       metrics.UnaryServerInterceptor(promProv.WithExemplarFromContext(exemplarFromCtx)),
     ),
     grpc.ChainStreamInterceptor(
       recovery.StreamServerInterceptor(),
       logging.StreamServerInterceptor(zapLogger), // logging
-      interceptor.StreamServerAuth(inter.PermissionCheck,
+      interceptor.StreamServerAuth(&authorizationConfig,
         interceptor.SkipSelector(inter.AuthSkipSelector)),
       metrics.StreamServerInterceptor(promProv.WithExemplarFromContext(exemplarFromCtx)),
     ),
@@ -183,7 +189,7 @@ func (s *Server) grpcServerSetup() error {
 func (s *Server) databaseSetup() error {
   // Token Database
   var err error
-  s.tokenDb, err = database.OpenPostgres(&s.dbConfig.Database, true)
+  s.tokenDb, err = database.OpenPostgresWithConfig(&s.dbConfig.Postgres, config.IsDebug())
   if err != nil {
     return err
   }
@@ -195,9 +201,9 @@ func (s *Server) databaseSetup() error {
 
   // Credential Database
   s.credDb = redis.NewClient(&redis.Options{
-    Addr:     s.dbConfig.SessionDatabaseAddress,
-    Username: s.dbConfig.SessionDatabaseUsername,
-    Password: s.dbConfig.SessionDatabasePassword,
+    Addr:     s.dbConfig.Session.Address,
+    Username: s.dbConfig.Session.Username,
+    Password: s.dbConfig.Session.Password,
   })
 
   _, err = s.credDb.Ping(context.Background()).Result()
@@ -208,8 +214,48 @@ func (s *Server) databaseSetup() error {
   return nil
 }
 
+func (s *Server) setupKey() error {
+  // Get public key from PEM
+  pubkeyPath := "pubkey.pem"
+  if s.serverConfig.PublicKeyPath != "" {
+    pubkeyPath = s.serverConfig.PublicKeyPath
+  }
+  pub, err := os.ReadFile(pubkeyPath)
+  if err != nil {
+    return err
+  }
+
+  publicKey, err := jwt.ParseRSAPublicKeyFromPEM(pub)
+  if err != nil {
+    return err
+  }
+  s.publicKey = publicKey
+
+  // Get private key from PEM
+  privkeyPath := "privkey.pem"
+  if s.serverConfig.PrivateKeyPath != "" {
+    pubkeyPath = s.serverConfig.PrivateKeyPath
+  }
+  priv, err := os.ReadFile(privkeyPath)
+  if err != nil {
+    return err
+  }
+
+  privKey, err := jwt.ParseRSAPrivateKeyFromPEM(priv)
+  if err != nil {
+    return err
+  }
+
+  s.privateKey = privKey
+  return nil
+}
+
 func (s *Server) setup() error {
   s.validationSetup()
+
+  if err := s.setupKey(); err != nil {
+    return err
+  }
   if err := s.grpcServerSetup(); err != nil {
     return err
   }
@@ -219,19 +265,19 @@ func (s *Server) setup() error {
 
   // External client
   creds := grpc.WithTransportCredentials(insecure.NewCredentials())
-  roleConn, err := grpc.NewClient(s.serverConfig.AuthorizationClientAddress, creds)
+  roleConn, err := grpc.NewClient(s.serverConfig.Service.Authorization, creds)
   if err != nil {
     return err
   }
   roleClient := external.NewRoleClient(roleConn)
 
-  userConn, err := grpc.NewClient(s.serverConfig.UserClientAddress, creds)
+  userConn, err := grpc.NewClient(s.serverConfig.Service.User, creds)
   if err != nil {
     return err
   }
   userClient := external.NewUserClient(userConn)
 
-  mailConn, err := grpc.NewClient(s.serverConfig.UserClientAddress, creds)
+  mailConn, err := grpc.NewClient(s.serverConfig.Service.Mailer, creds)
   if err != nil {
     return err
   }
@@ -252,7 +298,8 @@ func (s *Server) setup() error {
     SigningMethod:          s.serverConfig.SigningMethod(),
     AccessTokenExpiration:  s.serverConfig.JWTAccessTokenExpiration,
     RefreshTokenExpiration: s.serverConfig.JWTRefreshTokenExpiration,
-    SecretKey:              s.serverConfig.JWTSecretKey,
+    PrivateKey:             s.privateKey,
+    PublicKey:              s.publicKey,
   })
 
   // GRPC Handler

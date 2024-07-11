@@ -1,8 +1,8 @@
 package dto
 
 import (
+  "github.com/arcorium/nexa/shared/types"
   entity "nexa/services/file_storage/internal/domain/entity"
-  "nexa/shared/types"
   "time"
 )
 

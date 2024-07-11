@@ -4,7 +4,7 @@ package mocks
 
 import (
 	context "context"
-	uow "nexa/shared/uow"
+	uow "github.com/arcorium/nexa/shared/uow"
 
 	mock "github.com/stretchr/testify/mock"
 )
