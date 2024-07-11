@@ -20,7 +20,7 @@ func GetWrappedServerStream(server grpc.ServerStream) (*middleware.WrappedServer
 // SkipSelector will negate the returned condition and add  HealthCheckSkipSelector to skip healthcheck endpoint
 func SkipSelector(matchFunc SelectorMatchFunc) SelectorMatchFunc {
   return func(ctx context.Context, callMeta interceptors.CallMeta) bool {
-    return !HealthCheckSkipSelector(ctx, callMeta) || !matchFunc(ctx, callMeta)
+    return HealthCheckSelector(ctx, callMeta) && !matchFunc(ctx, callMeta)
   }
 }
 
