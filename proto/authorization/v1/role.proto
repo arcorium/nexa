@@ -21,7 +21,7 @@ service RoleService {
   rpc AppendPermissions(AppendRolePermissionsRequest) returns (google.protobuf.Empty);
   rpc RemovePermissions(RemoveRolePermissionsRequest) returns (google.protobuf.Empty);
 
-  // Private and supposed to only called by another service
+  // Protected API
   rpc AppendSuperRolePermissions(AppendSuperRolePermissionsRequest) returns (google.protobuf.Empty);
 //  rpc GetSuper(google.protobuf.Empty) returns (RolePermission); // Get super roles information
   rpc SetAsSuper(SetAsSuperRequest) returns (google.protobuf.Empty); // Set user as super role

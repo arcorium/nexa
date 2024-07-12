@@ -26,6 +26,7 @@ const (
 	PermissionService_FindByRoles_FullMethodName = "/nexa.authorization.v1.PermissionService/FindByRoles"
 	PermissionService_FindAll_FullMethodName     = "/nexa.authorization.v1.PermissionService/FindAll"
 	PermissionService_Delete_FullMethodName      = "/nexa.authorization.v1.PermissionService/Delete"
+	PermissionService_Seed_FullMethodName        = "/nexa.authorization.v1.PermissionService/Seed"
 )
 
 // PermissionServiceClient is the client API for PermissionService service.
@@ -37,6 +38,8 @@ type PermissionServiceClient interface {
 	FindByRoles(ctx context.Context, in *FindPermissionsByRoleRequest, opts ...grpc.CallOption) (*FindPermissionByRoleResponse, error)
 	FindAll(ctx context.Context, in *common.PagedElementInput, opts ...grpc.CallOption) (*FindAllPermissionResponse, error)
 	Delete(ctx context.Context, in *DeletePermissionRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	// Protected API
+	Seed(ctx context.Context, in *SeedPermissionRequest, opts ...grpc.CallOption) (*SeedPermissionResponse, error)
 }
 
 type permissionServiceClient struct {
@@ -92,6 +95,15 @@ func (c *permissionServiceClient) Delete(ctx context.Context, in *DeletePermissi
 	return out, nil
 }
 
+func (c *permissionServiceClient) Seed(ctx context.Context, in *SeedPermissionRequest, opts ...grpc.CallOption) (*SeedPermissionResponse, error) {
+	out := new(SeedPermissionResponse)
+	err := c.cc.Invoke(ctx, PermissionService_Seed_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PermissionServiceServer is the server API for PermissionService service.
 // All implementations must embed UnimplementedPermissionServiceServer
 // for forward compatibility
@@ -101,6 +113,8 @@ type PermissionServiceServer interface {
 	FindByRoles(context.Context, *FindPermissionsByRoleRequest) (*FindPermissionByRoleResponse, error)
 	FindAll(context.Context, *common.PagedElementInput) (*FindAllPermissionResponse, error)
 	Delete(context.Context, *DeletePermissionRequest) (*emptypb.Empty, error)
+	// Protected API
+	Seed(context.Context, *SeedPermissionRequest) (*SeedPermissionResponse, error)
 	mustEmbedUnimplementedPermissionServiceServer()
 }
 
@@ -122,6 +136,9 @@ func (UnimplementedPermissionServiceServer) FindAll(context.Context, *common.Pag
 }
 func (UnimplementedPermissionServiceServer) Delete(context.Context, *DeletePermissionRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
+}
+func (UnimplementedPermissionServiceServer) Seed(context.Context, *SeedPermissionRequest) (*SeedPermissionResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Seed not implemented")
 }
 func (UnimplementedPermissionServiceServer) mustEmbedUnimplementedPermissionServiceServer() {}
 
@@ -226,6 +243,24 @@ func _PermissionService_Delete_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PermissionService_Seed_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SeedPermissionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PermissionServiceServer).Seed(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PermissionService_Seed_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PermissionServiceServer).Seed(ctx, req.(*SeedPermissionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // PermissionService_ServiceDesc is the grpc.ServiceDesc for PermissionService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -252,6 +287,10 @@ var PermissionService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Delete",
 			Handler:    _PermissionService_Delete_Handler,
+		},
+		{
+			MethodName: "Seed",
+			Handler:    _PermissionService_Seed_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

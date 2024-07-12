@@ -49,7 +49,7 @@ type RoleServiceClient interface {
 	RemoveUser(ctx context.Context, in *RemoveUserRolesRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	AppendPermissions(ctx context.Context, in *AppendRolePermissionsRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	RemovePermissions(ctx context.Context, in *RemoveRolePermissionsRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	// Private and supposed to only called by another service
+	// Protected API
 	AppendSuperRolePermissions(ctx context.Context, in *AppendSuperRolePermissionsRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	//  rpc GetSuper(google.protobuf.Empty) returns (RolePermission); // Get super roles information
 	SetAsSuper(ctx context.Context, in *SetAsSuperRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
@@ -185,7 +185,7 @@ type RoleServiceServer interface {
 	RemoveUser(context.Context, *RemoveUserRolesRequest) (*emptypb.Empty, error)
 	AppendPermissions(context.Context, *AppendRolePermissionsRequest) (*emptypb.Empty, error)
 	RemovePermissions(context.Context, *RemoveRolePermissionsRequest) (*emptypb.Empty, error)
-	// Private and supposed to only called by another service
+	// Protected API
 	AppendSuperRolePermissions(context.Context, *AppendSuperRolePermissionsRequest) (*emptypb.Empty, error)
 	//  rpc GetSuper(google.protobuf.Empty) returns (RolePermission); // Get super roles information
 	SetAsSuper(context.Context, *SetAsSuperRequest) (*emptypb.Empty, error)

@@ -14,6 +14,8 @@ service PermissionService {
   rpc FindAll(common.PagedElementInput) returns (FindAllPermissionResponse);
   rpc Delete(DeletePermissionRequest) returns (google.protobuf.Empty);
 
+  // Protected API
+  rpc Seed(SeedPermissionRequest) returns (SeedPermissionResponse);
 }
 
 message CreatePermissionRequest {
@@ -48,4 +50,12 @@ message FindPermissionsByRoleRequest {
 
 message FindPermissionByRoleResponse {
   repeated Permission permissions = 1;
+}
+
+message SeedPermissionRequest {
+  repeated CreatePermissionRequest permissions = 1;
+}
+
+message SeedPermissionResponse {
+  repeated string permission_ids = 1;
 }
