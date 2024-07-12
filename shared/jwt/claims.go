@@ -32,8 +32,8 @@ func GetUserClaimsFromCtx(ctx context.Context) (*UserClaims, error) {
   return val, nil
 }
 
-// TemporaryClaims Claims used for temporary token. It is used to call services protected API
-type TemporaryClaims struct {
+// PrivateClaims Claims used for temporary token. It is used to call services protected API
+type PrivateClaims struct {
   jwt.RegisteredClaims
 }
 
