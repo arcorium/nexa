@@ -13,7 +13,6 @@ func main() {
   if config.IsDebug() {
     envName = "dev.env"
   }
-
   _ = env.LoadEnvs(envName)
 
   // Config

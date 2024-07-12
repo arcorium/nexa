@@ -3,26 +3,38 @@ package interceptor
 import (
   "context"
   authZv1 "github.com/arcorium/nexa/proto/gen/go/authorization/v1"
+  "github.com/arcorium/nexa/shared/grpc/interceptor/authz"
   sharedJwt "github.com/arcorium/nexa/shared/jwt"
   "github.com/arcorium/nexa/shared/logger"
   authUtil "github.com/arcorium/nexa/shared/util/auth"
   "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors"
   "nexa/services/authorization/constant"
-  "strings"
+  "slices"
 )
 
-func AuthSkipSelector(_ context.Context, callMeta interceptors.CallMeta) bool {
-  return callMeta.Service == authZv1.PermissionService_ServiceDesc.ServiceName ||
-      strings.EqualFold(callMeta.FullMethod(), authZv1.RoleService_GetUsers_FullMethodName) ||
-      strings.EqualFold(callMeta.FullMethod(), authZv1.RoleService_AppendSuperRolePermissions_FullMethodName)
+var privateApi = []string{
+  authZv1.RoleService_AppendSuperRolePermissions_FullMethodName,
+  authZv1.RoleService_SetAsSuper_FullMethodName,
+  authZv1.PermissionService_Seed_FullMethodName,
 }
 
-func ProtectedApiSelector(_ context.Context, callMeta interceptors.CallMeta) bool {
-  return callMeta.FullMethod() == authZv1.RoleService_AppendSuperRolePermissions_FullMethodName ||
-      callMeta.FullMethod() == authZv1.RoleService_SetAsSuper_FullMethodName
+var publicApi = []string{
+  authZv1.RoleService_GetUsers_FullMethodName,
+  authZv1.PermissionService_FindByRoles_FullMethodName,
+  authZv1.PermissionService_FindAll_FullMethodName,
 }
 
-func Auth(claims *sharedJwt.UserClaims, meta interceptors.CallMeta) bool {
+func CombinationSelector(_ context.Context, meta interceptors.CallMeta) authz.CombinationType {
+  if slices.Contains(privateApi, meta.FullMethod()) {
+    return authz.Private
+  }
+  if slices.Contains(publicApi, meta.FullMethod()) {
+    return authz.Public
+  }
+  return authz.UserAuth
+}
+
+func UserCheckPermission(claims *sharedJwt.UserClaims, meta interceptors.CallMeta) bool {
   switch meta.FullMethod() {
   case authZv1.RoleService_Create_FullMethodName:
     return authUtil.ContainsPermission(claims.Roles, constant.AUTHZ_PERMISSIONS[constant.AUTHZ_CREATE_ROLE])
@@ -42,6 +54,10 @@ func Auth(claims *sharedJwt.UserClaims, meta interceptors.CallMeta) bool {
     fallthrough
   case authZv1.RoleService_RemovePermissions_FullMethodName:
     return authUtil.ContainsPermission(claims.Roles, constant.AUTHZ_PERMISSIONS[constant.AUTHZ_MODIFY_USER_ROLE])
+  case authZv1.PermissionService_Create_FullMethodName:
+    return authUtil.ContainsPermission(claims.Roles, constant.AUTHZ_PERMISSIONS[constant.AUTHZ_CREATE_PERMISSION])
+  case authZv1.PermissionService_Delete_FullMethodName:
+    return authUtil.ContainsPermission(claims.Roles, constant.AUTHZ_PERMISSIONS[constant.AUTHZ_DELETE_PERMISSION])
   default:
     logger.Warnf("Unknown method: %s", meta.FullMethod())
   }

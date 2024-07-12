@@ -1,0 +1,4 @@
+github.com/arcorium/nexa/proto/gen/go v1.0.1 h1:BcHTQMikVLf1ITT8pInoXM3wYGqLxFxyGVj4yZ9v/ao=
+github.com/arcorium/nexa/proto/gen/go v1.0.1/go.mod h1:iNK4pbds+qZ1Lf0s+MYFT3cNBDs96K2YeB6vYAPmlgY=
+github.com/arcorium/nexa/shared v0.1.4 h1:bfutpLJ38e8hVNHisSg9ymrACBPl4qPIbrgFZvj0Pkg=
+github.com/arcorium/nexa/shared v0.1.4/go.mod h1:7ULmV/j8UUAaNQIlLhZtq3CYkGE4zdtIIzcVVdPpwOM=

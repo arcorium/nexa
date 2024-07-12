@@ -9,7 +9,7 @@ require (
 	github.com/stretchr/testify v1.9.0
 	github.com/uptrace/bun v1.2.1
 	go.uber.org/zap v1.27.0 // indirect
-	google.golang.org/grpc v1.64.0
+	google.golang.org/grpc v1.65.0
 	google.golang.org/protobuf v1.34.2
 )
 
@@ -26,8 +26,8 @@ require (
 )
 
 require (
-	github.com/arcorium/nexa/proto/gen/go v0.0.0-20240710160026-c4fecbbcc734
-	github.com/arcorium/nexa/shared v0.0.0-20240710160026-c4fecbbcc734
+	github.com/arcorium/nexa/proto/gen/go v1.0.1
+	github.com/arcorium/nexa/shared v0.1.4
 	github.com/brianvoe/gofakeit/v7 v7.0.4
 	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/testcontainers/testcontainers-go v0.31.0
@@ -41,7 +41,7 @@ require (
 	github.com/Microsoft/hcsshim v0.11.4 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
-	github.com/cespare/xxhash/v2 v2.2.0 // indirect
+	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/containerd/containerd v1.7.15 // indirect
 	github.com/containerd/log v0.1.0 // indirect
 	github.com/cpuguy83/dockercfg v0.3.1 // indirect

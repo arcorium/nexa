@@ -3,14 +3,17 @@ package main
 import (
   "context"
   "database/sql"
+  "fmt"
   authZv1 "github.com/arcorium/nexa/proto/gen/go/authorization/v1"
   sharedConf "github.com/arcorium/nexa/shared/config"
+  sharedConst "github.com/arcorium/nexa/shared/constant"
   "github.com/arcorium/nexa/shared/database"
   "github.com/arcorium/nexa/shared/env"
   "github.com/arcorium/nexa/shared/types"
   sharedUtil "github.com/arcorium/nexa/shared/util"
   "google.golang.org/grpc"
   "google.golang.org/grpc/credentials/insecure"
+  "google.golang.org/grpc/metadata"
   "log"
   "nexa/services/user/config"
   "nexa/services/user/constant"
@@ -98,9 +101,14 @@ func main() {
   }
   _ = env.LoadEnvs(envName)
 
-  addr, ok := os.LookupEnv("NEXA_AUTHZ_SERVICE_ADDRESS")
+  addr, ok := os.LookupEnv("AUTHZ_SERVICE_ADDR")
   if !ok {
-    log.Fatalln("NEXA_AUTHZ_SERVICE_ADDRESS environment variable not set")
+    log.Fatalln("AUTHZ_SERVICE_ADDR environment variable not set")
+  }
+
+  token, ok := os.LookupEnv("TEMP_TOKEN")
+  if !ok {
+    log.Fatalln("TEMP_TOKEN environment variable not set")
   }
 
   // Connect authorization service client
@@ -119,69 +127,71 @@ func main() {
 
   permissions := sharedUtil.MapToSlice(constant.USER_PERMISSIONS, func(action, perm string) *authZv1.CreatePermissionRequest {
     return &authZv1.CreatePermissionRequest{
-      Resource: constant.USER_SERVICE_RESOURCE,
+      Resource: constant.SERVICE_RESOURCE,
       Action:   action,
     }
   })
 
-  ctx := context.Background()
+  md := metadata.New(map[string]string{
+    "authorization": fmt.Sprintf("%s %s", sharedConst.DEFAULT_ACCESS_TOKEN_SCHEME, token),
+  })
   permClient := authZv1.NewPermissionServiceClient(conn)
   roleClient := authZv1.NewRoleServiceClient(conn)
 
   wg := sync.WaitGroup{}
 
-  var permIds []string
-  for i := 0; i < len(permissions); i++ {
-    wg.Add(1)
-    go func() {
-      defer wg.Done()
+  wg.Add(2)
+  go func() {
+    defer wg.Done()
+    // Create permission
+    var permIds []string
+    for {
+      // Try until success
+      mdCtx := metadata.NewOutgoingContext(context.Background(), md)
+      resp, err := permClient.Seed(mdCtx, &authZv1.SeedPermissionRequest{Permissions: permissions})
+      if err != nil {
+        log.Printf("failed to create permission: %s", err)
+        continue
+      }
+      permIds = resp.PermissionIds
+      break
+    }
 
-      // Create permission
-      for {
-        // Try until success
-        resp, err := permClient.Create(ctx, permissions[i])
-        if err != nil {
-          log.Printf("failed to create permission: %s", err)
-          continue
-        }
-        permIds = append(permIds, resp.PermissionId)
-        break
+    log.Println("Succeed seed permissions: ", addr)
+
+    // Append it to super roles
+    for {
+      mdCtx := metadata.NewOutgoingContext(context.Background(), md)
+      _, err := roleClient.AppendSuperRolePermissions(mdCtx, &authZv1.AppendSuperRolePermissionsRequest{
+        PermissionIds: permIds,
+      })
+      if err != nil {
+        log.Printf("failed to append super admin role permission: %s", err)
+        continue
       }
 
-    }()
-  }
+      break
+    }
 
+    log.Println("Succeed append super role permissions: ", addr)
+  }()
+  go func() {
+    defer wg.Done()
+    // Set super role
+    for {
+      mdCtx := metadata.NewOutgoingContext(context.Background(), md)
+      _, err = roleClient.SetAsSuper(mdCtx, &authZv1.SetAsSuperRequest{
+        UserId: user.Id,
+      })
+      if err != nil {
+        log.Printf("failed to set as super: %v", err)
+        log.Printf("Trying again")
+        continue
+      }
+      break
+    }
+
+    log.Printf("Succeed set user %v as super role", user)
+  }()
   wg.Wait()
-
-  log.Println("Succeed seed permissions: ", addr)
-
-  // Append it to super roles
-  for {
-    _, err := roleClient.AppendSuperRolePermissions(ctx, &authZv1.AppendSuperRolePermissionsRequest{
-      PermissionIds: permIds,
-    })
-    if err != nil {
-      log.Printf("failed to append super admin role permission: %s", err)
-      continue
-    }
-
-    break
-  }
-
-  log.Println("Succeed append super role permissions: ", addr)
-
-  // Set super role
-  for {
-    _, err = roleClient.SetAsSuper(context.Background(), &authZv1.SetAsSuperRequest{
-      UserId: user.Id,
-    })
-    if err != nil {
-      log.Printf("failed to set as super: %v", err)
-      log.Printf("Trying again")
-      continue
-    }
-    break
-  }
-
-  log.Printf("Succeed set user %v as super role", user)
 }

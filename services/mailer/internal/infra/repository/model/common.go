@@ -35,7 +35,7 @@ func CreateTables(db *bun.DB) error {
 }
 
 func SeedDefaultTags(db *bun.DB) error {
-  defaultTags := [...]Tag{
+  defaultTags := []Tag{
     {
       Id:          types.MustCreateId().String(),
       Name:        "Email Verification",

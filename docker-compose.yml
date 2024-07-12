@@ -1,0 +1,38 @@
+include:
+  - path:
+      - services/authorization/docker-compose.yml
+      - services/authentication/docker-compose.yml
+      - services/file_storage/docker-compose.yml
+      - services/mailer/docker-compose.yml
+      - services/user/docker-compose.yml
+      - docker-compose.override.yml
+
+services:
+  jaeger:
+    image: jaegertracing/all-in-one:1.58
+    ports:
+      - 6831:6831/udp
+      - 6832:6832/udp
+      - 5778:5778
+      - 16686:16686
+      - 4317:4317
+      - 4318:4318
+      - 14250:14250
+      - 14268:14268
+      - 14269:14269
+      - 9411:9411
+    networks:
+      - nexa_networks
+
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:Z
+    ports:
+      - "9090:9090"
+    networks:
+      - nexa_networks
+
+networks:
+  nexa_networks:
+    driver: bridge

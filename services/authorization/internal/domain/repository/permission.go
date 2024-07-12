@@ -9,6 +9,7 @@ import (
 
 type IPermission interface {
   Create(ctx context.Context, permission *entity.Permission) error
+  Creates(ctx context.Context, permissions ...entity.Permission) error
   FindByIds(ctx context.Context, ids ...types.Id) ([]entity.Permission, error)
   FindByRoleIds(ctx context.Context, roleIds ...types.Id) ([]entity.Permission, error)
   Get(ctx context.Context, parameter repo.QueryParameter) (repo.PaginatedResult[entity.Permission], error)

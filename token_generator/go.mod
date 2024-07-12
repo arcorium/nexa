@@ -1,7 +1,7 @@
 module nexa/token_generator
 
 require (
-	github.com/arcorium/nexa/shared v0.0.0
+	github.com/arcorium/nexa/shared v0.1.3
 	github.com/golang-jwt/jwt/v5 v5.2.1
 )
 
@@ -20,10 +20,8 @@ require (
 	golang.org/x/sys v0.20.0 // indirect
 	golang.org/x/text v0.15.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240617180043-68d350f18fd4 // indirect
-	google.golang.org/grpc v1.64.0 // indirect
+	google.golang.org/grpc v1.65.0 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 )
-
-replace github.com/arcorium/nexa/shared => ../shared
 
 go 1.22.4

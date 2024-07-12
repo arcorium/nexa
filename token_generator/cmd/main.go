@@ -5,6 +5,7 @@ import (
   "crypto/x509"
   "encoding/pem"
   "fmt"
+  "github.com/arcorium/nexa/shared/env"
   sharedJwt "github.com/arcorium/nexa/shared/jwt"
   sharedUtil "github.com/arcorium/nexa/shared/util"
   "github.com/golang-jwt/jwt/v5"
@@ -32,46 +33,28 @@ func GenerateTemporaryToken(method jwt.SigningMethod) *jwt.Token {
   return token
 }
 
-//func main() {
-//  signingMethodStr := env.GetDefaulted("TEMP_JWT_SIGNING_METHOD", "HS512")
-//  signingMethod := jwt.GetSigningMethod(signingMethodStr)
-//  secret, ok := os.LookupEnv("TEMP_JWT_SECRET_KEY")
-//  if !ok {
-//    fmt.Println("ERROR:TEMP_JWT_SECRET_KEY environment variable not set")
-//    return
-//  }
-//
-//  token, err := GenerateTemporaryToken(signingMethod, secret)
-//  if err != nil {
-//    fmt.Printf("ERROR:%s", err)
-//    return
-//  }
-//
-//  fmt.Println(token)
-//}
-
 func main() {
-  token := GenerateTemporaryToken(jwt.SigningMethodRS256)
-  privKey := OpenPrivKeyPem()
-  publicKey := OpenPublicKeyPem()
-  signedString, err := token.SignedString(privKey)
-  if err != nil {
-    log.Fatalln(err)
-  }
-  fmt.Println(signedString)
-
-  tokenParsed, err := jwt.ParseWithClaims(signedString, &sharedJwt.TemporaryClaims{}, func(token *jwt.Token) (interface{}, error) {
-    return publicKey, nil
-  })
-  if err != nil {
-    log.Fatalln(err)
+  signingMethodStr, ok := os.LookupEnv("TEMP_JWT_SIGNING_METHOD")
+  signingMethod := jwt.GetSigningMethod(signingMethodStr)
+  if !ok {
+    signingMethod = sharedJwt.DefaultSigningMethod
   }
 
-  sharedUtil.DoNothing(tokenParsed)
+  privKeyPath := env.GetDefaulted("PRIVATE_KEY_PATH", "privkey.pem")
+  token := GenerateTemporaryToken(signingMethod)
+  privKey := OpenPrivKeyPem(privKeyPath)
+
+  signedToken, err := token.SignedString(privKey)
+  if err != nil {
+    fmt.Printf("ERROR:%s", err)
+    return
+  }
+
+  fmt.Printf(signedToken)
 }
 
-func OpenPrivKeyPem() *rsa.PrivateKey {
-  file, err := os.ReadFile("privkey.pem")
+func OpenPrivKeyPem(path string) *rsa.PrivateKey {
+  file, err := os.ReadFile(path)
   if err != nil {
     log.Fatalln(err)
   }

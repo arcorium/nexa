@@ -6,6 +6,7 @@ import (
   "errors"
   "github.com/arcorium/nexa/shared/database"
   "github.com/arcorium/nexa/shared/grpc/interceptor"
+  "github.com/arcorium/nexa/shared/grpc/interceptor/authz"
   "github.com/arcorium/nexa/shared/logger"
   "github.com/arcorium/nexa/shared/types"
   sharedUtil "github.com/arcorium/nexa/shared/util"
@@ -29,6 +30,8 @@ import (
   "go.opentelemetry.io/otel/trace"
   "google.golang.org/grpc"
   "google.golang.org/grpc/credentials/insecure"
+  "google.golang.org/grpc/health"
+  "google.golang.org/grpc/health/grpc_health_v1"
   "google.golang.org/grpc/reflection"
   "net"
   "net/http"
@@ -147,22 +150,22 @@ func (s *Server) grpcServerSetup() error {
     return nil
   }
 
-  authorizationConfig := interceptor.NewUserAuthorizationConfig(s.publicKey, inter.PermissionCheck)
+  authorizationConfig := authz.NewUserConfig(s.publicKey, inter.PermissionCheck)
 
   s.grpcServer = grpc.NewServer(
     grpc.StatsHandler(otelgrpc.NewServerHandler()), // tracing
     grpc.ChainUnaryInterceptor(
       recovery.UnaryServerInterceptor(),
       logging.UnaryServerInterceptor(zapLogger), // logging
-      interceptor.UnaryServerAuth(&authorizationConfig,
-        interceptor.SkipSelector(inter.AuthSkipSelector)),
+      authz.UserUnaryServerInterceptor(&authorizationConfig,
+        authz.SkipSelector(inter.AuthSkipSelector)),
       metrics.UnaryServerInterceptor(promProv.WithExemplarFromContext(exemplarFromCtx)),
     ),
     grpc.ChainStreamInterceptor(
       recovery.StreamServerInterceptor(),
       logging.StreamServerInterceptor(zapLogger), // logging
-      interceptor.StreamServerAuth(&authorizationConfig,
-        interceptor.SkipSelector(inter.AuthSkipSelector)),
+      authz.UserStreamServerInterceptor(&authorizationConfig,
+        authz.SkipSelector(inter.AuthSkipSelector)),
       metrics.StreamServerInterceptor(promProv.WithExemplarFromContext(exemplarFromCtx)),
     ),
   )
@@ -308,6 +311,11 @@ func (s *Server) setup() error {
 
   credHandler := handler.NewCredential(credService)
   credHandler.RegisterHandler(s.grpcServer)
+
+  // Health check
+  healthHandler := health.NewServer()
+  grpc_health_v1.RegisterHealthServer(s.grpcServer, healthHandler)
+  healthHandler.SetServingStatus(constant.SERVICE_NAME, grpc_health_v1.HealthCheckResponse_SERVING)
 
   return nil
 }

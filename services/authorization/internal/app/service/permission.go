@@ -9,6 +9,7 @@ import (
   spanUtil "github.com/arcorium/nexa/shared/util/span"
   "go.opentelemetry.io/otel/trace"
   "nexa/services/authorization/internal/domain/dto"
+  "nexa/services/authorization/internal/domain/entity"
   "nexa/services/authorization/internal/domain/mapper"
   "nexa/services/authorization/internal/domain/repository"
   "nexa/services/authorization/internal/domain/service"
@@ -99,4 +100,29 @@ func (p *permissionService) Delete(ctx context.Context, permId types.Id) status.
     return status.FromRepository(err, status.NullCode)
   }
   return status.Deleted()
+}
+
+func (p *permissionService) Seed(ctx context.Context, seedDTO []dto.PermissionCreateDTO) ([]types.Id, status.Object) {
+  ctx, span := p.tracer.Start(ctx, "PermissionService.Seed")
+  defer span.End()
+
+  entities, ierr := sharedUtil.CastSliceErrsP(seedDTO, func(createDto *dto.PermissionCreateDTO) (entity.Permission, error) {
+    return createDto.ToDomain()
+  })
+  if !ierr.IsNil() {
+    spanUtil.RecordError(ierr, span)
+    return nil, status.ErrInternal(ierr)
+  }
+
+  err := p.permRepo.Creates(ctx, entities...)
+  if err != nil {
+    spanUtil.RecordError(err, span)
+    return nil, status.FromRepositoryExist(err)
+  }
+
+  ids := sharedUtil.CastSliceP(entities, func(perm *entity.Permission) types.Id {
+    return perm.Id
+  })
+
+  return ids, status.Created()
 }

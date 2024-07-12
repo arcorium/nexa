@@ -1,0 +1,83 @@
+include:
+  - path:
+      - ../authorization/docker-compose.yml
+      - docker-compose.dev.override.yml
+
+services:
+  mailer-db:
+    image: postgres
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U nexa -d nexa-mail" ]
+      interval: 5s
+      retries: 10
+    environment:
+      - POSTGRES_DB=nexa-mail
+      - POSTGRES_USER=nexa
+      - POSTGRES_PASSWORD=nexa
+    ports:
+      - 5432
+    networks:
+      - nm_network
+  jaeger:
+    image: jaegertracing/all-in-one:1.58
+    ports:
+      - 6831:6831/udp
+      - 6832:6832/udp
+      - 5778:5778
+      - 16686:16686
+      - 4317:4317
+      - 4318:4318
+      - 14250:14250
+      - 14268:14268
+      - 14269:14269
+      - 9411:9411
+    networks:
+      - nm_network
+  nexa-mailer-migrate:
+    build:
+      dockerfile: ./docker/migrate.Dockerfile
+    depends_on:
+      mailer-db:
+        condition: service_healthy
+    environment:
+      - PG_ADDRESS=mailer-db
+      - PG_USERNAME=nexa
+      - PG_PASSWORD=nexa
+      - PG_DB_NAME=nexa-mail
+      - PG_IS_SECURE=false
+    networks:
+      - nm_network
+  token_generator:
+    build:
+      context: ../../token_generator/
+      dockerfile: Dockerfile
+    entrypoint: /bin/sh -c "./main > /output/token.txt"
+    volumes:
+      - mailer-token_output:/output
+  nexa-mailer-seed:
+    build:
+      dockerfile: ./docker/seed.Dockerfile
+    depends_on:
+      nexa-mailer-migrate:
+        condition: service_completed_successfully
+      nexa-authz:
+        condition: service_healthy
+      token_generator:
+        condition: service_completed_successfully
+    environment:
+      - PG_ADDRESS=mailer-db
+      - PG_USERNAME=nexa
+      - PG_PASSWORD=nexa
+      - PG_DB_NAME=nexa-mail
+      - PG_IS_SECURE=false
+      - AUTHZ_SERVICE_ADDR=nexa-authz:8080
+    networks:
+      - nm_network
+    volumes:
+      - mailer-token_output:/output
+networks:
+  nm_network:
+    driver: bridge
+
+volumes:
+  mailer-token_output:

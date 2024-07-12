@@ -6,6 +6,7 @@ import (
   "errors"
   "github.com/arcorium/nexa/shared/database"
   "github.com/arcorium/nexa/shared/grpc/interceptor"
+  "github.com/arcorium/nexa/shared/grpc/interceptor/authz"
   "github.com/arcorium/nexa/shared/logger"
   "github.com/arcorium/nexa/shared/types"
   sharedUtil "github.com/arcorium/nexa/shared/util"
@@ -27,6 +28,8 @@ import (
   semconv "go.opentelemetry.io/otel/semconv/v1.25.0"
   "go.opentelemetry.io/otel/trace"
   "google.golang.org/grpc"
+  "google.golang.org/grpc/health"
+  "google.golang.org/grpc/health/grpc_health_v1"
   "google.golang.org/grpc/reflection"
   "net"
   "net/http"
@@ -138,11 +141,11 @@ func (s *Server) grpcServerSetup() error {
     return nil
   }
 
-  authConf := interceptor.CombinationAuthConfig{
-    AuthSelector:      interceptor.SkipSelector(inter.AuthSkipSelector),
-    User:              interceptor.NewUserAuthorizationConfig(s.publicKey, inter.Auth),
-    ProtectedSelector: inter.ProtectedApiSelector,
-    Protected:         interceptor.NewProtectedAuthorizationConfig(s.publicKey, nil),
+  authConf := authz.CombinationConfig{
+    Selector:     inter.CombinationSelector,
+    SkipServices: []string{grpc_health_v1.Health_ServiceDesc.ServiceName},
+    User:         authz.NewUserConfig(s.publicKey, inter.UserCheckPermission),
+    Private:      authz.NewPrivateConfig(s.publicKey, nil),
   }
 
   s.grpcServer = grpc.NewServer(
@@ -150,13 +153,13 @@ func (s *Server) grpcServerSetup() error {
     grpc.ChainUnaryInterceptor(
       recovery.UnaryServerInterceptor(),
       logging.UnaryServerInterceptor(zapLogger), // logging
-      interceptor.UnaryServerCombinationAuth(&authConf),
+      authz.UnaryServerCombination(&authConf),
       metrics.UnaryServerInterceptor(promProv.WithExemplarFromContext(exemplarFromCtx)),
     ),
     grpc.ChainStreamInterceptor(
       recovery.StreamServerInterceptor(),
       logging.StreamServerInterceptor(zapLogger), // logging
-      interceptor.StreamServerCombinationAuth(&authConf),
+      authz.StreamServerCombination(&authConf),
       metrics.StreamServerInterceptor(promProv.WithExemplarFromContext(exemplarFromCtx)),
     ),
   )
@@ -248,6 +251,11 @@ func (s *Server) setup() error {
 
   authHandler := handler.NewAuthorization(authService)
   authHandler.Register(s.grpcServer)
+
+  // Health check
+  healthHandler := health.NewServer()
+  grpc_health_v1.RegisterHealthServer(s.grpcServer, healthHandler)
+  healthHandler.SetServingStatus(constant.SERVICE_NAME, grpc_health_v1.HealthCheckResponse_SERVING)
 
   return nil
 }

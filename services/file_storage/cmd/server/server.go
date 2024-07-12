@@ -27,6 +27,8 @@ import (
   semconv "go.opentelemetry.io/otel/semconv/v1.25.0"
   "go.opentelemetry.io/otel/trace"
   "google.golang.org/grpc"
+  "google.golang.org/grpc/health"
+  "google.golang.org/grpc/health/grpc_health_v1"
   "google.golang.org/grpc/reflection"
   "net"
   "net/http"
@@ -246,6 +248,11 @@ func (s *Server) setup() error {
   // GRPC Handler
   storageHandler := handler.NewFileStorage(fileStorageService)
   storageHandler.Register(s.grpcServer)
+
+  // Health check
+  healthHandler := health.NewServer()
+  grpc_health_v1.RegisterHealthServer(s.grpcServer, healthHandler)
+  healthHandler.SetServingStatus(constant.SERVICE_NAME, grpc_health_v1.HealthCheckResponse_SERVING)
 
   return nil
 }

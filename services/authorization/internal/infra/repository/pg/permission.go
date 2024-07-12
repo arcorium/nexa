@@ -132,6 +132,24 @@ func (p *permissionRepository) Create(ctx context.Context, permission *entity.Pe
   return repo.CheckResultWithSpan(res, err, span)
 }
 
+func (p *permissionRepository) Creates(ctx context.Context, permissions ...entity.Permission) error {
+  ctx, span := p.tracer.Start(ctx, "PermissionRepository.Create")
+  defer span.End()
+
+  dbModels := sharedUtil.CastSliceP(permissions, func(perm *entity.Permission) model.Permission {
+    return model.FromPermissionDomain(perm, func(domain *entity.Permission, permission *model.Permission) {
+      permission.CreatedAt = time.Now()
+    })
+  })
+
+  res, err := p.db.NewInsert().
+    Model(&dbModels).
+    Returning("NULL").
+    Exec(ctx)
+
+  return repo.CheckResultWithSpan(res, err, span)
+}
+
 func (p *permissionRepository) Delete(ctx context.Context, id types.Id) error {
   ctx, span := p.tracer.Start(ctx, "PermissionRepository.Delete")
   defer span.End()

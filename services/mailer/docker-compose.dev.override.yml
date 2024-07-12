@@ -1,0 +1,6 @@
+services:
+  nexa-authz:
+    environment:
+      - OTLP_GRPC_COLLECTOR_ADDRESS=jaeger:4317
+    networks:
+      - nm_network

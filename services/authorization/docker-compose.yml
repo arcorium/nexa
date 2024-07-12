@@ -1,66 +1,43 @@
 services:
-  db:
+  authz-db:
     image: postgres
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U nexa -d nexa-authz" ]
-      interval: 5s
-      retries: 10
+      start_period: 5s
+      retries: 5
+      interval: 20s
+      timeout: 30s
     environment:
       - POSTGRES_DB=nexa-authz
       - POSTGRES_USER=nexa
       - POSTGRES_PASSWORD=nexa
     networks:
       - naz_network
-  jaeger:
-    image: jaegertracing/all-in-one:1.58
-    ports:
-      - 6831:6831/udp
-      - 6832:6832/udp
-      - 5778:5778
-      - 16686:16686
-      - 4317:4317
-      - 4318:4318
-      - 14250:14250
-      - 14268:14268
-      - 14269:14269
-      - 9411:9411
-    environment:
-      - COLLECTOR_ZIPKIN_HOST_PORT=:9411
-    networks:
-      - naz_network
-  prometheus:
-    image: prom/prometheus
-    volumes:
-      - ./docker/prometheus.yml:/etc/prometheus/prometheus.yml:Z
-    ports:
-      - 9090
-    networks:
-      - naz_network
-  nexa-auth-migrate:
+  nexa-authz-migrate:
     build:
       dockerfile: ./docker/migrate.Dockerfile
     depends_on:
-      db:
+      authz-db:
         condition: service_healthy
     environment:
-      - PG_ADDRESS=db
+      - PG_ADDRESS=authz-db
       - PG_USERNAME=nexa
       - PG_PASSWORD=nexa
       - PG_DB_NAME=nexa-authz
       - PG_IS_SECURE=false
     networks:
       - naz_network
-  nexa-auth-seed:
+  nexa-authz-seed:
     build:
       dockerfile: ./docker/seed.Dockerfile
     depends_on:
-      db:
+      authz-db:
         condition: service_healthy
-      nexa-auth-migrate:
+      nexa-authz-migrate:
         condition: service_completed_successfully
         restart: false
     environment:
-      - PG_ADDRESS=db
+      - PG_ADDRESS=authz-db
       - PG_USERNAME=nexa
       - PG_PASSWORD=nexa
       - PG_DB_NAME=nexa-authz
@@ -71,19 +48,21 @@ services:
     build:
       dockerfile: ./docker/app.Dockerfile
     restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "grpc_health_probe", "-addr=localhost:8080", "-service=nexa-authorization" ]
+      retries: 3
+      interval: 60s
+      start_period: 5s
+      timeout: 30s
     depends_on:
-      nexa-auth-seed:
+      nexa-authz-seed:
         condition: service_completed_successfully
         restart: false
-      nexa-auth-migrate:
+      nexa-authz-migrate:
         condition: service_completed_successfully
         restart: false
-      jaeger:
-        condition: service_started
-      prometheus:
-        condition: service_started
     environment:
-      - PG_ADDRESS=db
+      - PG_ADDRESS=authz-db
       - PG_USERNAME=nexa
       - PG_PASSWORD=nexa
       - PG_DB_NAME=nexa-authz

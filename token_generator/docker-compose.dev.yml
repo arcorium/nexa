@@ -1,0 +1,10 @@
+services:
+  token_generator:
+    build:
+      dockerfile: Dockerfile
+#    entrypoint: /bin/sh -c "./main > /output/token.txt"
+    volumes:
+      - token_output:/output
+
+#volumes:
+#  token_output:

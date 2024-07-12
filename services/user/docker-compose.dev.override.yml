@@ -1,0 +1,51 @@
+services:
+  nexa-authz:
+    environment:
+      - OTLP_GRPC_COLLECTOR_ADDRESS=jaeger:4317
+    ports:
+      - "8081:8080"
+    networks:
+      - nu_network
+  nexa-storage:
+    depends_on:
+      jaeger:
+        condition: service_healthy
+    ports:
+      - "8082:8080"
+    environment:
+      - OTLP_GRPC_COLLECTOR_ADDRESS=jaeger:4317
+    networks:
+      - nu_network
+  nexa-mailer:
+    depends_on:
+      jaeger:
+        condition: service_healthy
+    environment:
+      - OTLP_GRPC_COLLECTOR_ADDRESS=jaeger:4317
+      - SMTP_HOST=$SMTP_HOST
+      - SMTP_PORT=$SMTP_PORT
+      - SMTP_USERNAME=$SMTP_USERNAME
+      - SMTP_PASSWORD=$SMTP_PASSWORD
+    ports:
+      - "8083:8080"
+    networks:
+      - nu_network
+  nexa-authn:
+    ports:
+      - "8084:8080"
+    depends_on:
+      jaeger:
+        condition: service_healthy
+      nexa-authz:
+        condition: service_healthy
+      nexa-user:
+        condition: service_healthy # FIX: Circular Dependency
+      nexa-mailer:
+        condition: service_healthy
+    environment:
+      - AUTHZ_SERVICE_ADDR=nexa-authz:8080
+      - USER_SERVICE_ADDR=nexa-user:8080
+      - MAILER_SERVICE_ADDR=nexa-mailer:8080
+      - OTLP_GRPC_COLLECTOR_ADDRESS=jaeger:4317
+    networks:
+      - nu_networks

@@ -137,3 +137,24 @@ func (p *PermissionHandler) Delete(ctx context.Context, request *authZv1.DeleteP
   stat := p.permService.Delete(ctx, permId)
   return nil, stat.ToGRPCErrorWithSpan(span)
 }
+
+func (p *PermissionHandler) Seed(ctx context.Context, request *authZv1.SeedPermissionRequest) (*authZv1.SeedPermissionResponse, error) {
+  ctx, span := p.tracer.Start(ctx, "PermissionHandler.Seed")
+  defer span.End()
+
+  dtos, ierr := sharedUtil.CastSliceErrs(request.Permissions, mapper.ToCreatePermissionDTO)
+  if !ierr.IsNil() {
+    spanUtil.RecordError(ierr, span)
+    return nil, ierr.ToGRPCError("permissions")
+  }
+
+  ids, stat := p.permService.Seed(ctx, dtos)
+  if stat.IsError() {
+    spanUtil.RecordError(stat.Error, span)
+    return nil, stat.ToGRPCError()
+  }
+
+  return &authZv1.SeedPermissionResponse{
+    PermissionIds: sharedUtil.CastSlice(ids, sharedUtil.ToString[types.Id]),
+  }, nil
+}
