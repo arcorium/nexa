@@ -2,15 +2,16 @@
 // versions:
 // - protoc-gen-go-grpc v1.3.0
 // - protoc             (unknown)
-// source: authentication/v1/token.proto
+// source: token/v1/token.proto
 
-package authenticationv1
+package tokenv1
 
 import (
 	context "context"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -19,16 +20,18 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	TokenService_Create_FullMethodName = "/nexa.authentication.v1.TokenService/Create"
-	TokenService_Verify_FullMethodName = "/nexa.authentication.v1.TokenService/Verify"
+	TokenService_Create_FullMethodName     = "/nexa.token.v1.TokenService/Create"
+	TokenService_Verify_FullMethodName     = "/nexa.token.v1.TokenService/Verify"
+	TokenService_AuthVerify_FullMethodName = "/nexa.token.v1.TokenService/AuthVerify"
 )
 
 // TokenServiceClient is the client API for TokenService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type TokenServiceClient interface {
-	Create(ctx context.Context, in *TokenCreateRequest, opts ...grpc.CallOption) (*Token, error)
-	Verify(ctx context.Context, in *TokenVerifyRequest, opts ...grpc.CallOption) (*TokenVerifyResponse, error)
+	Create(ctx context.Context, in *CreateTokenRequest, opts ...grpc.CallOption) (*Token, error)
+	Verify(ctx context.Context, in *VerifyTokenRequest, opts ...grpc.CallOption) (*VerifyTokenResponse, error)
+	AuthVerify(ctx context.Context, in *VerifyAuthTokenRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type tokenServiceClient struct {
@@ -39,7 +42,7 @@ func NewTokenServiceClient(cc grpc.ClientConnInterface) TokenServiceClient {
 	return &tokenServiceClient{cc}
 }
 
-func (c *tokenServiceClient) Create(ctx context.Context, in *TokenCreateRequest, opts ...grpc.CallOption) (*Token, error) {
+func (c *tokenServiceClient) Create(ctx context.Context, in *CreateTokenRequest, opts ...grpc.CallOption) (*Token, error) {
 	out := new(Token)
 	err := c.cc.Invoke(ctx, TokenService_Create_FullMethodName, in, out, opts...)
 	if err != nil {
@@ -48,9 +51,18 @@ func (c *tokenServiceClient) Create(ctx context.Context, in *TokenCreateRequest,
 	return out, nil
 }
 
-func (c *tokenServiceClient) Verify(ctx context.Context, in *TokenVerifyRequest, opts ...grpc.CallOption) (*TokenVerifyResponse, error) {
-	out := new(TokenVerifyResponse)
+func (c *tokenServiceClient) Verify(ctx context.Context, in *VerifyTokenRequest, opts ...grpc.CallOption) (*VerifyTokenResponse, error) {
+	out := new(VerifyTokenResponse)
 	err := c.cc.Invoke(ctx, TokenService_Verify_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *tokenServiceClient) AuthVerify(ctx context.Context, in *VerifyAuthTokenRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, TokenService_AuthVerify_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -61,8 +73,9 @@ func (c *tokenServiceClient) Verify(ctx context.Context, in *TokenVerifyRequest,
 // All implementations must embed UnimplementedTokenServiceServer
 // for forward compatibility
 type TokenServiceServer interface {
-	Create(context.Context, *TokenCreateRequest) (*Token, error)
-	Verify(context.Context, *TokenVerifyRequest) (*TokenVerifyResponse, error)
+	Create(context.Context, *CreateTokenRequest) (*Token, error)
+	Verify(context.Context, *VerifyTokenRequest) (*VerifyTokenResponse, error)
+	AuthVerify(context.Context, *VerifyAuthTokenRequest) (*emptypb.Empty, error)
 	mustEmbedUnimplementedTokenServiceServer()
 }
 
@@ -70,11 +83,14 @@ type TokenServiceServer interface {
 type UnimplementedTokenServiceServer struct {
 }
 
-func (UnimplementedTokenServiceServer) Create(context.Context, *TokenCreateRequest) (*Token, error) {
+func (UnimplementedTokenServiceServer) Create(context.Context, *CreateTokenRequest) (*Token, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Create not implemented")
 }
-func (UnimplementedTokenServiceServer) Verify(context.Context, *TokenVerifyRequest) (*TokenVerifyResponse, error) {
+func (UnimplementedTokenServiceServer) Verify(context.Context, *VerifyTokenRequest) (*VerifyTokenResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Verify not implemented")
+}
+func (UnimplementedTokenServiceServer) AuthVerify(context.Context, *VerifyAuthTokenRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AuthVerify not implemented")
 }
 func (UnimplementedTokenServiceServer) mustEmbedUnimplementedTokenServiceServer() {}
 
@@ -90,7 +106,7 @@ func RegisterTokenServiceServer(s grpc.ServiceRegistrar, srv TokenServiceServer)
 }
 
 func _TokenService_Create_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(TokenCreateRequest)
+	in := new(CreateTokenRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -102,13 +118,13 @@ func _TokenService_Create_Handler(srv interface{}, ctx context.Context, dec func
 		FullMethod: TokenService_Create_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(TokenServiceServer).Create(ctx, req.(*TokenCreateRequest))
+		return srv.(TokenServiceServer).Create(ctx, req.(*CreateTokenRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _TokenService_Verify_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(TokenVerifyRequest)
+	in := new(VerifyTokenRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -120,7 +136,25 @@ func _TokenService_Verify_Handler(srv interface{}, ctx context.Context, dec func
 		FullMethod: TokenService_Verify_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(TokenServiceServer).Verify(ctx, req.(*TokenVerifyRequest))
+		return srv.(TokenServiceServer).Verify(ctx, req.(*VerifyTokenRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _TokenService_AuthVerify_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(VerifyAuthTokenRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TokenServiceServer).AuthVerify(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: TokenService_AuthVerify_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TokenServiceServer).AuthVerify(ctx, req.(*VerifyAuthTokenRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -129,7 +163,7 @@ func _TokenService_Verify_Handler(srv interface{}, ctx context.Context, dec func
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var TokenService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "nexa.authentication.v1.TokenService",
+	ServiceName: "nexa.token.v1.TokenService",
 	HandlerType: (*TokenServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -140,7 +174,11 @@ var TokenService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "Verify",
 			Handler:    _TokenService_Verify_Handler,
 		},
+		{
+			MethodName: "AuthVerify",
+			Handler:    _TokenService_AuthVerify_Handler,
+		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "authentication/v1/token.proto",
+	Metadata: "token/v1/token.proto",
 }

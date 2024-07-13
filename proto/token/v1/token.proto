@@ -1,0 +1,55 @@
+syntax = "proto3";
+package nexa.token.v1;
+option go_package = "nexa/proto/gen/go/token/v1";
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+import "common/paged.proto";
+
+service TokenService {
+  rpc Create(CreateTokenRequest) returns (Token);
+  rpc Verify(VerifyTokenRequest) returns (VerifyTokenResponse);
+  rpc AuthVerify(VerifyAuthTokenRequest) returns (google.protobuf.Empty);
+}
+
+enum TokenUsage {
+  EMAIL_VERIFICATION = 0;
+  RESET_PASSWORD = 1;
+  LOGIN = 2;
+  GENERAL = 3;
+}
+
+enum TokenType {
+  STRING = 0;
+  PIN = 1;
+  ALPHANUMERIC_PIN = 2;
+}
+
+message Token {
+  string token = 1;
+  string user_id = 2;
+  TokenUsage usage = 3;
+  google.protobuf.Timestamp expired_at = 4;
+}
+
+message CreateTokenRequest {
+  string user_id = 1;
+  TokenUsage usage = 2;
+  TokenType type = 3;
+  uint32 token_length = 4; // Set to 0 to use the default length
+}
+
+message VerifyTokenRequest {
+  string token = 1;
+  TokenUsage usage = 3;
+}
+
+message VerifyTokenResponse {
+  string user_id = 1;
+}
+
+message VerifyAuthTokenRequest {
+  string token = 1;
+  string user_id = 2;
+  TokenUsage usage = 3;
+}
