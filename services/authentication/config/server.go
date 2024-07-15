@@ -9,9 +9,8 @@ import (
 
 type Server struct {
   sharedConf.Server
-  TokenExpiration           time.Duration `env:"TOKEN_EXPIRATION" envDefault:"24h"`
   JWTAccessTokenExpiration  time.Duration `env:"JWT_ACCESS_TOKEN_EXP" envDefault:"5m"`
-  JWTRefreshTokenExpiration time.Duration `env:"JWT_REFRESH_TOKEN_EXP" envDefault:"30d"`
+  JWTRefreshTokenExpiration time.Duration `env:"JWT_REFRESH_TOKEN_EXP" envDefault:"720h"`
   JWTSigningMethod          string        `env:"JWT_SIGNING_METHOD"`
   PrivateKeyPath            string        `env:"PRIVATE_KEY_PATH"`
   PublicKeyPath             string        `env:"PUBLIC_KEY_PATH"`
@@ -34,6 +33,7 @@ func (s *Server) SigningMethod() jwt.SigningMethod {
 
 type Service struct {
   Authorization string `env:"AUTHZ_SERVICE_ADDR,notEmpty"`
-  User          string `env:"USER_SERVICE_ADDR,notEmpty"`
+  Token         string `env:"TOKEN_SERVICE_ADDR,notEmpty"`
+  FileStorage   string `env:"FILE_STORAGE_SERVICE_ADDR,notEmpty"`
   Mailer        string `env:"MAILER_SERVICE_ADDR,notEmpty"`
 }

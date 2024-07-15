@@ -6,11 +6,14 @@ import (
   "github.com/arcorium/nexa/proto/gen/go/common"
   sharedDto "github.com/arcorium/nexa/shared/dto"
   sharedErr "github.com/arcorium/nexa/shared/errors"
+  "github.com/arcorium/nexa/shared/status"
   "github.com/arcorium/nexa/shared/types"
   sharedUtil "github.com/arcorium/nexa/shared/util"
   spanUtil "github.com/arcorium/nexa/shared/util/span"
   "go.opentelemetry.io/otel/trace"
   "google.golang.org/grpc"
+  "google.golang.org/grpc/codes"
+  grpcStat "google.golang.org/grpc/status"
   "google.golang.org/protobuf/types/known/emptypb"
   "nexa/services/authorization/internal/api/grpc/mapper"
   "nexa/services/authorization/internal/domain/dto"
@@ -211,8 +214,8 @@ func (r *RoleHandler) RemovePermissions(ctx context.Context, request *authZv1.Re
   return nil, stat.ToGRPCErrorWithSpan(span)
 }
 
-func (r *RoleHandler) AppendSuperRolePermissions(ctx context.Context, request *authZv1.AppendSuperRolePermissionsRequest) (*emptypb.Empty, error) {
-  ctx, span := r.tracer.Start(ctx, "RoleHandler.AppendSuperAdminPermissions")
+func (r *RoleHandler) AppendDefaultRolePermissions(ctx context.Context, request *authZv1.AppendDefaultRolePermissionsRequest) (*emptypb.Empty, error) {
+  ctx, span := r.tracer.Start(ctx, "RoleHandler.AppendDefaultRolePermissions")
   defer span.End()
 
   permIds, ierr := sharedUtil.CastSliceErrs(request.PermissionIds, types.IdFromString)
@@ -221,8 +224,42 @@ func (r *RoleHandler) AppendSuperRolePermissions(ctx context.Context, request *a
     return nil, ierr.ToGRPCError("permission_ids")
   }
 
-  stat := r.roleService.AppendSuperRolesPermission(ctx, permIds...)
-  return nil, stat.ToGRPCErrorWithSpan(span)
+  if request.Role == authZv1.DefaultRole_DEFAULT_ROLE {
+    stat := r.roleService.AppendSuperRolesPermission(ctx, permIds...)
+    return nil, stat.ToGRPCErrorWithSpan(span)
+  } else if request.Role == authZv1.DefaultRole_SUPER_ROLE {
+    stat := r.roleService.AppendSuperRolesPermission(ctx, permIds...)
+    return nil, stat.ToGRPCErrorWithSpan(span)
+  }
+
+  err := grpcStat.New(codes.InvalidArgument, "invalid role").Err()
+  spanUtil.RecordError(err, span)
+  return nil, err
+}
+
+func (r *RoleHandler) GetDefault(ctx context.Context, request *authZv1.GetDefaultRoleRequest) (*authZv1.GetDefaultRoleResponse, error) {
+  ctx, span := r.tracer.Start(ctx, "RoleHandler.GetDefault")
+  defer span.End()
+
+  var res dto.RoleResponseDTO
+  var stat status.Object
+  if request.Role == authZv1.DefaultRole_DEFAULT_ROLE {
+    res, stat = r.roleService.GetDefault(ctx)
+  } else if request.Role == authZv1.DefaultRole_SUPER_ROLE {
+    res, stat = r.roleService.GetSuper(ctx)
+  } else {
+    err := grpcStat.New(codes.InvalidArgument, "invalid role").Err()
+    spanUtil.RecordError(err, span)
+    return nil, err
+  }
+
+  if stat.IsError() {
+    spanUtil.RecordError(stat.Error, span)
+    return nil, stat.ToGRPCError()
+  }
+
+  permission := mapper.ToProtoRolePermission(&res, request.IncludePermissions)
+  return &authZv1.GetDefaultRoleResponse{Role: permission}, nil
 }
 
 func (r *RoleHandler) SetAsSuper(ctx context.Context, request *authZv1.SetAsSuperRequest) (*emptypb.Empty, error) {

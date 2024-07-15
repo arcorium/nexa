@@ -1,18 +1,4 @@
 services:
-  authn-db:
-    image: postgres
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U nexa -d nexa-authn" ]
-      interval: 5s
-      retries: 10
-    environment:
-      - POSTGRES_DB=nexa-authn
-      - POSTGRES_USER=nexa
-      - POSTGRES_PASSWORD=nexa
-    ports:
-      - 5432
-    networks:
-      - nan_network
   authn-session-db:
     image: redis
     healthcheck:
@@ -24,17 +10,32 @@ services:
     environment:
       - REDIS_PASSWORD=rootroot123
     command: ["redis-server", "--requirepass", "rootroot123"]
+    networks:
+      - nan_network
+  user-db:
+    image: postgres
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U nexa -d nexa-user" ]
+      interval: 5s
+      retries: 10
+    environment:
+      - POSTGRES_DB=nexa-user
+      - POSTGRES_USER=nexa
+      - POSTGRES_PASSWORD=nexa
+    networks:
+      - nan_network
   nexa-authn-migrate:
     build:
       dockerfile: ./docker/migrate.Dockerfile
+    restart: on-failure
     depends_on:
-      authn-db:
+      user-db:
         condition: service_healthy
     environment:
-      - PG_ADDRESS=authn-db
+      - PG_ADDRESS=user-db
       - PG_USERNAME=nexa
       - PG_PASSWORD=nexa
-      - PG_DB_NAME=nexa-authn
+      - PG_DB_NAME=nexa-user
       - PG_IS_SECURE=false
     networks:
       - nan_network
@@ -44,28 +45,29 @@ services:
       dockerfile: Dockerfile
     entrypoint: /bin/sh -c "./main > /output/token.txt"
     volumes:
-      - authn-token_output
+      - authn-token_output:/output
   nexa-authn-seed:
     build:
       dockerfile: ./docker/seed.Dockerfile
+    restart: on-failure
     depends_on:
       nexa-authn-migrate:
         condition: service_completed_successfully
-      nexa-authz:
-        condition: service_healthy
       token_generator:
         condition: service_completed_successfully
+#      nexa-authz:
+#        condition: service_healthy
     environment:
-      - PG_ADDRESS=authn-db
+      - PG_ADDRESS=user-db
       - PG_USERNAME=nexa
       - PG_PASSWORD=nexa
-      - PG_DB_NAME=nexa-authn
+      - PG_DB_NAME=nexa-user
       - PG_IS_SECURE=false
-      - AUTHZ_SERVICE_ADDR=nexa-authz:8080
+#      - AUTHZ_SERVICE_ADDR=nexa-authz:8080
     networks:
       - nan_network
     volumes:
-      - authn-token_output
+      - authn-token_output:/output
   nexa-authn:
     build:
       dockerfile: ./docker/app.Dockerfile
@@ -77,27 +79,28 @@ services:
       start_period: 5s
       timeout: 30s
     depends_on:
-      nexa-authn-migrate:
-        condition: service_completed_successfully
-        restart: false
       nexa-authn-seed:
         condition: service_completed_successfully
-        restart: false
       authn-session-db:
         condition: service_healthy
+    networks:
+      - nan_network
     environment:
-      - PG_ADDRESS=mailer-db
-      - PG_USERNAME=nexa
-      - PG_PASSWORD=nexa
-      - PG_DB_NAME=nexa-mailer
-      - PG_PARAMETER=application_name=nexa-authn
-      - PG_IS_SECURE=false
-      - REDIS_ADDRESS=authn-session-db
+      - REDIS_ADDRESS=authn-session-db:6379
       - REDIS_USERNAME=default
       - REDIS_PASSWORD=rootroot123
+      - PG_ADDRESS=user-db
+      - PG_USERNAME=nexa
+      - PG_PASSWORD=nexa
+      - PG_DB_NAME=nexa-user
+      - PG_PARAMETER=application_name=nexa-authn
+      - PG_IS_SECURE=false
 #      - AUTHZ_SERVICE_ADDR=
-#      - USER_SERVICE_ADDR=
+#      - TOKEN_SERVICE_ADDR=
+#      - FILE_STORAGE_SERVICE_ADDR=
 #      - MAILER_SERVICE_ADDR=
+#      - OTLP_GRPC_COLLECTOR_ADDRESS=
+
 networks:
   nan_network:
     driver: bridge

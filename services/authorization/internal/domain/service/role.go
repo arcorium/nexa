@@ -24,6 +24,10 @@ type IRole interface {
   // RemoveUsers remove roles from user
   RemoveUsers(ctx context.Context, usersDTO *dto.ModifyUserRolesDTO) status.Object
 
+  GetDefault(ctx context.Context) (dto.RoleResponseDTO, status.Object)
+  GetSuper(ctx context.Context) (dto.RoleResponseDTO, status.Object)
+
   AppendSuperRolesPermission(ctx context.Context, permIds ...types.Id) status.Object
+  AppendDefaultRolesPermission(ctx context.Context, permIds ...types.Id) status.Object
   SetUserAsSuper(ctx context.Context, userId types.Id) status.Object
 }

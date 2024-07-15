@@ -1,20 +1,33 @@
-.PHONY: build build.image.server
-build:
+.PHONY: build build.image run.compose stop.compose run.dev
+
+build.local:
 	go build -o build/server "./cmd/server/"
-	go build -o build/migrate "./cmd/migrate/"
 	go build -o build/seed "./cmd/seed/"
+	go build -o build/migrate "./cmd/migrate/"
 
-build.image.server:
-	docker build -f ./docker/app.Dockerfile -t nexa-authorization:latest .
+build.image:
+	docker build -f ./docker/app.Dockerfile -t nexa-authz:latest .
+	docker build -f ./docker/migrate.Dockerfile -t nexa-authz-migrate:latest .
+	docker build -f ./docker/seed.Dockerfile -t nexa-authz-seed:latest .
 
-run: build
+run.compose: pubkey.pem
+	docker compose -f ./docker-compose.dev.yml -f ./docker-compose.dev.override.yml \
+	-p nexa-authorization up -d
+
+stop.compose:
+	docker compose down --remove-orphans
+
+run.dev: run.compose build.local
+	@./build/server
+
+run: build.local
 	@export NEXA_AUTHZ_RELEASE=1; \
 	./build/server
 
-migrate: build
+migrate: build.local
 	@./build/migrate
 
-seed: build
+seed: build.local
 	@./build/seed
 
 clean:

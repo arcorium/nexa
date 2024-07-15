@@ -25,26 +25,45 @@ distribute.key:
 
 create.service:
 	mkdir services\$(service)
-	go mod init -C ./services/$(service) nexa/services/$(service)
 	mkdir services\$(service)\cmd
+	mkdir services\$(service)\config
+	mkdir services\$(service)\constant
+	mkdir services\$(service)\cmd\server
+	mkdir services\$(service)\cmd\migrate
+	mkdir services\$(service)\cmd\seed
 	mkdir services\$(service)\internal
 	mkdir services\$(service)\internal\api
-	mkdir services\$(service)\internal\app\config
+	mkdir services\$(service)\internal\api\grpc\handler
+	mkdir services\$(service)\internal\api\grpc\mapper
+	mkdir services\$(service)\internal\api\grpc\interceptor
 	mkdir services\$(service)\internal\app\service
 	mkdir services\$(service)\internal\domain
+	mkdir services\$(service)\internal\domain\dto
+	mkdir services\$(service)\internal\domain\mapper
+	mkdir services\$(service)\internal\domain\entity
 	mkdir services\$(service)\internal\domain\service
 	mkdir services\$(service)\internal\domain\repository
 	mkdir services\$(service)\internal\infra
-	mkdir services\$(service)\internal\infra\model
 	mkdir services\$(service)\internal\infra\repository
-	mkdir services\$(service)\shared
-	mkdir services\$(service)\shared\domain
-	mkdir services\$(service)\shared\domain\dto
-	mkdir services\$(service)\shared\domain\entity
-	mkdir services\$(service)\shared\domain\mapper
-	mkdir services\$(service)\shared\proto
-	mkdir services\$(service)\test
-	go work use ./services/$(service)
+	mkdir services\$(service)\util
 
 gen.go:
 	buf generate
+
+run.compose:
+	NEXA_RELEASE=1 SMTP_PATH=smtp.env \
+	docker compose -f ./docker-compose.yml -f ./docker-compose.override.yml \
+    -p nexa up -d
+
+run.compose.dev:
+	NEXA_RELEASE=0 SMTP_PATH=services/mailer/dev.smtp.env \
+	docker compose -f ./docker-compose.yml -f ./docker-compose.override.yml \
+        -p nexa up -d
+
+stop.compose:
+	NEXA_RELEASE=0 SMTP_PATH=services/mailer/dev.smtp.env \
+	docker compose down --remove-orphans
+
+run: prepare run.compose
+
+run.dev: prepare run.compose.dev

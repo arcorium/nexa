@@ -13,41 +13,49 @@ import (
   "time"
 )
 
-func main() {
-  dbConfig, err := sharedConf.Load[sharedConf.PostgresDatabase]()
-  if err != nil {
-    log.Fatalln(err)
-  }
-
-  db, err := database.OpenPostgresWithConfig(dbConfig, true)
-  //db, err := database.OpenPostgres("postgres://postgres:password@localhost:5432/postgres", false, 0, true)
-  //db, err := database.OpenPostgres("postgres://nexa:nexa@db/nexa-authz", false, 0, true)
-  if err != nil {
-    log.Fatalln(err)
-  }
-  defer db.Close()
-
-  model.RegisterBunModels(db)
-
+func seedData() ([]model.Role, []model.Permission, []model.RolePermission) {
   // Seed role
-  seedPerms := sharedUtil.MapToSlice(constant.AUTHZ_PERMISSIONS, func(action string, code string) model.Permission {
+  superPerms := sharedUtil.MapToSlice(AUTHZ_SUPER_PERMS, func(action types.Action, code string) model.Permission {
     return model.Permission{
       Id:        types.MustCreateId().String(),
       Resource:  constant.SERVICE_RESOURCE,
-      Action:    action,
+      Action:    action.String(),
       CreatedAt: time.Now(),
     }
   })
 
-  s := "Default roles that capable to do anything"
+  defaultPerms := sharedUtil.MapToSlice(AUTHZ_DEFAULT_PERMS, func(action types.Action, code string) model.Permission {
+    return model.Permission{
+      Id:        types.MustCreateId().String(),
+      Resource:  constant.SERVICE_RESOURCE,
+      Action:    action.String(),
+      CreatedAt: time.Now(),
+    }
+  })
+
+  perms := append(superPerms, defaultPerms...)
+
+  superDesc := "Role that capable to do anything"
+  defaultDesc := "Default role"
+
   superRole := model.Role{
     Id:          types.MustCreateId().String(),
-    Name:        constant.DEFAULT_SUPER_ROLE_NAME,
-    Description: &s,
+    Name:        constant.SUPER_ROLE_NAME,
+    Description: &superDesc,
     CreatedAt:   time.Now(),
   }
 
-  rolePerms := sharedUtil.CastSliceP(seedPerms, func(perm *model.Permission) model.RolePermission {
+  defaultRole := model.Role{
+    Id:          types.MustCreateId().String(),
+    Name:        constant.DEFAULT_ROLE_NAME,
+    Description: &defaultDesc,
+    CreatedAt:   time.Now(),
+  }
+
+  roles := []model.Role{defaultRole, superRole}
+
+  // Super role permissions
+  superRolePerms := sharedUtil.CastSliceP(superPerms, func(perm *model.Permission) model.RolePermission {
     return model.RolePermission{
       RoleId:       superRole.Id,
       PermissionId: perm.Id,
@@ -55,15 +63,45 @@ func main() {
     }
   })
 
+  // Default role permissions
+  defaultRolePerms := sharedUtil.CastSliceP(defaultPerms, func(perm *model.Permission) model.RolePermission {
+    return model.RolePermission{
+      RoleId:       defaultRole.Id,
+      PermissionId: perm.Id,
+      CreatedAt:    time.Now(),
+    }
+  })
+
+  rolePerms := append(superRolePerms, defaultRolePerms...)
+
+  return roles, perms, rolePerms
+}
+
+func main() {
+  dbConfig, err := sharedConf.Load[sharedConf.PostgresDatabase]()
+  if err != nil {
+    log.Fatalln(err)
+  }
+
+  db, err := database.OpenPostgresWithConfig(dbConfig, true)
+  if err != nil {
+    log.Fatalln(err)
+  }
+  defer db.Close()
+
+  model.RegisterBunModels(db)
+
+  roles, perms, rolePerms := seedData()
+
   err = db.RunInTx(context.Background(), nil, func(ctx context.Context, tx bun.Tx) error {
     // Seed role
-    err = database.Seed(tx, superRole)
+    err = database.Seed(tx, roles...)
     if err != nil {
       return err
     }
 
     // Seed permissions
-    err = database.Seed(tx, seedPerms...)
+    err = database.Seed(tx, perms...)
     if err != nil {
       return err
     }

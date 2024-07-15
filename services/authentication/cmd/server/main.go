@@ -9,14 +9,11 @@ import (
 )
 
 func main() {
-  envName := ".env"
+  var err error
   if config.IsDebug() {
-    envName = "dev.env"
-  }
-
-  err := env.LoadEnvs(envName)
-  if err != nil {
-    log.Fatalln(err)
+    err = env.LoadEnvs("dev.env")
+  } else {
+    err = env.LoadEnvs()
   }
 
   // Config

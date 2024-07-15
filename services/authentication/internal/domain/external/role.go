@@ -8,4 +8,5 @@ import (
 
 type IRoleClient interface {
   GetUserRoles(ctx context.Context, userId types.Id) ([]dto.RoleResponseDTO, error)
+  RemoveUserRoles(ctx context.Context, userId types.Id) error
 }

@@ -33,6 +33,8 @@ import (
   "google.golang.org/grpc/health"
   "google.golang.org/grpc/health/grpc_health_v1"
   "google.golang.org/grpc/reflection"
+  "google.golang.org/grpc/reflection/grpc_reflection_v1"
+  "google.golang.org/grpc/reflection/grpc_reflection_v1alpha"
   "net"
   "net/http"
   "nexa/services/authentication/config"
@@ -40,11 +42,10 @@ import (
   "nexa/services/authentication/internal/api/grpc/handler"
   inter "nexa/services/authentication/internal/api/grpc/interceptor"
   "nexa/services/authentication/internal/app/service"
-  "nexa/services/authentication/internal/infra/external"
+  "nexa/services/authentication/internal/app/uow/pg"
+  "nexa/services/authentication/internal/infra/factory"
   "nexa/services/authentication/internal/infra/repository/model"
-  "nexa/services/authentication/internal/infra/repository/pg"
   redisRepo "nexa/services/authentication/internal/infra/repository/redis"
-  "nexa/services/authentication/util"
   "os"
   "os/signal"
   "sync"
@@ -62,19 +63,21 @@ func NewServer(dbConfig *config.Database, serverConfig *config.Server) (*Server,
 }
 
 type Server struct {
-  dbConfig              *config.Database
-  serverConfig          *config.Server
-  tokenDb               *bun.DB
-  credDb                *redis.Client
-  grpcClientConnections []*grpc.ClientConn
-  publicKey             *rsa.PublicKey
-  privateKey            *rsa.PrivateKey
+  dbConfig     *config.Database
+  serverConfig *config.Server
 
-  grpcServer     *grpc.Server
-  metricServer   *http.Server
-  logger         logger.ILogger
-  exporter       sdktrace.SpanExporter
-  tracerProvider *sdktrace.TracerProvider
+  credDb *redis.Client
+  userDb *bun.DB
+
+  publicKey  *rsa.PublicKey
+  privateKey *rsa.PrivateKey
+
+  externalFactory *factory.External
+  grpcServer      *grpc.Server
+  metricServer    *http.Server
+  logger          logger.ILogger
+  exporter        sdktrace.SpanExporter
+  tracerProvider  *sdktrace.TracerProvider
 
   wg sync.WaitGroup
 }
@@ -82,7 +85,6 @@ type Server struct {
 func (s *Server) validationSetup() {
   validator := sharedUtil.GetValidator()
   types.RegisterDefaultNullableValidations(validator)
-  util.RegisterValidationTags(validator)
 }
 
 func (s *Server) setupOtel() (*promProv.ServerMetrics, *prometheus.Registry, error) {
@@ -150,7 +152,16 @@ func (s *Server) grpcServerSetup() error {
     return nil
   }
 
-  authorizationConfig := authz.NewUserConfig(s.publicKey, inter.PermissionCheck)
+  authorizationConfig := authz.NewUserConfig(s.publicKey, nil)
+  skipServices := []string{
+    grpc_health_v1.Health_ServiceDesc.ServiceName,
+  }
+  if config.IsDebug() {
+    skipServices = append(skipServices,
+      grpc_reflection_v1.ServerReflection_ServiceDesc.ServiceName,
+      grpc_reflection_v1alpha.ServerReflection_ServiceDesc.ServiceName,
+    )
+  }
 
   s.grpcServer = grpc.NewServer(
     grpc.StatsHandler(otelgrpc.NewServerHandler()), // tracing
@@ -158,14 +169,14 @@ func (s *Server) grpcServerSetup() error {
       recovery.UnaryServerInterceptor(),
       logging.UnaryServerInterceptor(zapLogger), // logging
       authz.UserUnaryServerInterceptor(&authorizationConfig,
-        authz.SkipSelector(inter.AuthSkipSelector)),
+        authz.SkipSelector(inter.AuthSkipSelector), skipServices...),
       metrics.UnaryServerInterceptor(promProv.WithExemplarFromContext(exemplarFromCtx)),
     ),
     grpc.ChainStreamInterceptor(
       recovery.StreamServerInterceptor(),
       logging.StreamServerInterceptor(zapLogger), // logging
       authz.UserStreamServerInterceptor(&authorizationConfig,
-        authz.SkipSelector(inter.AuthSkipSelector)),
+        authz.SkipSelector(inter.AuthSkipSelector), skipServices...),
       metrics.StreamServerInterceptor(promProv.WithExemplarFromContext(exemplarFromCtx)),
     ),
   )
@@ -192,27 +203,28 @@ func (s *Server) grpcServerSetup() error {
 func (s *Server) databaseSetup() error {
   // Token Database
   var err error
-  s.tokenDb, err = database.OpenPostgresWithConfig(&s.dbConfig.Postgres, config.IsDebug())
-  if err != nil {
-    return err
-  }
-  // Add trace hook
-  s.tokenDb.AddQueryHook(bunotel.NewQueryHook(
-    bunotel.WithFormattedQueries(true),
-  ))
-  model.RegisterBunModels(s.tokenDb)
-
   // Credential Database
   s.credDb = redis.NewClient(&redis.Options{
-    Addr:     s.dbConfig.Session.Address,
-    Username: s.dbConfig.Session.Username,
-    Password: s.dbConfig.Session.Password,
+    Addr:     s.dbConfig.RedisAddress,
+    Username: s.dbConfig.RedisUsername,
+    Password: s.dbConfig.RedisPassword,
   })
 
   _, err = s.credDb.Ping(context.Background()).Result()
   if err != nil {
     return err
   }
+
+  // User Database
+  s.userDb, err = database.OpenPostgresWithConfig(&s.dbConfig.PostgresDatabase, config.IsDebug())
+  if err != nil {
+    return err
+  }
+  // Add trace hook
+  s.userDb.AddQueryHook(bunotel.NewQueryHook(
+    bunotel.WithFormattedQueries(true),
+  ))
+  model.RegisterBunModels(s.userDb)
 
   return nil
 }
@@ -268,36 +280,21 @@ func (s *Server) setup() error {
 
   // External client
   creds := grpc.WithTransportCredentials(insecure.NewCredentials())
-  roleConn, err := grpc.NewClient(s.serverConfig.Service.Authorization, creds)
+  result, err := factory.NewExternalWithConfig(&s.serverConfig.Service, creds)
   if err != nil {
     return err
   }
-  roleClient := external.NewRoleClient(roleConn)
-
-  userConn, err := grpc.NewClient(s.serverConfig.Service.User, creds)
-  if err != nil {
-    return err
-  }
-  userClient := external.NewUserClient(userConn)
-
-  mailConn, err := grpc.NewClient(s.serverConfig.Service.Mailer, creds)
-  if err != nil {
-    return err
-  }
-  mailClient := external.NewMailClient(mailConn)
-  s.grpcClientConnections = append(s.grpcClientConnections, roleConn, userConn, mailConn)
+  s.externalFactory = result
 
   // Repository
-  tokenRepo := pg.NewToken(s.tokenDb)
   credRepo := redisRepo.NewCredential(s.credDb, nil) // Use default config
+  userUOW := pg.NewUserUOW(s.userDb)
 
   // Service
-  tokenService := service.NewToken(tokenRepo, service.TokenServiceConfig{
-    VerificationTokenExpiration: s.serverConfig.TokenExpiration,
-    ResetTokenExpiration:        s.serverConfig.TokenExpiration,
-  })
-
-  credService := service.NewCredential(credRepo, tokenRepo, roleClient, userClient, mailClient, service.CredentialServiceConfig{
+  credSvc := service.NewCredential(credRepo, userUOW, service.CredentialConfig{
+    TokenClient:            s.externalFactory.Token,
+    MailClient:             s.externalFactory.Mail,
+    RoleClient:             s.externalFactory.Role,
     SigningMethod:          s.serverConfig.SigningMethod(),
     AccessTokenExpiration:  s.serverConfig.JWTAccessTokenExpiration,
     RefreshTokenExpiration: s.serverConfig.JWTRefreshTokenExpiration,
@@ -305,12 +302,24 @@ func (s *Server) setup() error {
     PublicKey:              s.publicKey,
   })
 
-  // GRPC Handler
-  tokenHandler := handler.NewToken(tokenService)
-  tokenHandler.RegisterHandler(s.grpcServer)
+  userSvc := service.NewUser(credRepo, userUOW, service.UserConfig{
+    RoleClient:  s.externalFactory.Role,
+    MailClient:  s.externalFactory.Mail,
+    TokenClient: s.externalFactory.Token,
+  })
 
-  credHandler := handler.NewCredential(credService)
+  repos := userUOW.Repositories()
+  profileSvc := service.NewProfile(repos.Profile(), s.externalFactory.Storage)
+
+  // GRPC Handler
+  credHandler := handler.NewCredential(credSvc)
   credHandler.RegisterHandler(s.grpcServer)
+
+  userHandler := handler.NewUser(userSvc)
+  userHandler.Register(s.grpcServer)
+
+  profileHandler := handler.NewProfile(profileSvc)
+  profileHandler.Register(s.grpcServer)
 
   // Health check
   healthHandler := health.NewServer()
@@ -333,14 +342,10 @@ func (s *Server) shutdown() {
   }
 
   // External Clients
-  for _, conn := range s.grpcClientConnections {
-    if err := conn.Close(); err != nil {
-      logger.Warn(err.Error())
-    }
-  }
+  s.externalFactory.Close()
 
   // Database
-  if err := s.tokenDb.Close(); err != nil {
+  if err := s.userDb.Close(); err != nil {
     logger.Warn(err.Error())
   }
 

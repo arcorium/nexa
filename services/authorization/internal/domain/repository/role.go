@@ -26,8 +26,12 @@ type IRole interface {
   AddPermissions(ctx context.Context, roleId types.Id, permissionIds ...types.Id) error
   // RemovePermissions remove permission from role
   RemovePermissions(ctx context.Context, roleId types.Id, permissionIds ...types.Id) error
+  // ClearPermission remove all role's permissions
+  ClearPermission(ctx context.Context, roleId types.Id) error
   // AddUser add roles into user
   AddUser(ctx context.Context, userId types.Id, roleIds ...types.Id) error
   // RemoveUser remove roles from user
   RemoveUser(ctx context.Context, userId types.Id, roleIds ...types.Id) error
+  // ClearUser remove all user's roles
+  ClearUser(ctx context.Context, userId types.Id) error
 }

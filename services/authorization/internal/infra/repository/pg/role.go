@@ -224,6 +224,18 @@ func (r *roleRepository) RemovePermissions(ctx context.Context, roleId types.Id,
   return repo.CheckResultWithSpan(res, err, span)
 }
 
+func (r *roleRepository) ClearPermission(ctx context.Context, roleId types.Id) error {
+  ctx, span := r.tracer.Start(ctx, "RoleRepository.ClearPermission")
+  defer span.End()
+
+  res, err := r.db.NewDelete().
+    Model(types.Nil[model.RolePermission]()).
+    Where("role_id = ?", roleId.String()).
+    Exec(ctx)
+
+  return repo.CheckResultWithSpan(res, err, span)
+}
+
 func (r *roleRepository) AddUser(ctx context.Context, userId types.Id, roleIds ...types.Id) error {
   ctx, span := r.tracer.Start(ctx, "RoleRepository.AddUser")
   defer span.End()
@@ -262,6 +274,18 @@ func (r *roleRepository) RemoveUser(ctx context.Context, userId types.Id, roleId
   res, err := r.db.NewDelete().
     Model(types.Nil[model.UserRole]()).
     Where("role_id IN (?) AND user_id = ?", bun.In(idModels), userId.String()).
+    Exec(ctx)
+
+  return repo.CheckResultWithSpan(res, err, span)
+}
+
+func (r *roleRepository) ClearUser(ctx context.Context, userId types.Id) error {
+  ctx, span := r.tracer.Start(ctx, "RoleRepository.ClearUser")
+  defer span.End()
+
+  res, err := r.db.NewDelete().
+    Model(types.Nil[model.UserRole]()).
+    Where("AND user_id = ?", userId.String()).
     Exec(ctx)
 
   return repo.CheckResultWithSpan(res, err, span)

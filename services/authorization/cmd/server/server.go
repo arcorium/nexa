@@ -31,6 +31,8 @@ import (
   "google.golang.org/grpc/health"
   "google.golang.org/grpc/health/grpc_health_v1"
   "google.golang.org/grpc/reflection"
+  "google.golang.org/grpc/reflection/grpc_reflection_v1"
+  "google.golang.org/grpc/reflection/grpc_reflection_v1alpha"
   "net"
   "net/http"
   "nexa/services/authorization/config"
@@ -146,6 +148,13 @@ func (s *Server) grpcServerSetup() error {
     SkipServices: []string{grpc_health_v1.Health_ServiceDesc.ServiceName},
     User:         authz.NewUserConfig(s.publicKey, inter.UserCheckPermission),
     Private:      authz.NewPrivateConfig(s.publicKey, nil),
+  }
+
+  if config.IsDebug() {
+    authConf.SkipServices = append(authConf.SkipServices,
+      grpc_reflection_v1.ServerReflection_ServiceDesc.ServiceName,
+      grpc_reflection_v1alpha.ServerReflection_ServiceDesc.ServiceName,
+    )
   }
 
   s.grpcServer = grpc.NewServer(

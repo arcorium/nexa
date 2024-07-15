@@ -2,9 +2,99 @@ package dto
 
 import (
   "github.com/arcorium/nexa/shared/types"
+  entity "nexa/services/authentication/internal/domain/entity"
+  "time"
 )
 
 type UserResponseDTO struct {
-  UserId   types.Id
-  Username string
+  Id         types.Id
+  Username   string
+  Email      types.Email
+  IsVerified bool
+  Profile    *ProfileResponseDTO
+}
+
+type UserCreateDTO struct {
+  Username  string `validate:"required,gte=6"`
+  Email     types.Email
+  Password  types.Password
+  FirstName string `validate:"required"`
+  LastName  types.NullableString
+  Bio       types.NullableString
+}
+
+func (d *UserCreateDTO) ToDomain() (entity.User, entity.Profile, error) {
+  user, err := entity.NewUser(d.Username, d.Email, d.Password)
+  if err != nil {
+    return entity.User{}, entity.Profile{}, err
+  }
+
+  profile, err := entity.NewProfile(user.Id, d.FirstName)
+  if err != nil {
+    return entity.User{}, entity.Profile{}, err
+  }
+
+  types.SetOnNonNull(&profile.LastName, d.LastName)
+  types.SetOnNonNull(&profile.Bio, d.Bio)
+
+  return user, profile, nil
+}
+
+type UserUpdateDTO struct {
+  Id       types.Id
+  Username types.NullableString
+  Email    types.NullableEmail
+}
+
+func (d *UserUpdateDTO) ToDomain() entity.PatchedUser {
+  user := entity.PatchedUser{
+    Id: d.Id,
+  }
+
+  types.SetOnNonNull(&user.Username, d.Username)
+  types.SetOnNonNull(&user.Email, d.Email)
+
+  return user
+}
+
+type UserUpdatePasswordDTO struct {
+  Id           types.Id
+  LastPassword types.Password `validate:"required"`
+  NewPassword  types.Password `validate:"required,gte=6"`
+}
+
+func (p *UserUpdatePasswordDTO) ToDomain() (entity.PatchedUser, error) {
+  hashedPassword, err := p.NewPassword.Hash()
+  if err != nil {
+    return entity.PatchedUser{}, err
+  }
+
+  return entity.PatchedUser{
+    Id:       p.Id,
+    Password: hashedPassword,
+  }, nil
+}
+
+type UserBannedDTO struct {
+  Id       types.Id
+  Duration time.Duration
+}
+
+func (u *UserBannedDTO) ToDomain() entity.PatchedUser {
+  return entity.PatchedUser{
+    Id:             u.Id,
+    BannedDuration: types.SomeNullable(u.Duration),
+  }
+}
+
+type ResetUserPasswordDTO struct {
+  UserId      types.Id
+  LogoutAll   bool
+  NewPassword types.Password `validate:"required,gt=6"`
+}
+
+type ResetPasswordWithTokenDTO struct {
+  Token       string
+  LogoutAll   bool
+  NewPassword types.Password `validate:"required,gt=6"`
 }

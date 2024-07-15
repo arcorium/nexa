@@ -9,13 +9,12 @@ services:
       - POSTGRES_DB=nexa-mail
       - POSTGRES_USER=nexa
       - POSTGRES_PASSWORD=nexa
-    ports:
-      - 5432
     networks:
       - nm_network
   nexa-mailer-migrate:
     build:
       dockerfile: ./docker/migrate.Dockerfile
+    restart: on-failure
     depends_on:
       mailer-db:
         condition: service_healthy
@@ -27,22 +26,23 @@ services:
       - PG_IS_SECURE=false
     networks:
       - nm_network
-  token_generator:
+  mailer-token_generator:
     build:
       context: ../../token_generator/
       dockerfile: Dockerfile
     entrypoint: /bin/sh -c "./main > /output/token.txt"
     volumes:
-      - mailer-token_output
+      - mailer-token_output:/output
   nexa-mailer-seed:
     build:
       dockerfile: ./docker/seed.Dockerfile
+    restart: on-failure
     depends_on:
       nexa-mailer-migrate:
         condition: service_completed_successfully
-      nexa-authz:
-        condition: service_healthy
-      token_generator:
+#      nexa-authz:
+#        condition: service_healthy
+      mailer-token_generator:
         condition: service_completed_successfully
     environment:
       - PG_ADDRESS=mailer-db
@@ -54,10 +54,10 @@ services:
     networks:
       - nm_network
     volumes:
-      - mailer-token_output
+      - mailer-token_output:/output
   nexa-mailer:
     build:
-      dockerfile: docker/app.Dockerfile
+      dockerfile: ./docker/app.Dockerfile
     restart: unless-stopped
     healthcheck:
       test: [ "CMD", "grpc_health_probe", "-addr=localhost:8080"]
@@ -68,15 +68,13 @@ services:
     depends_on:
       nexa-mailer-seed:
         condition: service_completed_successfully
-        restart: false
       nexa-mailer-migrate:
         condition: service_completed_successfully
-        restart: false
     environment:
       - PG_ADDRESS=mailer-db
       - PG_USERNAME=nexa
       - PG_PASSWORD=nexa
-      - PG_DB_NAME=nexa-mailer
+      - PG_DB_NAME=nexa-mail
       - PG_PARAMETER=application_name=nexa-mailer
       - PG_IS_SECURE=false
 #      - SMTP_HOST=
@@ -84,9 +82,9 @@ services:
 #      - SMTP_USERNAME=
 #      - SMTP_PASSWORD=
 #      - OTLP_GRPC_COLLECTOR_ADDRESS=jaeger:4317
-    ports:
-      - "8080:8080"
-      - "8081"
+#    ports:
+#      - "8080:8080"
+#      - "8081"
     networks:
       - nm_network
 networks:

@@ -28,7 +28,11 @@ import (
   semconv "go.opentelemetry.io/otel/semconv/v1.25.0"
   "go.opentelemetry.io/otel/trace"
   "google.golang.org/grpc"
+  "google.golang.org/grpc/health"
+  "google.golang.org/grpc/health/grpc_health_v1"
   "google.golang.org/grpc/reflection"
+  "google.golang.org/grpc/reflection/grpc_reflection_v1"
+  "google.golang.org/grpc/reflection/grpc_reflection_v1alpha"
   "net"
   "net/http"
   "nexa/services/mailer/config"
@@ -144,18 +148,30 @@ func (s *Server) grpcServerSetup() error {
 
   authzConf := authz.NewUserConfig(s.publicKey, inter.Auth)
 
+  skipServices := []string{
+    grpc_health_v1.Health_ServiceDesc.ServiceName,
+  }
+  if config.IsDebug() {
+    skipServices = append(skipServices,
+      grpc_reflection_v1.ServerReflection_ServiceDesc.ServiceName,
+      grpc_reflection_v1alpha.ServerReflection_ServiceDesc.ServiceName,
+    )
+  }
+
   s.grpcServer = grpc.NewServer(
     grpc.StatsHandler(otelgrpc.NewServerHandler()), // tracing
     grpc.ChainUnaryInterceptor(
       recovery.UnaryServerInterceptor(),
       logging.UnaryServerInterceptor(zapLogger), // logging
-      authz.UserUnaryServerInterceptor(&authzConf, authz.SkipSelector(inter.AuthSkipSelector)),
+      authz.UserUnaryServerInterceptor(&authzConf,
+        authz.SkipSelector(inter.AuthSkipSelector), skipServices...),
       metrics.UnaryServerInterceptor(promProv.WithExemplarFromContext(exemplarFromCtx)),
     ),
     grpc.ChainStreamInterceptor(
       recovery.StreamServerInterceptor(),
       logging.StreamServerInterceptor(zapLogger), // logging
-      authz.UserStreamServerInterceptor(&authzConf, authz.SkipSelector(inter.AuthSkipSelector)),
+      authz.UserStreamServerInterceptor(&authzConf,
+        authz.SkipSelector(inter.AuthSkipSelector), skipServices...),
       metrics.StreamServerInterceptor(promProv.WithExemplarFromContext(exemplarFromCtx)),
     ),
   )
@@ -257,6 +273,11 @@ func (s *Server) setup() error {
 
   tagHandler := handler.NewTag(tagService)
   tagHandler.Register(s.grpcServer)
+
+  // Health check
+  healthHandler := health.NewServer()
+  grpc_health_v1.RegisterHealthServer(s.grpcServer, healthHandler)
+  healthHandler.SetServingStatus(constant.SERVICE_NAME, grpc_health_v1.HealthCheckResponse_SERVING)
 
   return nil
 }

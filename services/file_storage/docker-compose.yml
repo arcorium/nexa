@@ -20,20 +20,18 @@ services:
     environment:
       - MINIO_ROOT_USER=root
       - MINIO_ROOT_PASSWORD=rootroot123
-    ports:
-      - "9000"
-      - "9001"
     command: server /data
     networks:
       - nf_network
   nexa-storage-migrate:
     build:
       dockerfile: ./docker/migrate.Dockerfile
+    restart: on-failure
     depends_on:
       file-db:
         condition: service_healthy
     environment:
-      - PG_ADDRESS=db
+      - PG_ADDRESS=file-db
       - PG_USERNAME=nexa
       - PG_PASSWORD=nexa
       - PG_DB_NAME=nexa-file
@@ -57,7 +55,7 @@ services:
       minio:
         condition: service_healthy
     environment:
-      - PG_ADDRESS=db
+      - PG_ADDRESS=file-db
       - PG_USERNAME=nexa
       - PG_PASSWORD=nexa
       - PG_DB_NAME=nexa-file
@@ -68,9 +66,9 @@ services:
       - MINIO_ACCESS_KEY_ID=root
       - MINIO_SECRET_KEY=rootroot123
 #      - OTLP_GRPC_COLLECTOR_ADDRESS=jaeger:4317
-    ports:
-      - "8080:8080"
-      - "8081"
+#    ports:
+#      - "8080:8080"
+#      - "8081"
     networks:
       - nf_network
 networks:

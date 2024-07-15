@@ -48,6 +48,7 @@ services:
   nexa-storage-migrate:
     build:
       dockerfile: ./docker/migrate.Dockerfile
+    restart: on-failure
     depends_on:
       db:
         condition: service_healthy

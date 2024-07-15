@@ -4,7 +4,7 @@ import (
   "context"
   storagev1 "github.com/arcorium/nexa/proto/gen/go/file_storage/v1"
   sharedErr "github.com/arcorium/nexa/shared/errors"
-  "github.com/arcorium/nexa/shared/grpc/interceptor"
+  "github.com/arcorium/nexa/shared/grpc/interceptor/authz"
   "github.com/arcorium/nexa/shared/types"
   sharedUtil "github.com/arcorium/nexa/shared/util"
   spanUtil "github.com/arcorium/nexa/shared/util/span"
@@ -37,11 +37,7 @@ func (s *StorageHandler) Register(server *grpc.Server) {
 }
 
 func (s *StorageHandler) Find(request *storagev1.FindFileRequest, server storagev1.FileStorageService_FindServer) error {
-  stream, err := interceptor.GetWrappedServerStream(server)
-  ctx := server.Context()
-  if err == nil {
-    ctx = stream.WrappedContext
-  }
+  ctx := authz.GetWrappedContext(server)
 
   ctx, span := s.tracer.Start(ctx, "StorageHandler.Find")
   defer span.End()
@@ -96,11 +92,7 @@ func (s *StorageHandler) FindMetadata(ctx context.Context, request *storagev1.Fi
 }
 
 func (s *StorageHandler) Store(server storagev1.FileStorageService_StoreServer) error {
-  stream, err := interceptor.GetWrappedServerStream(server)
-  ctx := server.Context()
-  if err == nil {
-    ctx = stream.WrappedContext
-  }
+  ctx := authz.GetWrappedContext(server)
 
   ctx, span := s.tracer.Start(ctx, "StorageHandler.FindMetadata")
   defer span.End()
@@ -121,7 +113,7 @@ func (s *StorageHandler) Store(server storagev1.FileStorageService_StoreServer) 
   }
 
   // Validate
-  err = sharedUtil.ValidateStruct(&storeDto)
+  err := sharedUtil.ValidateStruct(&storeDto)
   if err != nil {
     spanUtil.RecordError(err, span)
     return err

@@ -17,6 +17,7 @@ import (
   "nexa/services/authorization/internal/domain/dto"
   "nexa/services/authorization/internal/domain/entity"
   repoMock "nexa/services/authorization/internal/domain/repository/mocks"
+  "nexa/services/authorization/util/errors"
   "reflect"
   "testing"
 )
@@ -241,7 +242,7 @@ func Test_roleService_AppendSuperRolesPermission(t *testing.T) {
         }
 
         mocked.Role.EXPECT().
-          FindByName(mock.Anything, constant.DEFAULT_SUPER_ROLE_NAME).
+          FindByName(mock.Anything, constant.SUPER_ROLE_NAME).
           Return(role, nil)
 
         permIds := sharedUtil.CastSlice(a.permIds, sharedUtil.ToAny[types.Id])
@@ -261,14 +262,28 @@ func Test_roleService_AppendSuperRolesPermission(t *testing.T) {
       setup: func(mocked *roleMocked, arg any, want any) {
 
         mocked.Role.EXPECT().
-          FindByName(mock.Anything, constant.DEFAULT_SUPER_ROLE_NAME).
+          FindByName(mock.Anything, constant.SUPER_ROLE_NAME).
           Return(entity.Role{}, sql.ErrNoRows)
       },
       args: args{
         ctx:     context.Background(),
         permIds: sharedUtil.GenerateMultiple(3, types.MustCreateId),
       },
-      want: status.FromRepository(sql.ErrNoRows, status.NullCode),
+      want: status.ErrInternal(errors.ErrDefaultRoleNotSeeded),
+    },
+    {
+      name: "Permission role failed to get role",
+      setup: func(mocked *roleMocked, arg any, want any) {
+
+        mocked.Role.EXPECT().
+          FindByName(mock.Anything, constant.SUPER_ROLE_NAME).
+          Return(entity.Role{}, dummyErr)
+      },
+      args: args{
+        ctx:     context.Background(),
+        permIds: sharedUtil.GenerateMultiple(3, types.MustCreateId),
+      },
+      want: status.New(status.REPOSITORY_ERROR, dummyErr),
     },
     {
       name: "Super role already has the permissions",
@@ -282,7 +297,7 @@ func Test_roleService_AppendSuperRolesPermission(t *testing.T) {
         }
 
         mocked.Role.EXPECT().
-          FindByName(mock.Anything, constant.DEFAULT_SUPER_ROLE_NAME).
+          FindByName(mock.Anything, constant.SUPER_ROLE_NAME).
           Return(role, nil)
 
         permIds := sharedUtil.CastSlice(a.permIds, sharedUtil.ToAny[types.Id])
@@ -309,7 +324,7 @@ func Test_roleService_AppendSuperRolesPermission(t *testing.T) {
         }
 
         mocked.Role.EXPECT().
-          FindByName(mock.Anything, constant.DEFAULT_SUPER_ROLE_NAME).
+          FindByName(mock.Anything, constant.SUPER_ROLE_NAME).
           Return(role, nil)
 
         permIds := sharedUtil.CastSlice(a.permIds, sharedUtil.ToAny[types.Id])

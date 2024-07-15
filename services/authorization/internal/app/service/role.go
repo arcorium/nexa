@@ -14,6 +14,7 @@ import (
   "nexa/services/authorization/internal/domain/repository"
   "nexa/services/authorization/internal/domain/service"
   "nexa/services/authorization/util"
+  "nexa/services/authorization/util/errors"
 )
 
 func NewRole(role repository.IRole) service.IRole {
@@ -133,7 +134,12 @@ func (r *roleService) RemovePermissions(ctx context.Context, permissionsDTO *dto
   ctx, span := r.tracer.Start(ctx, "RoleService.RemovePermissions")
   defer span.End()
 
-  err := r.roleRepo.RemovePermissions(ctx, permissionsDTO.RoleId, permissionsDTO.PermissionIds...)
+  var err error
+  if permissionsDTO.PermissionIds == nil {
+    err = r.roleRepo.ClearPermission(ctx, permissionsDTO.RoleId)
+  } else {
+    err = r.roleRepo.RemovePermissions(ctx, permissionsDTO.RoleId, permissionsDTO.PermissionIds...)
+  }
   if err != nil {
     spanUtil.RecordError(err, span)
     return status.FromRepository(err, status.NullCode)
@@ -159,7 +165,12 @@ func (r *roleService) RemoveUsers(ctx context.Context, usersDTO *dto.ModifyUserR
   ctx, span := r.tracer.Start(ctx, "RoleService.RemoveUsers")
   defer span.End()
 
-  err := r.roleRepo.RemoveUser(ctx, usersDTO.UserId, usersDTO.RoleIds...)
+  var err error
+  if usersDTO.RoleIds == nil {
+    err = r.roleRepo.ClearUser(ctx, usersDTO.UserId)
+  } else {
+    err = r.roleRepo.RemoveUser(ctx, usersDTO.UserId, usersDTO.RoleIds...)
+  }
   if err != nil {
     spanUtil.RecordError(err, span)
     return status.FromRepository(err, status.NullCode)
@@ -168,15 +179,41 @@ func (r *roleService) RemoveUsers(ctx context.Context, usersDTO *dto.ModifyUserR
   return status.Deleted()
 }
 
-func (r *roleService) AppendSuperRolesPermission(ctx context.Context, permIds ...types.Id) status.Object {
-  ctx, span := r.tracer.Start(ctx, "PermissionService.AppendSuperRolesPermission")
-  defer span.End()
+func (r *roleService) getByName(ctx context.Context, roleName string) (dto.RoleResponseDTO, status.Object) {
+  span := trace.SpanFromContext(ctx)
 
-  // Find role by names
-  role, err := r.roleRepo.FindByName(ctx, constant.DEFAULT_SUPER_ROLE_NAME)
+  role, err := r.roleRepo.FindByName(ctx, roleName)
   if err != nil {
     spanUtil.RecordError(err, span)
-    return status.FromRepository(err, status.NullCode)
+    return dto.RoleResponseDTO{}, status.FromRepositoryOverride(err, types.NewPair(status.INTERNAL_SERVER_ERROR, errors.ErrDefaultRoleNotSeeded))
+  }
+
+  responseDTO := mapper.ToRoleResponseDTO(&role)
+  return responseDTO, status.Success()
+}
+
+func (r *roleService) GetDefault(ctx context.Context) (dto.RoleResponseDTO, status.Object) {
+  ctx, span := r.tracer.Start(ctx, "RoleService.GetDefault")
+  defer span.End()
+
+  return r.getByName(ctx, constant.DEFAULT_ROLE_NAME)
+}
+
+func (r *roleService) GetSuper(ctx context.Context) (dto.RoleResponseDTO, status.Object) {
+  ctx, span := r.tracer.Start(ctx, "RoleService.GetSuper")
+  defer span.End()
+
+  return r.getByName(ctx, constant.SUPER_ROLE_NAME)
+}
+
+func (r *roleService) appendDefaultRolesPermissions(ctx context.Context, roleName string, permIds ...types.Id) status.Object {
+  span := trace.SpanFromContext(ctx)
+
+  // Find role by names
+  role, err := r.roleRepo.FindByName(ctx, roleName)
+  if err != nil {
+    spanUtil.RecordError(err, span)
+    return status.FromRepositoryOverride(err, types.NewPair(status.INTERNAL_SERVER_ERROR, errors.ErrDefaultRoleNotSeeded))
   }
 
   // Append permission into it
@@ -189,12 +226,26 @@ func (r *roleService) AppendSuperRolesPermission(ctx context.Context, permIds ..
   return status.Created()
 }
 
+func (r *roleService) AppendSuperRolesPermission(ctx context.Context, permIds ...types.Id) status.Object {
+  ctx, span := r.tracer.Start(ctx, "RoleService.AppendSuperRolesPermission")
+  defer span.End()
+
+  return r.appendDefaultRolesPermissions(ctx, constant.SUPER_ROLE_NAME, permIds...)
+}
+
+func (r *roleService) AppendDefaultRolesPermission(ctx context.Context, permIds ...types.Id) status.Object {
+  ctx, span := r.tracer.Start(ctx, "RoleService.AppendDefaultRolesPermission")
+  defer span.End()
+
+  return r.appendDefaultRolesPermissions(ctx, constant.DEFAULT_ROLE_NAME, permIds...)
+}
+
 func (r *roleService) SetUserAsSuper(ctx context.Context, userId types.Id) status.Object {
-  ctx, span := r.tracer.Start(ctx, "PermissionService.SetUserAsSuper")
+  ctx, span := r.tracer.Start(ctx, "RoleService.SetUserAsSuper")
   defer span.End()
 
   // Get super roles
-  role, err := r.roleRepo.FindByName(ctx, constant.DEFAULT_SUPER_ROLE_NAME)
+  role, err := r.roleRepo.FindByName(ctx, constant.SUPER_ROLE_NAME)
   if err != nil {
     spanUtil.RecordError(err, span)
     return status.FromRepository(err, status.NullCode)

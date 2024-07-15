@@ -15,14 +15,14 @@ scrape_configs:
     static_configs:
       - targets: [ 'nexa-authn:8081' ]
 
-  - job_name: 'nexa-file'
+  - job_name: 'nexa-file_storage'
     static_configs:
-      - targets: [ 'nexa-file:8081' ]
+      - targets: [ 'nexa-storage:8081' ]
 
   - job_name: 'nexa-mailer'
     static_configs:
       - targets: [ 'nexa-mailer:8081' ]
 
-  - job_name: 'nexa-user'
+  - job_name: 'nexa-token'
     static_configs:
-      - targets: [ 'nexa-user:8081' ]
+      - targets: [ 'nexa-token:8081' ]

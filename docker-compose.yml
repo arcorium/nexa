@@ -1,20 +1,25 @@
 include:
-  - path:
-      - services/authorization/docker-compose.yml
-      - services/authentication/docker-compose.yml
-      - services/file_storage/docker-compose.yml
-      - services/mailer/docker-compose.yml
-      - services/user/docker-compose.yml
-      - docker-compose.override.yml
+  - services/authorization/docker-compose.yml
+  - services/authentication/docker-compose.yml
+  - services/file_storage/docker-compose.yml
+  - services/mailer/docker-compose.yml
+  - services/token/docker-compose.yml
 
 services:
   jaeger:
     image: jaegertracing/all-in-one:1.58
+#    healthcheck:
+#      test: ["CMD", "curl", "-f", "http://localhost:16686"]
+#      retries: 5
+#      interval: 30s
+#      timeout: 10s
+#      start_period: 10s
     ports:
       - 6831:6831/udp
       - 6832:6832/udp
       - 5778:5778
       - 16686:16686
+      - 16687:16687
       - 4317:4317
       - 4318:4318
       - 14250:14250

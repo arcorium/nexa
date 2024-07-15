@@ -16,6 +16,7 @@ services:
   nexa-authz-migrate:
     build:
       dockerfile: ./docker/migrate.Dockerfile
+    restart: on-failure
     depends_on:
       authz-db:
         condition: service_healthy
@@ -30,6 +31,7 @@ services:
   nexa-authz-seed:
     build:
       dockerfile: ./docker/seed.Dockerfile
+    restart: on-failure
     depends_on:
       authz-db:
         condition: service_healthy
@@ -68,10 +70,10 @@ services:
       - PG_DB_NAME=nexa-authz
       - PG_PARAMETER=application_name=nexa-authorization
       - PG_IS_SECURE=false
-      - OTLP_GRPC_COLLECTOR_ADDRESS=jaeger:4317
-    ports:
-      - "8080:8080"
-      - "8081"
+#      - OTLP_GRPC_COLLECTOR_ADDRESS=jaeger:4317
+#    ports:
+#      - "8080:8080"
+#      - "8081"
     networks:
       - naz_network
 networks:

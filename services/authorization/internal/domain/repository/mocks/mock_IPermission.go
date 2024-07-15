@@ -73,6 +73,67 @@ func (_c *PermissionMock_Create_Call) RunAndReturn(run func(context.Context, *en
 	return _c
 }
 
+// Creates provides a mock function with given fields: ctx, permissions
+func (_m *PermissionMock) Creates(ctx context.Context, permissions ...entity.Permission) error {
+	_va := make([]interface{}, len(permissions))
+	for _i := range permissions {
+		_va[_i] = permissions[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Creates")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, ...entity.Permission) error); ok {
+		r0 = rf(ctx, permissions...)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// PermissionMock_Creates_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Creates'
+type PermissionMock_Creates_Call struct {
+	*mock.Call
+}
+
+// Creates is a helper method to define mock.On call
+//   - ctx context.Context
+//   - permissions ...entity.Permission
+func (_e *PermissionMock_Expecter) Creates(ctx interface{}, permissions ...interface{}) *PermissionMock_Creates_Call {
+	return &PermissionMock_Creates_Call{Call: _e.mock.On("Creates",
+		append([]interface{}{ctx}, permissions...)...)}
+}
+
+func (_c *PermissionMock_Creates_Call) Run(run func(ctx context.Context, permissions ...entity.Permission)) *PermissionMock_Creates_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]entity.Permission, len(args)-1)
+		for i, a := range args[1:] {
+			if a != nil {
+				variadicArgs[i] = a.(entity.Permission)
+			}
+		}
+		run(args[0].(context.Context), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *PermissionMock_Creates_Call) Return(_a0 error) *PermissionMock_Creates_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *PermissionMock_Creates_Call) RunAndReturn(run func(context.Context, ...entity.Permission) error) *PermissionMock_Creates_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Delete provides a mock function with given fields: ctx, id
 func (_m *PermissionMock) Delete(ctx context.Context, id types.Id) error {
 	ret := _m.Called(ctx, id)

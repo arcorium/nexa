@@ -2,26 +2,31 @@ package dto
 
 import (
   "github.com/arcorium/nexa/shared/types"
-  "nexa/services/authentication/internal/domain/entity"
   "time"
 )
 
-type TokenCreateDTO struct {
+type TokenUsage uint8
+
+const (
+  TokenUsageEmailVerification TokenUsage = iota
+  TokenUsageResetPassword
+  TokenUsageLogin
+  TokenUsageGeneral
+)
+
+type TokenGenerationDTO struct {
   UserId types.Id
-  Usage  entity.TokenUsage
+  Usage  TokenUsage
 }
 
-func (c *TokenCreateDTO) ToDomain(expiryTime time.Duration) entity.Token {
-  return entity.NewToken(c.UserId, c.Usage, expiryTime)
-}
-
-type TokenVerifyDTO struct {
-  Token string            `validate:"required"`
-  Usage entity.TokenUsage `validate:"required,usage_enum"`
+type TokenVerificationDTO struct {
+  Token   string
+  Purpose TokenUsage
 }
 
 type TokenResponseDTO struct {
   Token     string
-  Usage     entity.TokenUsage
+  UserId    types.Id
+  Usage     TokenUsage
   ExpiredAt time.Time
 }

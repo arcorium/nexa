@@ -30,12 +30,12 @@ func (r roleClient) GetUserRoles(ctx context.Context, userId types.Id) ([]dto.Ro
   ctx, span := r.tracer.Start(ctx, "RoleClient.GetUserRoles")
   defer span.End()
 
-  dtos := authZv1.GetUserRolesRequest{
+  req := authZv1.GetUserRolesRequest{
     UserId:            userId.String(),
     IncludePermission: true,
   }
 
-  roles, err := r.client.GetUsers(ctx, &dtos)
+  roles, err := r.client.GetUsers(ctx, &req)
   if err != nil {
     spanUtil.RecordError(err, span)
     return nil, err
@@ -75,4 +75,22 @@ func (r roleClient) GetUserRoles(ctx context.Context, userId types.Id) ([]dto.Ro
     return nil, ierr
   }
   return rolePerms, nil
+}
+
+func (r roleClient) RemoveUserRoles(ctx context.Context, userId types.Id) error {
+  ctx, span := r.tracer.Start(ctx, "RoleClient.RemoveUserRoles")
+  defer span.End()
+
+  req := authZv1.RemoveUserRolesRequest{
+    UserId:  userId.String(),
+    RoleIds: nil, // Nil means delete all
+  }
+
+  _, err := r.client.RemoveUser(ctx, &req)
+  if err != nil {
+    spanUtil.RecordError(err, span)
+    return err
+  }
+ 
+  return err
 }

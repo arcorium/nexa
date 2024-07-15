@@ -1,66 +1,88 @@
 services:
   nexa-authz:
+#    depends_on:
+#      jaeger:
+#        condition: service_healthy
+    environment:
+      - NEXA_AUTHORIZATION_RELEASE=$NEXA_RELEASE
+      - OTLP_GRPC_COLLECTOR_ADDRESS=jaeger:4317
+    ports:
+      - "8081:8080"
+    networks:
+      - nexa_networks
+  # Authentication need to seed permissions into authz
+  nexa-authn-seed:
     depends_on:
-      jaeger:
+      nexa-authz:
         condition: service_healthy
     environment:
-      - OTLP_GRPC_COLLECTOR_ADDRESS=jaeger:4317
+      - AUTHZ_SERVICE_ADDR=nexa-authz:8080
     networks:
       - nexa_networks
   nexa-authn:
     depends_on:
-      jaeger:
-        condition: service_healthy
+#      jaeger:
+#        condition: service_healthy
       nexa-authz:
         condition: service_healthy
-      nexa-user:
+      nexa-token:
         condition: service_healthy
       nexa-mailer:
-        condition: service_healthy
-    environment:
-      - AUTHZ_SERVICE_ADDR=nexa-authz:8080
-      - USER_SERVICE_ADDR=nexa-user:8080
-      - MAILER_SERVICE_ADDR=nexa-mailer:8080
-      - OTLP_GRPC_COLLECTOR_ADDRESS=jaeger:4317
-    networks:
-      - nexa_networks
-  nexa-storage:
-    depends_on:
-      jaeger:
-        condition: service_healthy
-    environment:
-      - OTLP_GRPC_COLLECTOR_ADDRESS=jaeger:4317
-    networks:
-      - nexa_networks
-  nexa-mailer:
-    depends_on:
-      jaeger:
-        condition: service_healthy
-    environment:
-      - OTLP_GRPC_COLLECTOR_ADDRESS=jaeger:4317
-      # NOTE: Set env for it
-      - SMTP_HOST=$SMTP_HOST
-      - SMTP_PORT=$SMTP_PORT
-      - SMTP_USERNAME=$SMTP_USERNAME
-      - SMTP_PASSWORD=$SMTP_PASSWORD
-      - OTLP_GRPC_COLLECTOR_ADDRESS=jaeger:4317
-    networks:
-      - nexa_networks
-  nexa-user:
-    depends_on:
-      jaeger:
-        condition: service_healthy
-    # TODO: User should rely on token service instead of authentication, so it doesn't make circular dependency
-      nexa-authn:
         condition: service_healthy
       nexa-storage:
         condition: service_healthy
-      nexa-mailer:
-        condition: service_healthy
     environment:
-      - OTLP_GRPC_COLLECTOR_ADDRESS=jaeger:4317
-      - AUTHN_SERVICE_ADDR=nexa-authn:8080
+      - NEXA_AUTHENTICATION_RELEASE=$NEXA_RELEASE
+      - AUTHZ_SERVICE_ADDR=nexa-authz:8080
+      - TOKEN_SERVICE_ADDR=nexa-token:8080
       - FILE_STORAGE_SERVICE_ADDR=nexa-storage:8080
       - MAILER_SERVICE_ADDR=nexa-mailer:8080
+      - OTLP_GRPC_COLLECTOR_ADDRESS=jaeger:4317
+    ports:
+      - "8082:8080"
+    networks:
+      - nexa_networks
+  nexa-storage:
+#    depends_on:
+#      jaeger:
+#        condition: service_healthy
+    environment:
+      - NEXA_FILE_STORAGE_RELEASE=$NEXA_RELEASE
+      - OTLP_GRPC_COLLECTOR_ADDRESS=jaeger:4317
+    ports:
+      - "8083:8080"
+    networks:
+      - nexa_networks
+  # Mailer need to seed permission into authz
+  nexa-mailer-seed:
+    depends_on:
+      nexa-authz:
+        condition: service_healthy
+    environment:
+      - AUTHZ_SERVICE_ADDR=nexa-authz:8080
+    networks:
+      - nexa_networks
+  nexa-mailer:
+#    depends_on:
+#      jaeger:
+#        condition: service_healthy
+    env_file:
+      - $SMTP_PATH
+    environment:
+      - NEXA_MAILER_RELEASE=$NEXA_RELEASE
+      - OTLP_GRPC_COLLECTOR_ADDRESS=jaeger:4317
+    ports:
+      - "8084:8080"
+    networks:
+      - nexa_networks
+  nexa-token:
+#    depends_on:
+#      jaeger:
+#        condition: service_healthy
+    environment:
+      - NEXA_TOKEN_RELEASE=$NEXA_RELEASE
+      - OTLP_GRPC_COLLECTOR_ADDRESS=jaeger:4317
+    ports:
+      - "8085:8080"
     networks:
       - nexa_networks

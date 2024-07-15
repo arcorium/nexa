@@ -31,10 +31,17 @@ func ToRoleUpdateDTO(req *authZv1.UpdateRoleRequest) (dto.RoleUpdateDTO, error) 
   }, nil
 }
 
-func toModifyRolesPermissionsDTO(roleId string, permIds []string) (dto.ModifyRolesPermissionsDTO, error) {
+func toModifyRolesPermissionsDTO(roleId string, permIds []string, allowNil bool) (dto.ModifyRolesPermissionsDTO, error) {
   id, err := types.IdFromString(roleId)
   if err != nil {
     return dto.ModifyRolesPermissionsDTO{}, sharedErr.NewFieldError("user_id", err).ToGrpcError()
+  }
+
+  if (len(permIds) == 0) && allowNil {
+    return dto.ModifyRolesPermissionsDTO{
+      RoleId:        id,
+      PermissionIds: nil,
+    }, nil
   }
 
   ids, ierr := sharedUtil.CastSliceErrs(permIds, types.IdFromString)
@@ -49,17 +56,24 @@ func toModifyRolesPermissionsDTO(roleId string, permIds []string) (dto.ModifyRol
 }
 
 func ToAddRolePermissionsDTO(req *authZv1.AppendRolePermissionsRequest) (dto.ModifyRolesPermissionsDTO, error) {
-  return toModifyRolesPermissionsDTO(req.RoleId, req.PermissionIds)
+  return toModifyRolesPermissionsDTO(req.RoleId, req.PermissionIds, false)
 }
 
 func ToRemoveRolePermissionsDTO(req *authZv1.RemoveRolePermissionsRequest) (dto.ModifyRolesPermissionsDTO, error) {
-  return toModifyRolesPermissionsDTO(req.RoleId, req.PermissionIds)
+  return toModifyRolesPermissionsDTO(req.RoleId, req.PermissionIds, true)
 }
 
-func toModifyUserRolesDTO(userId string, roleIds []string) (dto.ModifyUserRolesDTO, error) {
+func toModifyUserRolesDTO(userId string, roleIds []string, allowNil bool) (dto.ModifyUserRolesDTO, error) {
   id, err := types.IdFromString(userId)
   if err != nil {
     return dto.ModifyUserRolesDTO{}, sharedErr.NewFieldError("user_id", err).ToGrpcError()
+  }
+
+  if (len(roleIds) == 0) && allowNil {
+    return dto.ModifyUserRolesDTO{
+      UserId:  id,
+      RoleIds: nil,
+    }, nil
   }
 
   ids, ierr := sharedUtil.CastSliceErrs(roleIds, types.IdFromString)
@@ -74,11 +88,11 @@ func toModifyUserRolesDTO(userId string, roleIds []string) (dto.ModifyUserRolesD
 }
 
 func ToAddUsersDTO(input *authZv1.AddUserRolesRequest) (dto.ModifyUserRolesDTO, error) {
-  return toModifyUserRolesDTO(input.UserId, input.RoleIds)
+  return toModifyUserRolesDTO(input.UserId, input.RoleIds, false)
 }
 
 func ToRemoveUsersDTO(input *authZv1.RemoveUserRolesRequest) (dto.ModifyUserRolesDTO, error) {
-  return toModifyUserRolesDTO(input.UserId, input.RoleIds)
+  return toModifyUserRolesDTO(input.UserId, input.RoleIds, true)
 }
 
 func ToProtoRole(resp *dto.RoleResponseDTO) *authZv1.Role {

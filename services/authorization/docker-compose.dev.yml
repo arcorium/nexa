@@ -32,6 +32,7 @@ services:
   nexa-authz-migrate:
     build:
       dockerfile: ./docker/migrate.Dockerfile
+    restart: on-failure
     depends_on:
       authz-db:
         condition: service_healthy
@@ -46,6 +47,7 @@ services:
   nexa-authz-seed:
     build:
       dockerfile: ./docker/seed.Dockerfile
+    restart: on-failure
     depends_on:
       authz-db:
         condition: service_healthy

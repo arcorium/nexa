@@ -1,52 +1,39 @@
 services:
   nexa-authz:
-    depends_on:
-      jaeger:
-        condition: service_healthy
     environment:
       - OTLP_GRPC_COLLECTOR_ADDRESS=jaeger:4317
     ports:
       - "8081:8080"
     networks:
       - nan_network
-  nexa-storage: # Needed by user service
-    depends_on:
-      jaeger:
-        condition: service_healthy
-    ports:
-      - "8082:8080"
+  nexa-token:
     environment:
       - OTLP_GRPC_COLLECTOR_ADDRESS=jaeger:4317
+    ports:
+      - "8082:8080"
     networks:
       - nan_network
-  nexa-user:
-    depends_on:
-      jaeger:
-        condition: service_healthy
-      nexa-storage:
-        condition: service_healthy
-      nexa-mailer:
-        condition: service_healthy
+  nexa-storage:
     environment:
       - OTLP_GRPC_COLLECTOR_ADDRESS=jaeger:4317
-      - AUTHN_SERVICE_ADDRESS=nexa-authn:8080 # TODO: Remove this, circular dependency
-      - FILE_STORAGE_SERVICE_ADDR=
-      - MAILER_SERVICE_ADDR=nexa-mailer:8080
     ports:
-      - "8082:8080"
+      - "8083:8080"
+    networks:
+      - nan_network
+  nexa-mailer-seed:
+    depends_on:
+      nexa-authz:
+        condition: service_healthy
+    environment:
+      - AUTHZ_SERVICE_ADDR=nexa-authz:8080
     networks:
       - nan_network
   nexa-mailer:
-    depends_on:
-      jaeger:
-        condition: service_healthy
+    env_file:
+      - ../mailer/dev.smtp.env
     environment:
       - OTLP_GRPC_COLLECTOR_ADDRESS=jaeger:4317
-      - SMTP_HOST=$SMTP_HOST
-      - SMTP_PORT=$SMTP_PORT
-      - SMTP_USERNAME=$SMTP_USERNAME
-      - SMTP_PASSWORD=$SMTP_PASSWORD
     ports:
-      - "8083:8080"
+      - "8084:8080"
     networks:
       - nan_network

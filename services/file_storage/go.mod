@@ -18,8 +18,8 @@ require (
 )
 
 require (
-	github.com/arcorium/nexa/proto/gen/go v1.0.1
-	github.com/arcorium/nexa/shared v0.1.4
+	github.com/arcorium/nexa/proto/gen/go v1.0.3
+	github.com/arcorium/nexa/shared v0.1.5
 	github.com/brianvoe/gofakeit/v7 v7.0.4
 	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/minio/minio-go/v7 v7.0.71

@@ -1,0 +1,49 @@
+services:
+  token-db:
+    image: postgres
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U nexa -d nexa" ]
+      interval: 10s
+      retries: 5
+      timeout: 30s
+    environment:
+      - POSTGRES_DB=nexa
+      - POSTGRES_USER=nexa
+      - POSTGRES_PASSWORD=nexa
+    ports:
+      - "5432:5432"
+    networks:
+      - nt_network
+  jaeger:
+    image: jaegertracing/all-in-one:1.58
+    ports:
+      - 6831:6831/udp
+      - 6832:6832/udp
+      - 5778:5778
+      - 16686:16686
+      - 4317:4317
+      - 4318:4318
+      - 14250:14250
+      - 14268:14268
+      - 14269:14269
+      - 9411:9411
+    networks:
+      - nt_network
+  nexa-token-migrate:
+    build:
+      dockerfile: ./docker/migrate.Dockerfile
+    restart: on-failure
+    depends_on:
+      token-db:
+        condition: service_healthy
+    environment:
+      - PG_ADDRESS=token-db
+      - PG_USERNAME=nexa
+      - PG_PASSWORD=nexa
+      - PG_DB_NAME=nexa
+      - PG_IS_SECURE=false
+    networks:
+      - nt_network
+networks:
+  nt_network:
+    driver: bridge

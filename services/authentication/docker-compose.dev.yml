@@ -1,26 +1,10 @@
 include:
-  - path:
-      - ../authorization/docker-compose.yml
-      - ../user/docker-compose.yml
-      - ../mailer/docker-compose.yml
-      - ../file_storage/docker-compose.yml
-      - docker-compose.dev.override.yml
+  - ../authorization/docker-compose.yml
+  - ../token/docker-compose.yml
+  - ../file_storage/docker-compose.yml
+  - ../mailer/docker-compose.yml
 
 services:
-  authn-db:
-    image: postgres
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U nexa -d nexa-authn" ]
-      interval: 5s
-      retries: 10
-    environment:
-      - POSTGRES_DB=nexa-authn
-      - POSTGRES_USER=nexa
-      - POSTGRES_PASSWORD=nexa
-    ports:
-      - 5432
-    networks:
-      - nan_network
   authn-session-db:
     image: redis
     healthcheck:
@@ -31,7 +15,23 @@ services:
       timeout: 30s
     environment:
       - REDIS_PASSWORD=rootroot123
+    ports:
+      - "6379:6379"
     command: ["redis-server", "--requirepass", "rootroot123"]
+  user-db:
+    image: postgres
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U nexa -d nexa-user" ]
+      interval: 5s
+      retries: 10
+    environment:
+      - POSTGRES_DB=nexa-user
+      - POSTGRES_USER=nexa
+      - POSTGRES_PASSWORD=nexa
+    ports:
+      - "5432:5432"
+    networks:
+      - nan_network
   jaeger:
     image: jaegertracing/all-in-one:1.58
     ports:
@@ -50,18 +50,19 @@ services:
   nexa-authn-migrate:
     build:
       dockerfile: ./docker/migrate.Dockerfile
+    restart: on-failure
     depends_on:
-      authn-db:
+      user-db:
         condition: service_healthy
     environment:
-      - PG_ADDRESS=authn-db
+      - PG_ADDRESS=user-db
       - PG_USERNAME=nexa
       - PG_PASSWORD=nexa
-      - PG_DB_NAME=nexa-authn
+      - PG_DB_NAME=nexa-user
       - PG_IS_SECURE=false
     networks:
       - nan_network
-  token_generator:
+  authn-token_generator:
     build:
       context: ../../token_generator/
       dockerfile: Dockerfile
@@ -71,18 +72,19 @@ services:
   nexa-authn-seed:
     build:
       dockerfile: ./docker/seed.Dockerfile
+    restart: on-failure
     depends_on:
+      authn-token_generator:
+        condition: service_completed_successfully
       nexa-authn-migrate:
         condition: service_completed_successfully
       nexa-authz:
         condition: service_healthy
-      token_generator:
-        condition: service_completed_successfully
     environment:
-      - PG_ADDRESS=authn-db
+      - PG_ADDRESS=user-db
       - PG_USERNAME=nexa
       - PG_PASSWORD=nexa
-      - PG_DB_NAME=nexa-authn
+      - PG_DB_NAME=nexa-user
       - PG_IS_SECURE=false
       - AUTHZ_SERVICE_ADDR=nexa-authz:8080
     networks:

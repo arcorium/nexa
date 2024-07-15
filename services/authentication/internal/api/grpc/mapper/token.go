@@ -1,61 +1,17 @@
 package mapper
 
 import (
-  authv1 "github.com/arcorium/nexa/proto/gen/go/authentication/v1"
-  sharedErr "github.com/arcorium/nexa/shared/errors"
-  "github.com/arcorium/nexa/shared/types"
+  tokenv1 "github.com/arcorium/nexa/proto/gen/go/token/v1"
   "google.golang.org/protobuf/types/known/timestamppb"
   "nexa/services/authentication/internal/domain/dto"
-  "nexa/services/authentication/internal/domain/entity"
+  "nexa/services/authentication/util"
 )
 
-func ToCreateTokenDTO(req *authv1.TokenCreateRequest) (dto.TokenCreateDTO, error) {
-  var fieldErrors []sharedErr.FieldError
-
-  userId, err := types.IdFromString(req.UserId)
-  if err != nil {
-    fieldErrors = append(fieldErrors, sharedErr.NewFieldError("user_id", err))
-  }
-  usage, err := entity.NewTokenUsage(uint8(req.Usage))
-  if err != nil {
-    fieldErrors = append(fieldErrors, sharedErr.NewFieldError("usage", err))
-  }
-
-  if len(fieldErrors) > 0 {
-    return dto.TokenCreateDTO{}, sharedErr.GrpcFieldErrors2(fieldErrors...)
-  }
-
-  return dto.TokenCreateDTO{
-    UserId: userId,
-    Usage:  usage,
-  }, nil
-}
-
-func ToTokenVerifyDTO(req *authv1.TokenVerifyRequest) (dto.TokenVerifyDTO, error) {
-  var fieldErrors []sharedErr.FieldError
-  if len(req.Token) == 0 {
-    fieldErrors = append(fieldErrors, sharedErr.NewFieldError("user_id", sharedErr.ErrFieldEmpty))
-  }
-
-  usage, err := entity.NewTokenUsage(uint8(req.Usage))
-  if err != nil {
-    fieldErrors = append(fieldErrors, sharedErr.NewFieldError("usage", err))
-  }
-
-  if len(fieldErrors) > 0 {
-    return dto.TokenVerifyDTO{}, sharedErr.GrpcFieldErrors2(fieldErrors...)
-  }
-
-  return dto.TokenVerifyDTO{
-    Token: req.Token,
-    Usage: usage,
-  }, nil
-}
-
-func ToProtoToken(resp *dto.TokenResponseDTO) *authv1.Token {
-  return &authv1.Token{
-    Token:     resp.Token,
-    Usage:     authv1.TokenUsage(resp.Usage),
-    ExpiredAt: timestamppb.New(resp.ExpiredAt),
+func ToProtoTokenResponse(respDTO *dto.TokenResponseDTO) *tokenv1.Token {
+  return &tokenv1.Token{
+    Token:     respDTO.Token,
+    UserId:    respDTO.UserId.String(),
+    Usage:     util.TokenPurposeToUsage(respDTO.Usage),
+    ExpiredAt: timestamppb.New(respDTO.ExpiredAt),
   }
 }

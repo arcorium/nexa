@@ -1,0 +1,15 @@
+with-expecter: true
+#inpackage: true
+#testonly: true
+dir: "{{.InterfaceDir}}/mocks"
+mockname: '{{trimPrefix .InterfaceName "I"}}Mock'
+outpkg: 'mocks'
+packages:
+  nexa/services/token/internal/domain/repository:
+    config:
+      recursive: true
+      all: true
+  nexa/services/token/internal/domain/service:
+    config:
+      recursive: true
+      all: true

@@ -3,8 +3,8 @@ module nexa/services/mailer
 go 1.22.4
 
 require (
-	github.com/arcorium/nexa/proto/gen/go v1.0.1
-	github.com/arcorium/nexa/shared v0.1.4
+	github.com/arcorium/nexa/proto/gen/go v1.0.3
+	github.com/arcorium/nexa/shared v0.1.5
 	github.com/brianvoe/gofakeit/v7 v7.0.3
 	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.0.1
@@ -24,8 +24,6 @@ require (
 	google.golang.org/protobuf v1.34.2
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 )
-
-//replace github.com/arcorium/nexa/shared => ../../shared
 
 require (
 	dario.cat/mergo v1.0.0 // indirect

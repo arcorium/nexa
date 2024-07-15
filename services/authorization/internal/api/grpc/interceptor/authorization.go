@@ -13,13 +13,14 @@ import (
 )
 
 var privateApi = []string{
-  authZv1.RoleService_AppendSuperRolePermissions_FullMethodName,
+  authZv1.RoleService_AppendDefaultRolePermissions_FullMethodName,
   authZv1.RoleService_SetAsSuper_FullMethodName,
   authZv1.PermissionService_Seed_FullMethodName,
 }
 
 var publicApi = []string{
   authZv1.RoleService_GetUsers_FullMethodName,
+  authZv1.RoleService_GetDefault_FullMethodName,
   authZv1.PermissionService_FindByRoles_FullMethodName,
   authZv1.PermissionService_FindAll_FullMethodName,
 }
@@ -31,7 +32,7 @@ func CombinationSelector(_ context.Context, meta interceptors.CallMeta) authz.Co
   if slices.Contains(publicApi, meta.FullMethod()) {
     return authz.Public
   }
-  return authz.UserAuth
+  return authz.Authorized
 }
 
 func UserCheckPermission(claims *sharedJwt.UserClaims, meta interceptors.CallMeta) bool {

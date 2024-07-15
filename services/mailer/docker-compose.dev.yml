@@ -1,7 +1,5 @@
 include:
-  - path:
-      - ../authorization/docker-compose.yml
-      - docker-compose.dev.override.yml
+  - ../authorization/docker-compose.yml
 
 services:
   mailer-db:

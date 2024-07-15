@@ -25,7 +25,7 @@ func Auth(claims *sharedJwt.UserClaims, meta interceptors.CallMeta) bool {
   case mailerv1.MailerService_FindByIds_FullMethodName:
     fallthrough
   case mailerv1.MailerService_FindByTag_FullMethodName:
-    return authUtil.ContainsPermission(claims.Roles, constant.MAILER_PERMISSIONS[constant.MAIL_READ])
+    return authUtil.ContainsPermission(claims.Roles, constant.MAILER_PERMISSIONS[constant.MAIL_GET])
   case mailerv1.MailerService_Update_FullMethodName:
     return authUtil.ContainsPermission(claims.Roles, constant.MAILER_PERMISSIONS[constant.MAIL_UPDATE])
   case mailerv1.MailerService_Remove_FullMethodName:
