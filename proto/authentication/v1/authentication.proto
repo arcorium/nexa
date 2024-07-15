@@ -1,0 +1,72 @@
+syntax = "proto3";
+package nexa.authentication.v1;
+option go_package = "nexa/proto/generated/golang/authentication/v1";
+
+import "google/protobuf/duration.proto";
+import "google/protobuf/empty.proto";
+import "authentication/v1/profile.proto";
+import "token/v1/token.proto";
+import "common/paged.proto";
+
+service AuthenticationService {
+  rpc Login(LoginRequest) returns (LoginResponse);
+  rpc Register(RegisterRequest) returns (google.protobuf.Empty);
+  rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse);
+  rpc GetCredentials(GetCredentialsRequest) returns (GetCredentialsResponse);
+  rpc Logout(LogoutRequest) returns (google.protobuf.Empty);
+  rpc LogoutAll(LogoutAllRequest) returns (google.protobuf.Empty);
+}
+
+message Credential{
+  string id = 1;
+  string device = 2;
+}
+
+message LoginRequest {
+  string email = 1;
+  string password = 2;
+  string device_name = 3;
+}
+
+message LoginResponse {
+  string token_type = 1;
+  string access_token = 2;
+  google.protobuf.Duration expiry_time = 3;
+}
+
+message RegisterRequest {
+  string username = 1;
+  string email = 2;
+  string password = 3;
+  string first_name = 4;
+  optional string last_name = 5;
+  optional string bio = 6;
+}
+
+message RefreshTokenRequest {
+  string token_type = 1;
+  string access_token = 2;
+}
+
+message RefreshTokenResponse {
+  string token_type = 1;
+  string access_token = 2;
+  google.protobuf.Duration expiry_time = 3;
+}
+
+message GetCredentialsRequest {
+  string user_id = 1;
+}
+
+message GetCredentialsResponse {
+  repeated Credential creds = 1;
+}
+
+message LogoutRequest {
+  string user_id = 1; // Allow super role to be able delete arbitrary credentials
+  repeated string cred_ids = 2;
+}
+
+message LogoutAllRequest {
+  string user_id = 1;
+}

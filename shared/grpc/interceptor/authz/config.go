@@ -131,9 +131,9 @@ type CombinationConfig struct {
 type CombinationType uint8
 
 const (
-  Private CombinationType = iota
-  UserAuth
-  Public
+  Private    CombinationType = iota // Request should have private token, otherwise it will fail
+  Authorized                        // When the request has no user token, it will fail
+  Public                            // Doesn't even care about the token, if the token is there, it will not parse the token
 )
 
 type CombinationMatchFunc func(ctx context.Context, meta interceptors.CallMeta) CombinationType

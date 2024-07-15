@@ -3,6 +3,7 @@ package auth
 import (
   "fmt"
   "github.com/arcorium/nexa/shared/jwt"
+  "github.com/arcorium/nexa/shared/types"
   "slices"
   "strings"
 )
@@ -36,12 +37,12 @@ func HasPermission(permissions []string, expected string) bool {
   })
 }
 
-func Encode(resource, action string) string {
-  return fmt.Sprintf("%s:%s", resource, action)
+func Encode(resource string, action types.Action) string {
+  return fmt.Sprintf("%s:%s", resource, action.String())
 }
 
-func FullEncode(resource string, actions ...string) map[string]string {
-  result := make(map[string]string, len(actions))
+func FullEncode(resource string, actions ...types.Action) map[types.Action]string {
+  result := make(map[types.Action]string, len(actions))
   for _, action := range actions {
     result[action] = Encode(resource, action)
   }

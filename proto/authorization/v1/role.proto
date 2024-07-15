@@ -8,6 +8,9 @@ import "common/paged.proto";
 import "authorization/v1/message.proto";
 
 service RoleService {
+  // Get default roles [and permissions]
+  rpc GetDefault(GetDefaultRoleRequest) returns (GetDefaultRoleResponse);
+
   rpc Create(CreateRoleRequest) returns (RoleCreateResponse);
   rpc Update(UpdateRoleRequest) returns (google.protobuf.Empty);
   rpc Delete(DeleteRoleRequest) returns (google.protobuf.Empty);
@@ -22,9 +25,14 @@ service RoleService {
   rpc RemovePermissions(RemoveRolePermissionsRequest) returns (google.protobuf.Empty);
 
   // Protected API
-  rpc AppendSuperRolePermissions(AppendSuperRolePermissionsRequest) returns (google.protobuf.Empty);
+  rpc AppendDefaultRolePermissions(AppendDefaultRolePermissionsRequest) returns (google.protobuf.Empty);
 //  rpc GetSuper(google.protobuf.Empty) returns (RolePermission); // Get super roles information
   rpc SetAsSuper(SetAsSuperRequest) returns (google.protobuf.Empty); // Set user as super role
+}
+
+
+message GetDefaultRoleResponse {
+  RolePermission role = 1;
 }
 
 message SetAsSuperRequest {
@@ -47,7 +55,7 @@ message AddUserRolesRequest {
 
 message RemoveUserRolesRequest {
   string user_id = 1;
-  repeated string role_ids = 2;
+  repeated string role_ids = 2; // It could has zero length, that means all use roles will be deleted
 }
 
 message CreateRoleRequest {
@@ -90,9 +98,20 @@ message AppendRolePermissionsRequest {
 
 message RemoveRolePermissionsRequest {
   string role_id = 1;
+  repeated string permission_ids = 2;  // It could has zero length, that means all use roles will be deleted
+}
+
+enum DefaultRole {
+  DEFAULT_ROLE = 0;
+  SUPER_ROLE = 1;
+}
+
+message AppendDefaultRolePermissionsRequest{
+  DefaultRole role = 1;
   repeated string permission_ids = 2;
 }
 
-message AppendSuperRolePermissionsRequest{
-  repeated string permission_ids = 2;
+message GetDefaultRoleRequest {
+  DefaultRole role = 1;
+  bool include_permissions = 2;
 }

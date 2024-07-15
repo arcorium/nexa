@@ -14,6 +14,7 @@ import (
 func UnaryServerCombination(conf *CombinationConfig) grpc.UnaryServerInterceptor {
   return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
     meta := interceptors.NewServerCallMeta(info.FullMethod, nil, req)
+    // Skip authorization for specific service without going into selector function
     if slices.Contains(conf.SkipServices, meta.Service) {
       return handler(ctx, req)
     }
@@ -22,7 +23,7 @@ func UnaryServerCombination(conf *CombinationConfig) grpc.UnaryServerInterceptor
     switch result {
     case Private:
       return privateUnaryAuthorization(&conf.Private)(ctx, req, info, handler)
-    case UserAuth:
+    case Authorized:
       return userUnaryAuthorization(&conf.User)(ctx, req, info, handler)
     default:
       return handler(ctx, req)
@@ -34,6 +35,8 @@ func UnaryServerCombination(conf *CombinationConfig) grpc.UnaryServerInterceptor
 func StreamServerCombination(conf *CombinationConfig) grpc.StreamServerInterceptor {
   return func(srv any, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
     meta := interceptors.NewServerCallMeta(info.FullMethod, info, nil)
+
+    // Skip authorization for specific service without going into selector function
     if slices.Contains(conf.SkipServices, meta.Service) {
       return handler(srv, ss)
     }
@@ -42,7 +45,7 @@ func StreamServerCombination(conf *CombinationConfig) grpc.StreamServerIntercept
     switch result {
     case Private:
       return privateStreamAuthorization(&conf.Private)(srv, ss, info, handler)
-    case UserAuth:
+    case Authorized:
       return userStreamAuthorization(&conf.User)(srv, ss, info, handler)
     default:
       return handler(srv, ss)

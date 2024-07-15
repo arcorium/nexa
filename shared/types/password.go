@@ -39,11 +39,15 @@ func (h HashedPassword) String() string {
   return h.Underlying()
 }
 
-func (h HashedPassword) Equal(plainPassword string) error {
-  if bcrypt.CompareHashAndPassword([]byte(h.Underlying()), []byte(plainPassword)) != nil {
+func (h HashedPassword) EqWithString(password string) error {
+  if bcrypt.CompareHashAndPassword([]byte(h.Underlying()), []byte(password)) != nil {
     return ErrPasswordDifferent
   }
   return nil
+}
+
+func (h HashedPassword) Eq(password Password) error {
+  return h.EqWithString(password.String())
 }
 
 var ErrHashPlainString = errors.New("failed to hash plain text")
