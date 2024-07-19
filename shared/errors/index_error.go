@@ -1,6 +1,7 @@
 package errors
 
 import (
+  "errors"
   "fmt"
   "strings"
 )
@@ -19,6 +20,12 @@ func (i IndicesError) Error() string {
 
 func (i IndicesError) IsNil() bool {
   return len(i.Errs) == 0
+}
+
+// IsEmptySlice check if the error is due to empty slice. Always check if it has error, otherwise
+// it will panic due to indexing nil slice
+func (i IndicesError) IsEmptySlice() bool {
+  return errors.Is(i.Errs[0], ErrEmptySlice)
 }
 
 func (i IndicesError) ToGRPCError(fieldName string) error {

@@ -1,0 +1,100 @@
+syntax = "proto3";
+package nexa.follow.v1;
+option go_package = "nexa/proto/gen/go/follow/v1";
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+import "common/paged.proto";
+
+service FollowService {
+  rpc Follow(FollowRequest) returns (google.protobuf.Empty);
+  rpc Unfollow(UnfollowRequest) returns (google.protobuf.Empty);
+  rpc GetFollowers(GetUserFollowersRequest) returns (GetUserFollowersResponse);
+  rpc GetFollowees(GetUserFolloweesRequest) returns (GetUserFolloweesResponse);
+  rpc GetFollowStatus(GetFollowStatusRequest) returns (GetFollowStatusResponse);
+  // Get user total follower and followee
+  rpc GetUsersCount(GetUsersCountRequest) returns (GetUsersCountResponse);
+  rpc Block(BlockUserRequest) returns (google.protobuf.Empty);
+  rpc Unblock(UnblockUserRequest) returns (google.protobuf.Empty);
+  rpc GetBlocked(common.PagedElementInput) returns (GetBlockedResponse);
+
+  // Clear user related data on this service
+  rpc ClearUsers(ClearUsersRequest) returns (google.protobuf.Empty);
+}
+
+enum FollowStatus {
+  FOLLOWER = 0;
+  MUTUAL = 1; // Both user is following
+  NONE = 2;
+}
+
+message FollowRequest {
+  repeated string followee_user_ids = 1;
+}
+
+message UnfollowRequest {
+  repeated string followee_user_ids = 1;
+}
+
+message GetUserFollowersRequest {
+  string user_id = 1;
+  common.PagedElementInput details = 2;
+}
+
+message GetUserFollowersResponse {
+  repeated string user_ids = 1;
+  common.PagedElementOutput details = 2;
+}
+
+message GetUserFolloweesRequest {
+  string user_id = 1;
+  common.PagedElementInput details = 2;
+}
+
+message GetUserFolloweesResponse {
+  repeated string user_ids = 1;
+  common.PagedElementOutput details = 2;
+}
+
+message GetFollowStatusRequest {
+  string user_id = 1;
+  string opponent_user_id = 2;
+}
+
+message GetFollowStatusResponse {
+  FollowStatus status = 1;
+}
+
+message GetUsersCountRequest {
+  repeated string user_id = 1;
+}
+
+message Count {
+  uint64 total_follower = 1;
+  uint64 total_followee = 2;
+  uint64 total_blocked = 3;
+}
+
+message GetUsersCountResponse {
+  repeated Count counts = 1;
+}
+
+message BlockUserRequest {
+  string user_id = 1;
+}
+
+message UnblockUserRequest {
+  string user_id = 1;
+}
+
+message GetBlockedResponse {
+  repeated string user_ids = 1;
+  common.PagedElementOutput details = 2;
+}
+
+message ClearUsersRequest {
+  string user_id = 1;
+  bool follower = 2;
+  bool followee = 3;
+  bool blocked = 4;
+}

@@ -1,0 +1,146 @@
+syntax = "proto3";
+package nexa.post.v1;
+option go_package = "nexa/proto/gen/go/post/v1";
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+import "common/paged.proto";
+
+service PostService {
+  rpc Find(common.PagedElementInput) returns(FindPostResponse);
+  rpc FindEdited(FindEditedPostRequest) returns(FindEditedPostResponse);
+  rpc FindById(FindPostByIdRequest) returns(FindPostByIdResponse);
+  rpc FindUsers(FindUserPostRequest) returns(FindUserPostResponse);
+  rpc Create(CreatePostRequest) returns (CreatePostResponse);
+  rpc UpdateVisibility(UpdatePostVisibilityRequest) returns (google.protobuf.Empty);
+//  rpc Edit(EditPostRequest) returns (EditPostResponse);
+  rpc Edit(EditPostRequest) returns (google.protobuf.Empty);
+  rpc Delete(DeletePostRequest) returns (google.protobuf.Empty);
+
+  rpc Bookmark(BookmarkPostRequest) returns (google.protobuf.Empty);
+  rpc GetBookmarked(GetBookmarkedPostRequest) returns (GetBookmarkedPostResponse);
+
+  rpc ClearUsers(ClearUserPostsRequest) returns (google.protobuf.Empty);
+}
+
+enum Visibility {
+  PUBLIC = 0;
+  FOLLOWER = 1;
+  ONLY_ME = 2;
+}
+
+message UserTag {
+  string user_id = 1;
+  string user_name = 2;
+}
+
+message Post {
+  string id = 1;
+  Post parent_post = 2;
+  string creator_id = 3;
+  string content = 4;
+  Visibility visibility = 5;
+
+  uint64 total_likes = 6;
+  uint64 total_comments = 7;
+  uint64 total_shares = 8;
+
+  google.protobuf.Timestamp last_edited = 9;
+  google.protobuf.Timestamp created_at = 10;
+  repeated UserTag users = 11;
+  repeated string media_urls = 12;
+}
+
+message EditedPost {
+  message Post {
+    string content = 1;
+    google.protobuf.Timestamp created_at = 2;
+    repeated UserTag users = 8;
+    repeated string media_urls = 9;
+  }
+
+  string post_id = 1;
+  string creator_id = 2;
+  repeated Post posts = 3;
+}
+
+message FindPostResponse {
+  common.PagedElementOutput details = 1;
+  repeated Post posts = 2;
+}
+
+message FindEditedPostRequest {
+  string post_id = 1;
+}
+
+message FindEditedPostResponse {
+  EditedPost post = 1;
+}
+
+message FindPostByIdRequest {
+  string post_id = 1;
+}
+
+message FindPostByIdResponse {
+  Post post = 1;
+}
+
+message FindUserPostRequest {
+  common.PagedElementInput details = 1;
+  string user_id = 2;
+}
+
+message FindUserPostResponse {
+  common.PagedElementOutput details = 1;
+  repeated Post posts = 2;
+}
+
+message CreatePostRequest {
+  optional string shared_post_id = 1;
+  optional string content = 2;
+  Visibility visibility = 3;
+  repeated string media_ids = 4;
+  repeated string user_ids = 5;
+}
+
+message CreatePostResponse {
+  string post_id = 1;
+}
+
+message UpdatePostVisibilityRequest {
+  string post_id = 1;
+  Visibility new_visibility = 2;
+}
+
+message EditPostRequest {
+  string post_id = 1;
+  string content = 2;
+  repeated string media_ids = 4;
+  repeated string user_ids = 5;
+}
+
+//message EditPostResponse {
+//
+//}
+
+message DeletePostRequest {
+  string post_id = 1;
+}
+
+message BookmarkPostRequest {
+  string post_id = 1;
+}
+
+message GetBookmarkedPostRequest {
+  string user_id = 1; // Allow to get other bookmarked posts for authorized user
+  common.PagedElementInput details = 2;
+}
+
+message GetBookmarkedPostResponse {
+  repeated Post posts = 1;
+  common.PagedElementOutput details = 2;
+}
+
+message ClearUserPostsRequest {
+  string user_id = 1;
+}

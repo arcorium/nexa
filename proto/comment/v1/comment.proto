@@ -1,0 +1,92 @@
+syntax = "proto3";
+package nexa.comment.v1;
+option go_package = "nexa/proto/gen/go/comment/v1";
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+import "common/paged.proto";
+
+service CommentService {
+  rpc Create(CreateCommentRequest) returns (CreateCommentResponse);
+  rpc Edit(EditCommentRequest) returns (google.protobuf.Empty);
+  rpc Delete(DeleteCommentRequest) returns (google.protobuf.Empty);
+  rpc GetPosts(GetPostCommentsRequest) returns (GetPostCommentsResponse);
+  rpc GetReplies(GetCommentRepliesRequest) returns (GetCommentRepliesResponse);
+  rpc GetCounts(GetCountsRequest) returns (GetCountsResponse);
+  // Clear posts comments
+  rpc ClearPosts(ClearPostsCommentsRequest) returns (google.protobuf.Empty);
+  // Clear comments created by the user
+  rpc ClearUsers(ClearUserCommentsRequest) returns (google.protobuf.Empty);
+}
+
+enum Type {
+  POST = 0;
+  COMMENT = 1;
+}
+
+message Comment {
+  string id = 1;
+  string user_id = 2;
+  string content = 3;
+
+  google.protobuf.Timestamp last_edited = 4;
+  google.protobuf.Timestamp created_at = 5;
+}
+
+message CreateCommentRequest {
+  Type item_type = 1;
+  string post_id = 2;
+  string content = 3;
+}
+
+message CreateCommentResponse {
+  string post_id = 1;
+  string comment_id = 2;
+}
+
+message EditCommentRequest {
+  string comment_id = 1;
+}
+
+message DeleteCommentRequest {
+  string comment_id = 1;
+}
+
+message GetPostCommentsRequest {
+  string post_id = 1;
+  common.PagedElementInput details = 3;
+}
+
+message GetPostCommentsResponse {
+  repeated Comment comments = 1;
+  bool include_reply = 2;
+  common.PagedElementOutput details = 3;
+}
+
+message GetCommentRepliesRequest {
+  string comment_id = 1;
+  common.PagedElementInput details = 2;
+}
+
+message GetCommentRepliesResponse {
+  repeated Comment replies = 1;
+  bool include_nested = 2;
+  common.PagedElementOutput details = 3;
+}
+
+message GetCountsRequest {
+  Type item_type = 1;
+  repeated string ids = 2;
+}
+
+message GetCountsResponse {
+  repeated uint64 total_comments = 1; // Could be comment count or reply count (nested also summed)
+}
+
+message ClearPostsCommentsRequest {
+  repeated string post_ids = 1;
+}
+
+message ClearUserCommentsRequest {
+  string user_id = 1;
+}

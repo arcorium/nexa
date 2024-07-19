@@ -1,0 +1,68 @@
+syntax = "proto3";
+package nexa.like.v1;
+option go_package = "nexa/proto/gen/go/like/v1";
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+import "common/paged.proto";
+
+service LikeService {
+  rpc Like(LikeRequest) returns (google.protobuf.Empty);
+  rpc Dislike(DislikeRequest) returns (google.protobuf.Empty);
+  // Get all users liked the post/comments
+  rpc GetLiked(GetLikedRequest) returns (GetLikedResponse);
+  rpc GetCount(GetCountRequest) returns (GetCountResponse);
+  rpc Delete(DeleteLikesRequest) returns (google.protobuf.Empty);
+
+  // Remove all likes created by the user
+  rpc ClearUserLikes(ClearUserLikesRequest) returns (google.protobuf.Empty);
+}
+
+enum Type {
+  POST = 0;
+  COMMENT = 1;
+}
+
+message LikeRequest {
+  Type item_type = 1;
+  string item_id = 2;
+}
+
+message DislikeRequest {
+  Type item_type = 1;
+  string item_id = 2;
+}
+
+message GetLikedRequest {
+  Type item_type = 1;
+  string item_id = 2;
+  common.PagedElementInput details = 3;
+}
+
+message GetLikedResponse {
+  repeated string user_ids = 2;
+  common.PagedElementOutput details = 3;
+}
+
+message GetCountRequest {
+  Type item_type = 1;
+  repeated string ids = 2;
+}
+
+message Count {
+  uint64 total_likes = 1;
+  uint64 total_dislikes = 2;
+}
+
+message GetCountResponse {
+  repeated Count counts = 1;
+}
+
+message ClearUserLikesRequest {
+  string user_id = 1;
+}
+
+message DeleteLikesRequest {
+  Type item_type = 1;
+  repeated string item_ids = 2;
+}

@@ -8,6 +8,7 @@ import "google/protobuf/timestamp.proto";
 service FileStorageService {
   rpc Find(FindFileRequest) returns (stream FindFileResponse);
   rpc FindMetadata(FindFileMetadataRequest) returns (FindFileMetadataResponse);
+  rpc GetUrls(GetFileUrlRequest) returns (GetFileUrlResponse); // TODO: Implement this
   rpc Store(stream StoreFileRequest) returns (StoreFileResponse);
   rpc Update(UpdateFileRequest) returns (google.protobuf.Empty);
   rpc Delete(DeleteFileRequest) returns (google.protobuf.Empty);
@@ -29,6 +30,14 @@ message FindFileRequest {
 message FindFileResponse {
   string filename = 1;
   bytes chunk = 2;
+}
+
+message GetFileUrlRequest {
+  repeated string file_ids = 1;
+}
+
+message GetFileUrlResponse {
+  repeated string urls = 1;
 }
 
 message FindFileMetadataRequest {
