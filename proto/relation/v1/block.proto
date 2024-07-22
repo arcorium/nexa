@@ -1,0 +1,47 @@
+syntax = "proto3";
+package nexa.relation.v1;
+option go_package = "nexa/proto/gen/go/relation/v1";
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+import "common/paged.proto";
+
+service BlockService {
+  // Get user total follower and followee
+  rpc Block(BlockUserRequest) returns (google.protobuf.Empty);
+  rpc Unblock(UnblockUserRequest) returns (google.protobuf.Empty);
+  rpc GetBlocked(common.PagedElementInput) returns (GetBlockedResponse);
+  // Get user total blocked
+  rpc GetUsersCount(GetUsersBlockCountRequest) returns (GetUsersBlockCountResponse);
+  // Clear user related data on this service
+  rpc ClearUsers(ClearUsersBlockRequest) returns (google.protobuf.Empty);
+}
+
+message BlockUserRequest {
+  string target_user_id = 1;
+}
+
+message UnblockUserRequest {
+  string target_user_id = 1;
+}
+
+message GetBlockedResponse {
+  repeated string user_ids = 1;
+  common.PagedElementOutput details = 2;
+}
+
+message BlockCount {
+  uint64 total_blocked = 1;
+}
+
+message GetUsersBlockCountRequest {
+  string user_id = 1;
+}
+
+message GetUsersBlockCountResponse {
+  BlockCount counts = 1;
+}
+
+message ClearUsersBlockRequest {
+  string user_id = 1;
+}

@@ -2,13 +2,12 @@
 // versions:
 // - protoc-gen-go-grpc v1.3.0
 // - protoc             (unknown)
-// source: follow/v1/follow.proto
+// source: relation/v1/follow.proto
 
-package followv1
+package relationv1
 
 import (
 	context "context"
-	common "github.com/arcorium/nexa/proto/gen/go/common"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -21,16 +20,13 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	FollowService_Follow_FullMethodName          = "/nexa.follow.v1.FollowService/Follow"
-	FollowService_Unfollow_FullMethodName        = "/nexa.follow.v1.FollowService/Unfollow"
-	FollowService_GetFollowers_FullMethodName    = "/nexa.follow.v1.FollowService/GetFollowers"
-	FollowService_GetFollowees_FullMethodName    = "/nexa.follow.v1.FollowService/GetFollowees"
-	FollowService_GetFollowStatus_FullMethodName = "/nexa.follow.v1.FollowService/GetFollowStatus"
-	FollowService_GetUsersCount_FullMethodName   = "/nexa.follow.v1.FollowService/GetUsersCount"
-	FollowService_Block_FullMethodName           = "/nexa.follow.v1.FollowService/Block"
-	FollowService_Unblock_FullMethodName         = "/nexa.follow.v1.FollowService/Unblock"
-	FollowService_GetBlocked_FullMethodName      = "/nexa.follow.v1.FollowService/GetBlocked"
-	FollowService_ClearUsers_FullMethodName      = "/nexa.follow.v1.FollowService/ClearUsers"
+	FollowService_Follow_FullMethodName          = "/nexa.relation.v1.FollowService/Follow"
+	FollowService_Unfollow_FullMethodName        = "/nexa.relation.v1.FollowService/Unfollow"
+	FollowService_GetFollowers_FullMethodName    = "/nexa.relation.v1.FollowService/GetFollowers"
+	FollowService_GetFollowees_FullMethodName    = "/nexa.relation.v1.FollowService/GetFollowees"
+	FollowService_GetFollowStatus_FullMethodName = "/nexa.relation.v1.FollowService/GetFollowStatus"
+	FollowService_GetUsersCount_FullMethodName   = "/nexa.relation.v1.FollowService/GetUsersCount"
+	FollowService_ClearUsers_FullMethodName      = "/nexa.relation.v1.FollowService/ClearUsers"
 )
 
 // FollowServiceClient is the client API for FollowService service.
@@ -43,10 +39,7 @@ type FollowServiceClient interface {
 	GetFollowees(ctx context.Context, in *GetUserFolloweesRequest, opts ...grpc.CallOption) (*GetUserFolloweesResponse, error)
 	GetFollowStatus(ctx context.Context, in *GetFollowStatusRequest, opts ...grpc.CallOption) (*GetFollowStatusResponse, error)
 	// Get user total follower and followee
-	GetUsersCount(ctx context.Context, in *GetUsersCountRequest, opts ...grpc.CallOption) (*GetUsersCountResponse, error)
-	Block(ctx context.Context, in *BlockUserRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	Unblock(ctx context.Context, in *UnblockUserRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	GetBlocked(ctx context.Context, in *common.PagedElementInput, opts ...grpc.CallOption) (*GetBlockedResponse, error)
+	GetUsersCount(ctx context.Context, in *GetUsersFollowCountRequest, opts ...grpc.CallOption) (*GetUsersFollowCountResponse, error)
 	// Clear user related data on this service
 	ClearUsers(ctx context.Context, in *ClearUsersRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
@@ -104,36 +97,9 @@ func (c *followServiceClient) GetFollowStatus(ctx context.Context, in *GetFollow
 	return out, nil
 }
 
-func (c *followServiceClient) GetUsersCount(ctx context.Context, in *GetUsersCountRequest, opts ...grpc.CallOption) (*GetUsersCountResponse, error) {
-	out := new(GetUsersCountResponse)
+func (c *followServiceClient) GetUsersCount(ctx context.Context, in *GetUsersFollowCountRequest, opts ...grpc.CallOption) (*GetUsersFollowCountResponse, error) {
+	out := new(GetUsersFollowCountResponse)
 	err := c.cc.Invoke(ctx, FollowService_GetUsersCount_FullMethodName, in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *followServiceClient) Block(ctx context.Context, in *BlockUserRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, FollowService_Block_FullMethodName, in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *followServiceClient) Unblock(ctx context.Context, in *UnblockUserRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, FollowService_Unblock_FullMethodName, in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *followServiceClient) GetBlocked(ctx context.Context, in *common.PagedElementInput, opts ...grpc.CallOption) (*GetBlockedResponse, error) {
-	out := new(GetBlockedResponse)
-	err := c.cc.Invoke(ctx, FollowService_GetBlocked_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -159,10 +125,7 @@ type FollowServiceServer interface {
 	GetFollowees(context.Context, *GetUserFolloweesRequest) (*GetUserFolloweesResponse, error)
 	GetFollowStatus(context.Context, *GetFollowStatusRequest) (*GetFollowStatusResponse, error)
 	// Get user total follower and followee
-	GetUsersCount(context.Context, *GetUsersCountRequest) (*GetUsersCountResponse, error)
-	Block(context.Context, *BlockUserRequest) (*emptypb.Empty, error)
-	Unblock(context.Context, *UnblockUserRequest) (*emptypb.Empty, error)
-	GetBlocked(context.Context, *common.PagedElementInput) (*GetBlockedResponse, error)
+	GetUsersCount(context.Context, *GetUsersFollowCountRequest) (*GetUsersFollowCountResponse, error)
 	// Clear user related data on this service
 	ClearUsers(context.Context, *ClearUsersRequest) (*emptypb.Empty, error)
 	mustEmbedUnimplementedFollowServiceServer()
@@ -187,17 +150,8 @@ func (UnimplementedFollowServiceServer) GetFollowees(context.Context, *GetUserFo
 func (UnimplementedFollowServiceServer) GetFollowStatus(context.Context, *GetFollowStatusRequest) (*GetFollowStatusResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetFollowStatus not implemented")
 }
-func (UnimplementedFollowServiceServer) GetUsersCount(context.Context, *GetUsersCountRequest) (*GetUsersCountResponse, error) {
+func (UnimplementedFollowServiceServer) GetUsersCount(context.Context, *GetUsersFollowCountRequest) (*GetUsersFollowCountResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUsersCount not implemented")
-}
-func (UnimplementedFollowServiceServer) Block(context.Context, *BlockUserRequest) (*emptypb.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Block not implemented")
-}
-func (UnimplementedFollowServiceServer) Unblock(context.Context, *UnblockUserRequest) (*emptypb.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Unblock not implemented")
-}
-func (UnimplementedFollowServiceServer) GetBlocked(context.Context, *common.PagedElementInput) (*GetBlockedResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetBlocked not implemented")
 }
 func (UnimplementedFollowServiceServer) ClearUsers(context.Context, *ClearUsersRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ClearUsers not implemented")
@@ -306,7 +260,7 @@ func _FollowService_GetFollowStatus_Handler(srv interface{}, ctx context.Context
 }
 
 func _FollowService_GetUsersCount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetUsersCountRequest)
+	in := new(GetUsersFollowCountRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -318,61 +272,7 @@ func _FollowService_GetUsersCount_Handler(srv interface{}, ctx context.Context, 
 		FullMethod: FollowService_GetUsersCount_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(FollowServiceServer).GetUsersCount(ctx, req.(*GetUsersCountRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _FollowService_Block_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(BlockUserRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(FollowServiceServer).Block(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: FollowService_Block_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(FollowServiceServer).Block(ctx, req.(*BlockUserRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _FollowService_Unblock_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UnblockUserRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(FollowServiceServer).Unblock(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: FollowService_Unblock_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(FollowServiceServer).Unblock(ctx, req.(*UnblockUserRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _FollowService_GetBlocked_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(common.PagedElementInput)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(FollowServiceServer).GetBlocked(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: FollowService_GetBlocked_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(FollowServiceServer).GetBlocked(ctx, req.(*common.PagedElementInput))
+		return srv.(FollowServiceServer).GetUsersCount(ctx, req.(*GetUsersFollowCountRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -399,7 +299,7 @@ func _FollowService_ClearUsers_Handler(srv interface{}, ctx context.Context, dec
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var FollowService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "nexa.follow.v1.FollowService",
+	ServiceName: "nexa.relation.v1.FollowService",
 	HandlerType: (*FollowServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -427,22 +327,10 @@ var FollowService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _FollowService_GetUsersCount_Handler,
 		},
 		{
-			MethodName: "Block",
-			Handler:    _FollowService_Block_Handler,
-		},
-		{
-			MethodName: "Unblock",
-			Handler:    _FollowService_Unblock_Handler,
-		},
-		{
-			MethodName: "GetBlocked",
-			Handler:    _FollowService_GetBlocked_Handler,
-		},
-		{
 			MethodName: "ClearUsers",
 			Handler:    _FollowService_ClearUsers_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "follow/v1/follow.proto",
+	Metadata: "relation/v1/follow.proto",
 }

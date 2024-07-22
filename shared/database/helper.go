@@ -23,6 +23,10 @@ func OpenPostgresWithConfig(config *config.PostgresDatabase, log bool) (*bun.DB,
   }
 
   sqlDb := sql.OpenDB(pgdriver.NewConnector(options...))
+  sqlDb.SetMaxOpenConns(int(config.Connection.MaxOpen))
+  sqlDb.SetMaxIdleConns(int(config.Connection.MaxIdle))
+  sqlDb.SetConnMaxIdleTime(config.Connection.MaxIdleTime)
+  sqlDb.SetConnMaxLifetime(config.Connection.Lifetime)
   // Test connection
   if err := sqlDb.Ping(); err != nil {
     return nil, err

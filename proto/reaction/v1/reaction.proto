@@ -1,26 +1,38 @@
 syntax = "proto3";
-package nexa.like.v1;
-option go_package = "nexa/proto/gen/go/like/v1";
+package nexa.reaction.v1;
+option go_package = "nexa/proto/gen/go/reaction/v1";
 
 import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
 import "common/paged.proto";
 
-service LikeService {
+service ReactionService {
   rpc Like(LikeRequest) returns (google.protobuf.Empty);
   rpc Dislike(DislikeRequest) returns (google.protobuf.Empty);
-  // Get all users liked the post/comments
-  rpc GetLiked(GetLikedRequest) returns (GetLikedResponse);
+  // Get all users liked the item (post/comments)
+  rpc GetItems(GetItemReactionsRequest) returns (GetItemReactionsResponse);
   rpc GetCount(GetCountRequest) returns (GetCountResponse);
-  rpc Delete(DeleteLikesRequest) returns (google.protobuf.Empty);
+  // Delete items reactions
+  rpc DeleteItems(DeleteItemsReactionsRequest) returns (google.protobuf.Empty);
 
   // Remove all likes created by the user
-  rpc ClearUserLikes(ClearUserLikesRequest) returns (google.protobuf.Empty);
+  rpc ClearUsers(ClearUsersReactionsRequest) returns (google.protobuf.Empty);
 }
 
 enum Type {
   POST = 0;
   COMMENT = 1;
+}
+
+enum ReactionType {
+  LIKE = 0;
+  DISLIKE = 1;
+}
+
+message Reaction {
+  string user_id = 1;
+  ReactionType reaction_type = 2;
+  google.protobuf.Timestamp created_at = 3;
 }
 
 message LikeRequest {
@@ -33,20 +45,22 @@ message DislikeRequest {
   string item_id = 2;
 }
 
-message GetLikedRequest {
+message GetItemReactionsRequest {
   Type item_type = 1;
   string item_id = 2;
   common.PagedElementInput details = 3;
 }
 
-message GetLikedResponse {
-  repeated string user_ids = 2;
-  common.PagedElementOutput details = 3;
+message GetItemReactionsResponse {
+  Type item_type = 1;
+  string item_id = 2;
+  repeated Reaction reactions = 3;
+  common.PagedElementOutput details = 4;
 }
 
 message GetCountRequest {
   Type item_type = 1;
-  repeated string ids = 2;
+  repeated string item_ids = 2;
 }
 
 message Count {
@@ -58,11 +72,11 @@ message GetCountResponse {
   repeated Count counts = 1;
 }
 
-message ClearUserLikesRequest {
+message ClearUsersReactionsRequest {
   string user_id = 1;
 }
 
-message DeleteLikesRequest {
+message DeleteItemsReactionsRequest {
   Type item_type = 1;
   repeated string item_ids = 2;
 }

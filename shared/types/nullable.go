@@ -4,10 +4,18 @@ import (
   "encoding/json"
   "github.com/go-playground/validator/v10"
   "reflect"
+  "time"
 )
 
 func NewNullable[T any](data *T) Nullable[T] {
   return Nullable[T]{data}
+}
+
+func NewNullableTime(t time.Time) NullableTime {
+  if t.IsZero() {
+    return NullableTime{}
+  }
+  return NullableTime{&t}
 }
 
 // SomeNullable set Nullable type with non-nullable data
@@ -85,6 +93,7 @@ func nullableValidation[T any](sl reflect.Value) any {
 
 type (
   NullableString = Nullable[string]
+  NullableTime   = Nullable[time.Time]
   NullableId     = Nullable[Id]
   NullableEmail  = Nullable[Email]
   NullablePath   = Nullable[FilePath]
@@ -107,6 +116,7 @@ func RegisterValidation[T any](validate *validator.Validate) {
 
 func RegisterDefaultNullableValidations(validate *validator.Validate) {
   RegisterValidation[string](validate)
+  RegisterValidation[time.Time](validate)
   RegisterValidation[Id](validate)
   RegisterValidation[Email](validate)
   RegisterValidation[FilePath](validate)

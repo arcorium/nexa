@@ -10,6 +10,15 @@ func LoadDatabase() (*Database, error) {
   return Load[Database]()
 }
 
+type Connection struct {
+  Timeout time.Duration `env:"DB_TIMEOUT" envDefault:"60s"`
+
+  MaxOpen     uint64        `env:"DB_MAX_OPEN" envDefault:"0"`      // Max opened connections
+  MaxIdle     uint64        `env:"DB_MAX_IDLE" envDefault:"2"`      // Max idle connection on pool
+  MaxIdleTime time.Duration `env:"DB_MAX_IDLE_TIME" envDefault:"0"` // Maximum idle time for connection before closed
+  Lifetime    time.Duration `env:"DB_LIFETIME" envDefault:"0"`      // Lifetime for each connection
+}
+
 type Database struct {
   Protocol string `env:"DB_PROTOCOL,notEmpty"`
   Host     string `env:"DB_HOST,notEmpty"`
@@ -21,7 +30,7 @@ type Database struct {
   Parameter string `env:"DB_PARAMETER"`
   IsSecure  bool   `env:"DB_IS_SECURE" envDefault:"false"`
 
-  Timeout time.Duration `env:"DB_TIMEOUT" envDefault:"60s"`
+  Connection Connection
 
   dsn     string
   dsnOnce sync.Once
@@ -54,6 +63,8 @@ type PostgresDatabase struct {
   IsSecure  bool   `env:"PG_IS_SECURE" envDefault:"false"`
 
   Timeout time.Duration `env:"PG_TIMEOUT" envDefault:"60s"`
+
+  Connection Connection
 
   dsn     string
   dsnOnce sync.Once

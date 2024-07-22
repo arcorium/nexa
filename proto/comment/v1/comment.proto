@@ -20,21 +20,24 @@ service CommentService {
 }
 
 enum Type {
-  POST = 0;
-  COMMENT = 1;
+  POST_COMMENT = 0;
+  COMMENT_REPLY = 1;
 }
 
 message Comment {
   string id = 1;
-  string user_id = 2;
-  string content = 3;
+  string post_id = 2;
+  string user_id = 3;
+  string content = 4;
 
-  google.protobuf.Timestamp last_edited = 4;
-  google.protobuf.Timestamp created_at = 5;
+  optional google.protobuf.Timestamp last_edited = 5;
+  google.protobuf.Timestamp created_at = 6;
+
+  repeated Comment replies = 7;
 }
 
 message CreateCommentRequest {
-  Type item_type = 1;
+  optional string parent_id = 1;
   string post_id = 2;
   string content = 3;
 }
@@ -46,6 +49,7 @@ message CreateCommentResponse {
 
 message EditCommentRequest {
   string comment_id = 1;
+  string content = 2;
 }
 
 message DeleteCommentRequest {
@@ -54,18 +58,19 @@ message DeleteCommentRequest {
 
 message GetPostCommentsRequest {
   string post_id = 1;
+  bool show_reply = 2;
   common.PagedElementInput details = 3;
 }
 
 message GetPostCommentsResponse {
   repeated Comment comments = 1;
-  bool include_reply = 2;
   common.PagedElementOutput details = 3;
 }
 
 message GetCommentRepliesRequest {
   string comment_id = 1;
-  common.PagedElementInput details = 2;
+  bool show_reply = 2;
+  common.PagedElementInput details = 3;
 }
 
 message GetCommentRepliesResponse {
@@ -76,11 +81,11 @@ message GetCommentRepliesResponse {
 
 message GetCountsRequest {
   Type item_type = 1;
-  repeated string ids = 2;
+  repeated string item_ids = 2;
 }
 
 message GetCountsResponse {
-  repeated uint64 total_comments = 1; // Could be comment count or reply count (nested also summed)
+  repeated uint64 total = 1; // Could be comment count or reply count (nested also summed)
 }
 
 message ClearPostsCommentsRequest {
