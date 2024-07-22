@@ -21,6 +21,7 @@ var privateApi = []string{
 var publicApi = []string{
   authZv1.RoleService_GetUsers_FullMethodName,
   authZv1.RoleService_GetDefault_FullMethodName,
+  authZv1.RoleService_SetAsDefault_FullMethodName,
   authZv1.PermissionService_FindByRoles_FullMethodName,
   authZv1.PermissionService_FindAll_FullMethodName,
 }

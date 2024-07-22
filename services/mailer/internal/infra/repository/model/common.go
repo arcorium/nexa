@@ -4,6 +4,7 @@ import (
   "context"
   "github.com/arcorium/nexa/shared/types"
   "github.com/uptrace/bun"
+  "nexa/services/mailer/constant"
   "time"
 )
 
@@ -38,13 +39,13 @@ func SeedDefaultTags(db *bun.DB) error {
   defaultTags := []Tag{
     {
       Id:          types.MustCreateId().String(),
-      Name:        "Email Verification",
+      Name:        constant.EMAIL_VERIFICATION_TAG,
       Description: nil,
       CreatedAt:   time.Now().UTC(),
     },
     {
       Id:          types.MustCreateId().String(),
-      Name:        "Reset Password",
+      Name:        constant.RESET_PASSWORD_TAG,
       Description: nil,
       CreatedAt:   time.Now().UTC(),
     },

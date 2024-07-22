@@ -20,7 +20,7 @@ func ToLoginDTO(req *authv1.LoginRequest) (dto.LoginDTO, error) {
     fieldErrors = append(fieldErrors, sharedErr.NewFieldError("usage", err))
   }
 
-  if len(fieldErrors) == 0 {
+  if len(fieldErrors) != 0 {
     return dto.LoginDTO{}, sharedErr.GrpcFieldErrors2(fieldErrors...)
   }
 
@@ -56,7 +56,7 @@ func ToLogoutDTO(req *authv1.LogoutRequest) (dto.LogoutDTO, error) {
     fieldErrors = append(fieldErrors, ierr.ToFieldError("cred_ids"))
   }
 
-  if len(fieldErrors) == 0 {
+  if len(fieldErrors) != 0 {
     return dto.LogoutDTO{}, sharedErr.GrpcFieldErrors2(fieldErrors...)
   }
 

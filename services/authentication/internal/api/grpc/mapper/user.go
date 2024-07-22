@@ -64,9 +64,12 @@ func ToUserUpdateDTO(request *authNv1.UpdateUserRequest) (dto.UserUpdateDTO, err
   }
 
   return dto.UserUpdateDTO{
-    Id:       id,
-    Username: types.NewNullable(request.Username),
-    Email:    types.NewNullable(emails),
+    Id:        id,
+    Username:  types.NewNullable(request.Username),
+    Email:     types.NewNullable(emails),
+    FirstName: types.NewNullable(request.FirstName),
+    LastName:  types.NewNullable(request.LastName),
+    Bio:       types.NewNullable(request.Bio),
   }, nil
 }
 
@@ -164,6 +167,9 @@ func ToProtoUser(responseDTO *dto.UserResponseDTO) *authNv1.User {
     Username:   responseDTO.Username,
     Email:      responseDTO.Email.String(),
     IsVerified: responseDTO.IsVerified,
-    Profile:    ToProtoProfile(responseDTO.Profile),
+    FirstName:  responseDTO.Profile.FirstName,
+    LastName:   responseDTO.Profile.LastName,
+    Bio:        responseDTO.Profile.Bio,
+    ImagePath:  responseDTO.Profile.PhotoURL.String(),
   }
 }

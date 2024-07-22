@@ -7,6 +7,7 @@ import (
 )
 
 type IRoleClient interface {
+  SetUserAsDefault(ctx context.Context, userId types.Id) error
   GetUserRoles(ctx context.Context, userId types.Id) ([]dto.RoleResponseDTO, error)
   RemoveUserRoles(ctx context.Context, userId types.Id) error
 }

@@ -117,7 +117,7 @@ func (u userRepository) FindByEmails(ctx context.Context, emails ...types.Email)
   err := u.db.NewSelect().
     Model(&dbModel).
     Relation("Profile").
-    Where("u.email IN (?)", bun.In(emails)).
+    Where("email IN (?)", bun.In(emails)).
     Distinct().
     OrderExpr("created_at DESC").
     Scan(ctx)

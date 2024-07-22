@@ -72,7 +72,7 @@ type Server struct {
   publicKey  *rsa.PublicKey
   privateKey *rsa.PrivateKey
 
-  externalFactory *factory.External
+  externalClients *factory.External
   grpcServer      *grpc.Server
   metricServer    *http.Server
   logger          logger.ILogger
@@ -152,7 +152,7 @@ func (s *Server) grpcServerSetup() error {
     return nil
   }
 
-  authorizationConfig := authz.NewUserConfig(s.publicKey, nil)
+  authorizationConfig := authz.NewUserConfig(s.publicKey, inter.PermissionCheck)
   skipServices := []string{
     grpc_health_v1.Health_ServiceDesc.ServiceName,
   }
@@ -280,11 +280,11 @@ func (s *Server) setup() error {
 
   // External client
   creds := grpc.WithTransportCredentials(insecure.NewCredentials())
-  result, err := factory.NewExternalWithConfig(&s.serverConfig.Service, creds)
+  result, err := factory.NewExternalWithConfig(&s.serverConfig.Service, &s.serverConfig.CircuitBreaker, creds)
   if err != nil {
     return err
   }
-  s.externalFactory = result
+  s.externalClients = result
 
   // Repository
   credRepo := redisRepo.NewCredential(s.credDb, nil) // Use default config
@@ -292,9 +292,9 @@ func (s *Server) setup() error {
 
   // Service
   credSvc := service.NewCredential(credRepo, userUOW, service.CredentialConfig{
-    TokenClient:            s.externalFactory.Token,
-    MailClient:             s.externalFactory.Mail,
-    RoleClient:             s.externalFactory.Role,
+    TokenClient:            s.externalClients.Token,
+    MailClient:             s.externalClients.Mail,
+    RoleClient:             s.externalClients.Role,
     SigningMethod:          s.serverConfig.SigningMethod(),
     AccessTokenExpiration:  s.serverConfig.JWTAccessTokenExpiration,
     RefreshTokenExpiration: s.serverConfig.JWTRefreshTokenExpiration,
@@ -303,13 +303,11 @@ func (s *Server) setup() error {
   })
 
   userSvc := service.NewUser(credRepo, userUOW, service.UserConfig{
-    RoleClient:  s.externalFactory.Role,
-    MailClient:  s.externalFactory.Mail,
-    TokenClient: s.externalFactory.Token,
+    RoleClient:    s.externalClients.Role,
+    MailClient:    s.externalClients.Mail,
+    TokenClient:   s.externalClients.Token,
+    StorageClient: s.externalClients.Storage,
   })
-
-  repos := userUOW.Repositories()
-  profileSvc := service.NewProfile(repos.Profile(), s.externalFactory.Storage)
 
   // GRPC Handler
   credHandler := handler.NewCredential(credSvc)
@@ -317,9 +315,6 @@ func (s *Server) setup() error {
 
   userHandler := handler.NewUser(userSvc)
   userHandler.Register(s.grpcServer)
-
-  profileHandler := handler.NewProfile(profileSvc)
-  profileHandler.Register(s.grpcServer)
 
   // Health check
   healthHandler := health.NewServer()
@@ -342,7 +337,7 @@ func (s *Server) shutdown() {
   }
 
   // External Clients
-  s.externalFactory.Close()
+  s.externalClients.Close()
 
   // Database
   if err := s.userDb.Close(); err != nil {

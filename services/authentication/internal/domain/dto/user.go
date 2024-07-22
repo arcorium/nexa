@@ -41,12 +41,15 @@ func (d *UserCreateDTO) ToDomain() (entity.User, entity.Profile, error) {
 }
 
 type UserUpdateDTO struct {
-  Id       types.Id
-  Username types.NullableString
-  Email    types.NullableEmail
+  Id        types.Id
+  Username  types.NullableString
+  Email     types.NullableEmail
+  FirstName types.NullableString
+  LastName  types.NullableString
+  Bio       types.NullableString
 }
 
-func (d *UserUpdateDTO) ToDomain() entity.PatchedUser {
+func (d *UserUpdateDTO) ToDomain() (entity.PatchedUser, entity.PatchedProfile) {
   user := entity.PatchedUser{
     Id: d.Id,
   }
@@ -54,7 +57,14 @@ func (d *UserUpdateDTO) ToDomain() entity.PatchedUser {
   types.SetOnNonNull(&user.Username, d.Username)
   types.SetOnNonNull(&user.Email, d.Email)
 
-  return user
+  profile := entity.PatchedProfile{
+    Id:       d.Id,
+    LastName: d.LastName,
+    Bio:      d.Bio,
+  }
+
+  types.SetOnNonNull(&profile.FirstName, d.FirstName)
+  return user, profile
 }
 
 type UserUpdatePasswordDTO struct {
@@ -97,4 +107,10 @@ type ResetPasswordWithTokenDTO struct {
   Token       string
   LogoutAll   bool
   NewPassword types.Password `validate:"required,gt=6"`
+}
+
+type UpdateUserAvatarDTO struct {
+  UserId   types.Id
+  Filename string `validate:"required"`
+  Bytes    []byte `validate:"required"`
 }

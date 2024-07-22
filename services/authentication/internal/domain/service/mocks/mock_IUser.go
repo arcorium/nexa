@@ -311,7 +311,7 @@ func (_c *UserMock_FindByIds_Call) RunAndReturn(run func(context.Context, ...typ
 }
 
 // ForgotPassword provides a mock function with given fields: ctx, email
-func (_m *UserMock) ForgotPasswordRequest(ctx context.Context, email types.Email) (dto.TokenResponseDTO, status.Object) {
+func (_m *UserMock) ForgotPassword(ctx context.Context, email types.Email) (dto.TokenResponseDTO, status.Object) {
 	ret := _m.Called(ctx, email)
 
 	if len(ret) == 0 {
@@ -471,6 +471,53 @@ func (_c *UserMock_ResetPassword_Call) RunAndReturn(run func(context.Context, *d
 	return _c
 }
 
+// ResetPasswordWithToken provides a mock function with given fields: ctx, resetDTO
+func (_m *UserMock) ResetPasswordWithToken(ctx context.Context, resetDTO *dto.ResetPasswordWithTokenDTO) status.Object {
+	ret := _m.Called(ctx, resetDTO)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ResetPasswordWithToken")
+	}
+
+	var r0 status.Object
+	if rf, ok := ret.Get(0).(func(context.Context, *dto.ResetPasswordWithTokenDTO) status.Object); ok {
+		r0 = rf(ctx, resetDTO)
+	} else {
+		r0 = ret.Get(0).(status.Object)
+	}
+
+	return r0
+}
+
+// UserMock_ResetPasswordWithToken_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ResetPasswordWithToken'
+type UserMock_ResetPasswordWithToken_Call struct {
+	*mock.Call
+}
+
+// ResetPasswordWithToken is a helper method to define mock.On call
+//   - ctx context.Context
+//   - resetDTO *dto.ResetPasswordWithTokenDTO
+func (_e *UserMock_Expecter) ResetPasswordWithToken(ctx interface{}, resetDTO interface{}) *UserMock_ResetPasswordWithToken_Call {
+	return &UserMock_ResetPasswordWithToken_Call{Call: _e.mock.On("ResetPasswordWithToken", ctx, resetDTO)}
+}
+
+func (_c *UserMock_ResetPasswordWithToken_Call) Run(run func(ctx context.Context, resetDTO *dto.ResetPasswordWithTokenDTO)) *UserMock_ResetPasswordWithToken_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*dto.ResetPasswordWithTokenDTO))
+	})
+	return _c
+}
+
+func (_c *UserMock_ResetPasswordWithToken_Call) Return(_a0 status.Object) *UserMock_ResetPasswordWithToken_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *UserMock_ResetPasswordWithToken_Call) RunAndReturn(run func(context.Context, *dto.ResetPasswordWithTokenDTO) status.Object) *UserMock_ResetPasswordWithToken_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Update provides a mock function with given fields: ctx, input
 func (_m *UserMock) Update(ctx context.Context, input *dto.UserUpdateDTO) status.Object {
 	ret := _m.Called(ctx, input)
@@ -514,6 +561,53 @@ func (_c *UserMock_Update_Call) Return(_a0 status.Object) *UserMock_Update_Call 
 }
 
 func (_c *UserMock_Update_Call) RunAndReturn(run func(context.Context, *dto.UserUpdateDTO) status.Object) *UserMock_Update_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpdateAvatar provides a mock function with given fields: ctx, input
+func (_m *UserMock) UpdateAvatar(ctx context.Context, input *dto.UpdateUserAvatarDTO) status.Object {
+	ret := _m.Called(ctx, input)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateAvatar")
+	}
+
+	var r0 status.Object
+	if rf, ok := ret.Get(0).(func(context.Context, *dto.UpdateUserAvatarDTO) status.Object); ok {
+		r0 = rf(ctx, input)
+	} else {
+		r0 = ret.Get(0).(status.Object)
+	}
+
+	return r0
+}
+
+// UserMock_UpdateAvatar_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateAvatar'
+type UserMock_UpdateAvatar_Call struct {
+	*mock.Call
+}
+
+// UpdateAvatar is a helper method to define mock.On call
+//   - ctx context.Context
+//   - input *dto.UpdateUserAvatarDTO
+func (_e *UserMock_Expecter) UpdateAvatar(ctx interface{}, input interface{}) *UserMock_UpdateAvatar_Call {
+	return &UserMock_UpdateAvatar_Call{Call: _e.mock.On("UpdateAvatar", ctx, input)}
+}
+
+func (_c *UserMock_UpdateAvatar_Call) Run(run func(ctx context.Context, input *dto.UpdateUserAvatarDTO)) *UserMock_UpdateAvatar_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*dto.UpdateUserAvatarDTO))
+	})
+	return _c
+}
+
+func (_c *UserMock_UpdateAvatar_Call) Return(_a0 status.Object) *UserMock_UpdateAvatar_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *UserMock_UpdateAvatar_Call) RunAndReturn(run func(context.Context, *dto.UpdateUserAvatarDTO) status.Object) *UserMock_UpdateAvatar_Call {
 	_c.Call.Return(run)
 	return _c
 }

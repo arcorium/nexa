@@ -51,9 +51,7 @@ func PermissionCheck(claims *sharedJwt.UserClaims, meta interceptors.CallMeta) b
   case authNv1.UserService_ResetPassword_FullMethodName:
     return authUtil.ContainsPermission(claims.Roles, constant.AUTHN_PERMISSIONS[constant.AUTHN_UPDATE_USER_ARB])
   // Profile
-  case authNv1.ProfileService_Update_FullMethodName:
-    fallthrough
-  case authNv1.ProfileService_UpdateAvatar_FullMethodName:
+  case authNv1.UserService_UpdateAvatar_FullMethodName:
     return authUtil.ContainsPermission(claims.Roles, constant.AUTHN_PERMISSIONS[constant.AUTHN_UPDATE_USER])
   default:
     logger.Warnf("Unknown permission method: %s", meta.FullMethod())

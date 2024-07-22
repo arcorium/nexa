@@ -34,9 +34,10 @@ func NewUser(credRepo repository.ICredential, unit uow.IUnitOfWork[userUow.UserS
 }
 
 type UserConfig struct {
-  RoleClient  external.IRoleClient
-  MailClient  external.IMailerClient
-  TokenClient external.ITokenClient
+  RoleClient    external.IRoleClient
+  MailClient    external.IMailerClient
+  TokenClient   external.ITokenClient
+  StorageClient external.IFileStorageClient
 }
 
 type userService struct {
@@ -90,20 +91,85 @@ func (u userService) Update(ctx context.Context, updateDto *dto.UserUpdateDTO) s
   ctx, span := u.tracer.Start(ctx, "UserService.Update")
   defer span.End()
 
-  user := updateDto.ToDomain()
-
   // Validate permission
-  if err := u.checkPermission(ctx, user.Id, constant.AUTHN_PERMISSIONS[constant.AUTHN_UPDATE_USER_ARB]); err != nil {
+  if err := u.checkPermission(ctx, updateDto.Id, constant.AUTHN_PERMISSIONS[constant.AUTHN_UPDATE_USER_ARB]); err != nil {
     spanUtil.RecordError(err, span)
     return status.ErrUnAuthorized(err)
   }
 
-  repo := u.unit.Repositories()
-  err := repo.User().Patch(ctx, &user)
+  user, profile := updateDto.ToDomain()
+
+  err := u.unit.DoTx(ctx, func(ctx context.Context, storage userUow.UserStorage) error {
+    ctx, span := u.tracer.Start(ctx, "UOW.Update")
+    defer span.End()
+
+    err := storage.User().Patch(ctx, &user)
+    if err != nil {
+      return err
+    }
+
+    err = storage.Profile().Patch(ctx, &profile)
+    return err
+  })
+
   if err != nil {
     spanUtil.RecordError(err, span)
     return status.FromRepository(err, status.NullCode)
   }
+
+  return status.Updated()
+}
+
+func (u userService) UpdateAvatar(ctx context.Context, updateDto *dto.UpdateUserAvatarDTO) status.Object {
+  ctx, span := u.tracer.Start(ctx, "UserService.UpdateAvatar")
+  defer span.End()
+
+  // Check if user already has photo
+  repos := u.unit.Repositories()
+  profiles, err := repos.Profile().FindByIds(ctx, updateDto.UserId)
+  if err != nil {
+    spanUtil.RecordError(err, span)
+    return status.FromRepository(err, status.NullCode)
+  }
+
+  // Upload new avatar
+  fileId, filePath, err := u.config.StorageClient.UploadProfileImage(ctx, &dto.UploadImageDTO{
+    Filename: updateDto.Filename,
+    Data:     updateDto.Bytes,
+  })
+  if err != nil {
+    spanUtil.RecordError(err, span)
+    return status.ErrExternal(err)
+  }
+
+  // Update profiles data
+  profile := entity.PatchedProfile{
+    Id:       updateDto.UserId,
+    PhotoId:  types.SomeNullable(fileId),
+    PhotoURL: types.SomeNullable(filePath),
+  }
+
+  err = repos.Profile().Patch(ctx, &profile)
+  if err != nil {
+    // Delete new avatar when error happens
+    spanUtil.RecordError(err, span)
+    extErr := u.config.StorageClient.DeleteProfileImage(ctx, fileId)
+    if extErr != nil {
+      spanUtil.RecordError(extErr, span)
+      return status.ErrExternal(extErr)
+    }
+    return status.FromRepository(err, status.NullCode)
+  }
+
+  // Delete last avatar
+  if profiles[0].HasAvatar() {
+    err = u.config.StorageClient.DeleteProfileImage(ctx, profiles[0].PhotoId)
+    if err != nil {
+      spanUtil.RecordError(err, span)
+      return status.ErrExternal(err)
+    }
+  }
+
   return status.Updated()
 }
 

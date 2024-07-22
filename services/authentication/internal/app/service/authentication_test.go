@@ -267,6 +267,10 @@ func Test_userService_Register(t *testing.T) {
           Create(mock.Anything, mock.Anything).
           Return(nil)
 
+        mocked.RoleClient.EXPECT().
+          SetUserAsDefault(mock.Anything, mock.Anything).
+          Return(nil)
+
         mocked.TokenClient.EXPECT().
           Generate(mock.Anything, mock.Anything).
           Return(responseDTO, nil)
@@ -313,6 +317,62 @@ func Test_userService_Register(t *testing.T) {
       want: status.FromRepository(sql.ErrNoRows, status.NullCode),
     },
     {
+      name: "Failed to create profile",
+      setup: func(mocked *credentialMocked, arg any, want any) {
+        mocked.txProxy()
+
+        mocked.User.EXPECT().
+          Create(mock.Anything, mock.Anything).
+          Return(nil)
+
+        mocked.Profile.EXPECT().
+          Create(mock.Anything, mock.Anything).
+          Return(sql.ErrNoRows)
+      },
+      args: args{
+        ctx: context.Background(),
+        registerDTO: &dto.RegisterDTO{
+          Username:  gofakeit.Username(),
+          Email:     types.Email(gofakeit.Email()),
+          Password:  types.Password(sharedUtil.RandomString(12)),
+          FirstName: gofakeit.FirstName(),
+          LastName:  types.NullableString{},
+          Bio:       types.NullableString{},
+        },
+      },
+      want: status.FromRepository(sql.ErrNoRows, status.NullCode),
+    },
+    {
+      name: "Failed to set default roles to user",
+      setup: func(mocked *credentialMocked, arg any, want any) {
+        mocked.txProxy()
+
+        mocked.User.EXPECT().
+          Create(mock.Anything, mock.Anything).
+          Return(nil)
+
+        mocked.Profile.EXPECT().
+          Create(mock.Anything, mock.Anything).
+          Return(nil)
+
+        mocked.RoleClient.EXPECT().
+          SetUserAsDefault(mock.Anything, mock.Anything).
+          Return(dummyErr)
+      },
+      args: args{
+        ctx: context.Background(),
+        registerDTO: &dto.RegisterDTO{
+          Username:  gofakeit.Username(),
+          Email:     types.Email(gofakeit.Email()),
+          Password:  types.Password(sharedUtil.RandomString(12)),
+          FirstName: gofakeit.FirstName(),
+          LastName:  types.NullableString{},
+          Bio:       types.NullableString{},
+        },
+      },
+      want: status.ErrExternal(dummyErr),
+    },
+    {
       name: "Failed to create verification token",
       setup: func(mocked *credentialMocked, arg any, want any) {
         mocked.txProxy()
@@ -323,6 +383,10 @@ func Test_userService_Register(t *testing.T) {
 
         mocked.Profile.EXPECT().
           Create(mock.Anything, mock.Anything).
+          Return(nil)
+
+        mocked.RoleClient.EXPECT().
+          SetUserAsDefault(mock.Anything, mock.Anything).
           Return(nil)
 
         mocked.TokenClient.EXPECT().
@@ -362,6 +426,10 @@ func Test_userService_Register(t *testing.T) {
 
         mocked.Profile.EXPECT().
           Create(mock.Anything, mock.Anything).
+          Return(nil)
+
+        mocked.RoleClient.EXPECT().
+          SetUserAsDefault(mock.Anything, mock.Anything).
           Return(nil)
 
         mocked.TokenClient.EXPECT().

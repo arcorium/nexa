@@ -3,6 +3,7 @@ package service
 import (
   "context"
   "database/sql"
+  "fmt"
   sharedConst "github.com/arcorium/nexa/shared/constant"
   sharedDto "github.com/arcorium/nexa/shared/dto"
   sharedErr "github.com/arcorium/nexa/shared/errors"
@@ -34,26 +35,28 @@ func newUserMocked(t *testing.T) userMocked {
   // Tracer
   provider := noop.NewTracerProvider()
   return userMocked{
-    UOW:         uowMock.NewUnitOfWorkMock[uow.UserStorage](t),
-    Cred:        repoMock.NewCredentialMock(t),
-    User:        repoMock.NewUserMock(t),
-    Profile:     repoMock.NewProfileMock(t),
-    RoleClient:  extMock.NewRoleClientMock(t),
-    MailClient:  extMock.NewMailerClientMock(t),
-    TokenClient: extMock.NewTokenClientMock(t),
-    Tracer:      provider.Tracer("MOCK"),
+    UOW:           uowMock.NewUnitOfWorkMock[uow.UserStorage](t),
+    Cred:          repoMock.NewCredentialMock(t),
+    User:          repoMock.NewUserMock(t),
+    Profile:       repoMock.NewProfileMock(t),
+    RoleClient:    extMock.NewRoleClientMock(t),
+    MailClient:    extMock.NewMailerClientMock(t),
+    TokenClient:   extMock.NewTokenClientMock(t),
+    StorageClient: extMock.NewFileStorageClientMock(t),
+    Tracer:        provider.Tracer("MOCK"),
   }
 }
 
 type userMocked struct {
-  UOW         *uowMock.UnitOfWorkMock[uow.UserStorage]
-  Cred        *repoMock.CredentialMock
-  User        *repoMock.UserMock
-  Profile     *repoMock.ProfileMock
-  RoleClient  *extMock.RoleClientMock
-  MailClient  *extMock.MailerClientMock
-  TokenClient *extMock.TokenClientMock
-  Tracer      trace.Tracer
+  UOW           *uowMock.UnitOfWorkMock[uow.UserStorage]
+  Cred          *repoMock.CredentialMock
+  User          *repoMock.UserMock
+  Profile       *repoMock.ProfileMock
+  RoleClient    *extMock.RoleClientMock
+  MailClient    *extMock.MailerClientMock
+  TokenClient   *extMock.TokenClientMock
+  StorageClient *extMock.FileStorageClientMock
+  Tracer        trace.Tracer
 }
 
 func (m *userMocked) defaultUOWMock() {
@@ -141,9 +144,10 @@ func Test_userService_BannedUser(t *testing.T) {
         credRepo: mocked.Cred,
         tracer:   mocked.Tracer,
         config: UserConfig{
-          RoleClient:  mocked.RoleClient,
-          MailClient:  mocked.MailClient,
-          TokenClient: mocked.TokenClient,
+          RoleClient:    mocked.RoleClient,
+          MailClient:    mocked.MailClient,
+          TokenClient:   mocked.TokenClient,
+          StorageClient: mocked.StorageClient,
         },
       }
 
@@ -242,9 +246,10 @@ func Test_userService_Create(t *testing.T) {
         credRepo: mocked.Cred,
         tracer:   mocked.Tracer,
         config: UserConfig{
-          RoleClient:  mocked.RoleClient,
-          MailClient:  mocked.MailClient,
-          TokenClient: mocked.TokenClient,
+          RoleClient:    mocked.RoleClient,
+          MailClient:    mocked.MailClient,
+          TokenClient:   mocked.TokenClient,
+          StorageClient: mocked.StorageClient,
         },
       }
 
@@ -433,9 +438,10 @@ func Test_userService_DeleteById(t *testing.T) {
         credRepo: mocked.Cred,
         tracer:   mocked.Tracer,
         config: UserConfig{
-          RoleClient:  mocked.RoleClient,
-          MailClient:  mocked.MailClient,
-          TokenClient: mocked.TokenClient,
+          RoleClient:    mocked.RoleClient,
+          MailClient:    mocked.MailClient,
+          TokenClient:   mocked.TokenClient,
+          StorageClient: mocked.StorageClient,
         },
       }
 
@@ -559,9 +565,10 @@ func Test_userService_EmailVerificationRequest(t *testing.T) {
         credRepo: mocked.Cred,
         tracer:   mocked.Tracer,
         config: UserConfig{
-          RoleClient:  mocked.RoleClient,
-          MailClient:  mocked.MailClient,
-          TokenClient: mocked.TokenClient,
+          RoleClient:    mocked.RoleClient,
+          MailClient:    mocked.MailClient,
+          TokenClient:   mocked.TokenClient,
+          StorageClient: mocked.StorageClient,
         },
       }
 
@@ -664,9 +671,10 @@ func Test_userService_FindAll(t *testing.T) {
         credRepo: mocked.Cred,
         tracer:   mocked.Tracer,
         config: UserConfig{
-          RoleClient:  mocked.RoleClient,
-          MailClient:  mocked.MailClient,
-          TokenClient: mocked.TokenClient,
+          RoleClient:    mocked.RoleClient,
+          MailClient:    mocked.MailClient,
+          TokenClient:   mocked.TokenClient,
+          StorageClient: mocked.StorageClient,
         },
       }
 
@@ -763,9 +771,10 @@ func Test_userService_FindByIds(t *testing.T) {
         credRepo: mocked.Cred,
         tracer:   mocked.Tracer,
         config: UserConfig{
-          RoleClient:  mocked.RoleClient,
-          MailClient:  mocked.MailClient,
-          TokenClient: mocked.TokenClient,
+          RoleClient:    mocked.RoleClient,
+          MailClient:    mocked.MailClient,
+          TokenClient:   mocked.TokenClient,
+          StorageClient: mocked.StorageClient,
         },
       }
 
@@ -884,9 +893,10 @@ func Test_userService_ForgotPassword(t *testing.T) {
         credRepo: mocked.Cred,
         tracer:   mocked.Tracer,
         config: UserConfig{
-          RoleClient:  mocked.RoleClient,
-          MailClient:  mocked.MailClient,
-          TokenClient: mocked.TokenClient,
+          RoleClient:    mocked.RoleClient,
+          MailClient:    mocked.MailClient,
+          TokenClient:   mocked.TokenClient,
+          StorageClient: mocked.StorageClient,
         },
       }
 
@@ -994,9 +1004,10 @@ func Test_userService_ResetPassword(t *testing.T) {
         credRepo: mocked.Cred,
         tracer:   mocked.Tracer,
         config: UserConfig{
-          RoleClient:  mocked.RoleClient,
-          MailClient:  mocked.MailClient,
-          TokenClient: mocked.TokenClient,
+          RoleClient:    mocked.RoleClient,
+          MailClient:    mocked.MailClient,
+          TokenClient:   mocked.TokenClient,
+          StorageClient: mocked.StorageClient,
         },
       }
 
@@ -1139,9 +1150,10 @@ func Test_userService_ResetPasswordWithToken(t *testing.T) {
         credRepo: mocked.Cred,
         tracer:   mocked.Tracer,
         config: UserConfig{
-          RoleClient:  mocked.RoleClient,
-          MailClient:  mocked.MailClient,
-          TokenClient: mocked.TokenClient,
+          RoleClient:    mocked.RoleClient,
+          MailClient:    mocked.MailClient,
+          TokenClient:   mocked.TokenClient,
+          StorageClient: mocked.StorageClient,
         },
       }
 
@@ -1169,17 +1181,20 @@ func Test_userService_Update(t *testing.T) {
       name: "Success update self user",
       setup: func(mocked *userMocked, arg any, want any) {
         a := arg.(*args)
-
-        mocked.defaultUOWMock()
+        mocked.txProxy()
 
         claims, err := sharedJwt.GetUserClaimsFromCtx(a.ctx)
         require.NoError(t, err)
 
         a.input.Id = types.Must(types.IdFromString(claims.UserId))
 
-        ent := a.input.ToDomain()
+        ent, profile := a.input.ToDomain()
         mocked.User.EXPECT().
           Patch(mock.Anything, &ent).
+          Return(nil)
+
+        mocked.Profile.EXPECT().
+          Patch(mock.Anything, &profile).
           Return(nil)
 
       },
@@ -1194,15 +1209,76 @@ func Test_userService_Update(t *testing.T) {
       want: status.Updated(),
     },
     {
+      name: "Failed to update user",
+      setup: func(mocked *userMocked, arg any, want any) {
+        a := arg.(*args)
+        mocked.txProxy()
+
+        claims, err := sharedJwt.GetUserClaimsFromCtx(a.ctx)
+        require.NoError(t, err)
+
+        a.input.Id = types.Must(types.IdFromString(claims.UserId))
+
+        ent, _ := a.input.ToDomain()
+        mocked.User.EXPECT().
+          Patch(mock.Anything, &ent).
+          Return(sql.ErrNoRows)
+
+      },
+      args: args{
+        ctx: generateClaimsCtx(constant.AUTHN_UPDATE_USER),
+        input: &dto.UserUpdateDTO{
+          Id:       types.MustCreateId(),
+          Username: types.SomeNullable(gofakeit.Username()),
+          Email:    types.SomeNullable(types.Email(gofakeit.Email())),
+        },
+      },
+      want: status.FromRepository(sql.ErrNoRows, status.NullCode),
+    },
+    {
+      name: "Failed to update user",
+      setup: func(mocked *userMocked, arg any, want any) {
+        a := arg.(*args)
+        mocked.txProxy()
+
+        claims, err := sharedJwt.GetUserClaimsFromCtx(a.ctx)
+        require.NoError(t, err)
+
+        a.input.Id = types.Must(types.IdFromString(claims.UserId))
+
+        ent, profile := a.input.ToDomain()
+        mocked.User.EXPECT().
+          Patch(mock.Anything, &ent).
+          Return(nil)
+
+        mocked.Profile.EXPECT().
+          Patch(mock.Anything, &profile).
+          Return(sql.ErrNoRows)
+
+      },
+      args: args{
+        ctx: generateClaimsCtx(constant.AUTHN_UPDATE_USER),
+        input: &dto.UserUpdateDTO{
+          Id:       types.MustCreateId(),
+          Username: types.SomeNullable(gofakeit.Username()),
+          Email:    types.SomeNullable(types.Email(gofakeit.Email())),
+        },
+      },
+      want: status.FromRepository(sql.ErrNoRows, status.NullCode),
+    },
+    {
       name: "Success update other user",
       setup: func(mocked *userMocked, arg any, want any) {
         a := arg.(*args)
+        mocked.txProxy()
 
-        mocked.defaultUOWMock()
-
-        ent := a.input.ToDomain()
+        ent, profile := a.input.ToDomain()
         mocked.User.EXPECT().
           Patch(mock.Anything, &ent).
+          Return(nil)
+
+        mocked.Profile.EXPECT().
+          Patch(mock.Anything, &profile).
           Return(nil)
       },
       args: args{
@@ -1244,9 +1320,10 @@ func Test_userService_Update(t *testing.T) {
         credRepo: mocked.Cred,
         tracer:   mocked.Tracer,
         config: UserConfig{
-          RoleClient:  mocked.RoleClient,
-          MailClient:  mocked.MailClient,
-          TokenClient: mocked.TokenClient,
+          RoleClient:    mocked.RoleClient,
+          MailClient:    mocked.MailClient,
+          TokenClient:   mocked.TokenClient,
+          StorageClient: mocked.StorageClient,
         },
       }
 
@@ -1368,14 +1445,210 @@ func Test_userService_UpdatePassword(t *testing.T) {
         credRepo: mocked.Cred,
         tracer:   mocked.Tracer,
         config: UserConfig{
-          RoleClient:  mocked.RoleClient,
-          MailClient:  mocked.MailClient,
-          TokenClient: mocked.TokenClient,
+          RoleClient:    mocked.RoleClient,
+          MailClient:    mocked.MailClient,
+          TokenClient:   mocked.TokenClient,
+          StorageClient: mocked.StorageClient,
         },
       }
 
       if got := u.UpdatePassword(tt.args.ctx, tt.args.input); !reflect.DeepEqual(got, tt.want) {
         t.Errorf("UpdatePassword() = %v, want %v", got, tt.want)
+      }
+    })
+  }
+}
+
+func Test_userService_UpdateAvatar(t *testing.T) {
+  type args struct {
+    ctx   context.Context
+    input *dto.UpdateUserAvatarDTO
+  }
+  tests := []struct {
+    name  string
+    setup setupUserTestFunc
+    args  args
+    want  status.Object
+  }{
+    {
+      name: "Success update new avatar",
+      setup: func(mocked *userMocked, arg any, want any) {
+        a := arg.(*args)
+        mocked.defaultUOWMock()
+
+        mocked.Profile.EXPECT().
+          FindByIds(mock.Anything, a.input.UserId).
+            Return([]entity.Profile{
+              {
+                Id:        a.input.UserId,
+                UserId:    types.MustCreateId(),
+                FirstName: gofakeit.FirstName(),
+                LastName:  gofakeit.LastName(),
+                Bio:       gofakeit.LoremIpsumParagraph(1, 3, 20, "."),
+              },
+            }, nil).Once()
+
+        profileId := types.MustCreateId()
+        profilePath := types.FilePathFromString(gofakeit.URL())
+
+        mocked.StorageClient.EXPECT().
+            UploadProfileImage(mock.Anything, &dto.UploadImageDTO{
+              Filename: a.input.Filename,
+              Data:     a.input.Bytes,
+            }).
+          Return(profileId, profilePath, nil).
+          Once()
+
+        mocked.Profile.EXPECT().
+            Patch(mock.Anything, &entity.PatchedProfile{
+              Id:       a.input.UserId,
+              PhotoId:  types.SomeNullable(profileId),
+              PhotoURL: types.SomeNullable(profilePath),
+            }).
+          Return(nil).
+          Once()
+
+      },
+      args: args{
+        ctx: context.Background(),
+        input: &dto.UpdateUserAvatarDTO{
+          UserId:   types.MustCreateId(),
+          Filename: fmt.Sprintf("%s.%s", gofakeit.AppName(), gofakeit.FileExtension()),
+          Bytes:    []byte{0x12, 0x12, 0x12},
+        },
+      },
+      want: status.Updated(),
+    },
+    {
+      name: "Success replace avatar",
+      setup: func(mocked *userMocked, arg any, want any) {
+        a := arg.(*args)
+        mocked.defaultUOWMock()
+
+        result := entity.Profile{
+          Id:        a.input.UserId,
+          UserId:    types.MustCreateId(),
+          FirstName: gofakeit.FirstName(),
+          LastName:  gofakeit.LastName(),
+          Bio:       gofakeit.LoremIpsumParagraph(1, 3, 20, "."),
+          PhotoId:   types.MustCreateId(),
+          PhotoURL:  types.FilePathFromString(gofakeit.URL()),
+        }
+        mocked.Profile.EXPECT().
+          FindByIds(mock.Anything, a.input.UserId).
+          Return([]entity.Profile{result}, nil).Once()
+
+        imageId := types.MustCreateId()
+        imagePath := types.FilePathFromString(gofakeit.URL())
+
+        mocked.StorageClient.EXPECT().
+            UploadProfileImage(mock.Anything, &dto.UploadImageDTO{
+              Filename: a.input.Filename,
+              Data:     a.input.Bytes,
+            }).
+          Return(imageId, imagePath, nil).
+          Once()
+
+        mocked.Profile.EXPECT().
+            Patch(mock.Anything, &entity.PatchedProfile{
+              Id:       a.input.UserId,
+              PhotoId:  types.SomeNullable(imageId),
+              PhotoURL: types.SomeNullable(imagePath),
+            }).
+          Return(nil).
+          Once()
+
+        mocked.StorageClient.EXPECT().
+          DeleteProfileImage(mock.Anything, result.PhotoId).
+          Return(nil).
+          Once()
+      },
+      args: args{
+        ctx: context.Background(),
+        input: &dto.UpdateUserAvatarDTO{
+          UserId:   types.MustCreateId(),
+          Filename: fmt.Sprintf("%s.%s", gofakeit.AppName(), gofakeit.FileExtension()),
+          Bytes:    []byte{0x12, 0x12, 0x12},
+        },
+      },
+      want: status.Updated(),
+    },
+    {
+      name: "Failed to set photo data into profile",
+      setup: func(mocked *userMocked, arg any, want any) {
+        a := arg.(*args)
+        mocked.defaultUOWMock()
+
+        result := entity.Profile{
+          Id:        a.input.UserId,
+          UserId:    types.MustCreateId(),
+          FirstName: gofakeit.FirstName(),
+          LastName:  gofakeit.LastName(),
+          Bio:       gofakeit.LoremIpsumParagraph(1, 3, 20, "."),
+          PhotoId:   types.MustCreateId(),
+          PhotoURL:  types.FilePathFromString(gofakeit.URL()),
+        }
+        mocked.Profile.EXPECT().
+          FindByIds(mock.Anything, a.input.UserId).
+          Return([]entity.Profile{result}, nil).Once()
+
+        imageId := types.MustCreateId()
+        imagePath := types.FilePathFromString(gofakeit.URL())
+
+        mocked.StorageClient.EXPECT().
+            UploadProfileImage(mock.Anything, &dto.UploadImageDTO{
+              Filename: a.input.Filename,
+              Data:     a.input.Bytes,
+            }).
+          Return(imageId, imagePath, nil).
+          Once()
+
+        mocked.Profile.EXPECT().
+            Patch(mock.Anything, &entity.PatchedProfile{
+              Id:       a.input.UserId,
+              PhotoId:  types.SomeNullable(imageId),
+              PhotoURL: types.SomeNullable(imagePath),
+            }).
+          Return(sql.ErrNoRows).
+          Once()
+
+        mocked.StorageClient.EXPECT().
+          DeleteProfileImage(mock.Anything, imageId).
+          Return(nil).
+          Once()
+      },
+      args: args{
+        ctx: context.Background(),
+        input: &dto.UpdateUserAvatarDTO{
+          UserId:   types.MustCreateId(),
+          Filename: fmt.Sprintf("%s.%s", gofakeit.AppName(), gofakeit.FileExtension()),
+          Bytes:    []byte{0x12, 0x12, 0x12},
+        },
+      },
+      want: status.FromRepository(sql.ErrNoRows, status.NullCode),
+    },
+  }
+  for _, tt := range tests {
+    t.Run(tt.name, func(t *testing.T) {
+      mocked := newUserMocked(t)
+      if tt.setup != nil {
+        tt.setup(&mocked, &tt.args, tt.want)
+      }
+
+      u := userService{
+        unit:     mocked.UOW,
+        credRepo: mocked.Cred,
+        tracer:   mocked.Tracer,
+        config: UserConfig{
+          RoleClient:    mocked.RoleClient,
+          MailClient:    mocked.MailClient,
+          TokenClient:   mocked.TokenClient,
+          StorageClient: mocked.StorageClient,
+        },
+      }
+
+      if got := u.UpdateAvatar(tt.args.ctx, tt.args.input); !reflect.DeepEqual(got, tt.want) {
+        t.Errorf("UpdateAvatar() = %v, want %v", got, tt.want)
       }
     })
   }
@@ -1451,9 +1724,10 @@ func Test_userService_VerifyEmail(t *testing.T) {
         credRepo: mocked.Cred,
         tracer:   mocked.Tracer,
         config: UserConfig{
-          RoleClient:  mocked.RoleClient,
-          MailClient:  mocked.MailClient,
-          TokenClient: mocked.TokenClient,
+          RoleClient:    mocked.RoleClient,
+          MailClient:    mocked.MailClient,
+          TokenClient:   mocked.TokenClient,
+          StorageClient: mocked.StorageClient,
         },
       }
 
@@ -1531,9 +1805,10 @@ func Test_userService_checkPermission(t *testing.T) {
         credRepo: mocked.Cred,
         tracer:   mocked.Tracer,
         config: UserConfig{
-          RoleClient:  mocked.RoleClient,
-          MailClient:  mocked.MailClient,
-          TokenClient: mocked.TokenClient,
+          RoleClient:    mocked.RoleClient,
+          MailClient:    mocked.MailClient,
+          TokenClient:   mocked.TokenClient,
+          StorageClient: mocked.StorageClient,
         },
       }
 

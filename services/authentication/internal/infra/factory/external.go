@@ -25,17 +25,17 @@ func (e *External) Close() {
   }
 }
 
-func NewExternalWithConn(tokenConn, mailConn, storageConn, roleConn *grpc.ClientConn) *External {
+func NewExternalWithConn(tokenConn, mailConn, storageConn, roleConn *grpc.ClientConn, conf *config.CircuitBreaker) *External {
   return &External{
-    Token:       NewTokenClient(tokenConn),
-    Mail:        NewMailerClient(mailConn),
-    Storage:     NewFileStorageClient(storageConn),
-    Role:        NewRoleClient(roleConn),
+    Token:       NewTokenClient(tokenConn, conf),
+    Mail:        NewMailerClient(mailConn, conf),
+    Storage:     NewFileStorageClient(storageConn, conf),
+    Role:        NewRoleClient(roleConn, conf),
     connections: []*grpc.ClientConn{tokenConn, mailConn, storageConn, roleConn},
   }
 }
 
-func NewExternalWithConfig(conf *config.Service, options ...grpc.DialOption) (*External, error) {
+func NewExternalWithConfig(conf *config.Service, breaker *config.CircuitBreaker, options ...grpc.DialOption) (*External, error) {
   roleConn, err := grpc.NewClient(conf.Authorization, options...)
   if err != nil {
     return nil, err
@@ -55,5 +55,5 @@ func NewExternalWithConfig(conf *config.Service, options ...grpc.DialOption) (*E
   if err != nil {
     return nil, err
   }
-  return NewExternalWithConn(tokenConn, mailConn, storageConn, roleConn), nil
+  return NewExternalWithConn(tokenConn, mailConn, storageConn, roleConn, breaker), nil
 }

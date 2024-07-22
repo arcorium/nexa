@@ -29,16 +29,24 @@ func FromPatchedProfileDomain(ent *entity.PatchedProfile, opts ...PatchedProfile
 }
 
 func FromProfileDomain(ent *entity.Profile, opts ...ProfileMapOption) Profile {
-  photoId := ent.PhotoId.String()
-  photoUrl := ent.PhotoURL.String()
+  var photoId *string
+  if !ent.PhotoId.Eq(types.NullId()) {
+    s := ent.PhotoId.String()
+    photoId = &s
+  }
+
+  var photoURL *string
+  if url := ent.PhotoURL.String(); len(url) == 0 {
+    photoURL = &url
+  }
 
   profile := Profile{
     Id:        ent.Id.String(),
     UserId:    ent.UserId.String(),
     FirstName: ent.FirstName,
     LastName:  &ent.LastName,
-    PhotoId:   &photoId,
-    PhotoURL:  &photoUrl,
+    PhotoId:   photoId,
+    PhotoURL:  photoURL,
     Bio:       &ent.Bio,
   }
 
@@ -74,9 +82,12 @@ func (p *Profile) ToDomain() (entity.Profile, error) {
     return entity.Profile{}, err
   }
 
-  photoId, err := types.IdFromString(types.OnNil(p.PhotoId, ""))
-  if err != nil {
-    return entity.Profile{}, err
+  var photoId = types.NullId()
+  if p.PhotoId != nil {
+    photoId, err = types.IdFromString(*p.PhotoId)
+    if err != nil {
+      return entity.Profile{}, err
+    }
   }
 
   return entity.Profile{

@@ -12,6 +12,7 @@ type IUser interface {
   Create(ctx context.Context, input *dto.UserCreateDTO) (types.Id, status.Object)
   Update(ctx context.Context, input *dto.UserUpdateDTO) status.Object
   UpdatePassword(ctx context.Context, input *dto.UserUpdatePasswordDTO) status.Object
+  UpdateAvatar(ctx context.Context, input *dto.UpdateUserAvatarDTO) status.Object
   //UpdateVerified(ctx context.Context, userId string) status.Object
   //FindByEmails(ctx context.Context, emails []types.Email) ([]dto.UserResponseDTO, status.Object)
   BannedUser(ctx context.Context, input *dto.UserBannedDTO) status.Object

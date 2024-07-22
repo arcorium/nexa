@@ -130,6 +130,53 @@ func (_c *RoleClientMock_RemoveUserRoles_Call) RunAndReturn(run func(context.Con
 	return _c
 }
 
+// SetUserAsDefault provides a mock function with given fields: ctx, userId
+func (_m *RoleClientMock) SetUserAsDefault(ctx context.Context, userId types.Id) error {
+	ret := _m.Called(ctx, userId)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SetUserAsDefault")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, types.Id) error); ok {
+		r0 = rf(ctx, userId)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// RoleClientMock_SetUserAsDefault_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetUserAsDefault'
+type RoleClientMock_SetUserAsDefault_Call struct {
+	*mock.Call
+}
+
+// SetUserAsDefault is a helper method to define mock.On call
+//   - ctx context.Context
+//   - userId types.Id
+func (_e *RoleClientMock_Expecter) SetUserAsDefault(ctx interface{}, userId interface{}) *RoleClientMock_SetUserAsDefault_Call {
+	return &RoleClientMock_SetUserAsDefault_Call{Call: _e.mock.On("SetUserAsDefault", ctx, userId)}
+}
+
+func (_c *RoleClientMock_SetUserAsDefault_Call) Run(run func(ctx context.Context, userId types.Id)) *RoleClientMock_SetUserAsDefault_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(types.Id))
+	})
+	return _c
+}
+
+func (_c *RoleClientMock_SetUserAsDefault_Call) Return(_a0 error) *RoleClientMock_SetUserAsDefault_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *RoleClientMock_SetUserAsDefault_Call) RunAndReturn(run func(context.Context, types.Id) error) *RoleClientMock_SetUserAsDefault_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // NewRoleClientMock creates a new instance of RoleClientMock. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
 // The first argument is typically a *testing.T value.
 func NewRoleClientMock(t interface {

@@ -18,5 +18,5 @@ type IProfile interface {
   // Patch update all non-zero fields of profile based on user id
   Patch(ctx context.Context, profile *entity.PatchedProfile) error
   //// Delete delete profiles based on user ids
-  //Delete(ctx context.Context, userIds ...types.Id) error
+  //Delete(ctx context.Context, userIds ...types.UserId) error
 }

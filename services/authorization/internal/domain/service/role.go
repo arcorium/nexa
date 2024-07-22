@@ -30,4 +30,5 @@ type IRole interface {
   AppendSuperRolesPermission(ctx context.Context, permIds ...types.Id) status.Object
   AppendDefaultRolesPermission(ctx context.Context, permIds ...types.Id) status.Object
   SetUserAsSuper(ctx context.Context, userId types.Id) status.Object
+  SetUserAsDefault(ctx context.Context, userId types.Id) status.Object
 }

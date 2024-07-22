@@ -111,6 +111,7 @@ func (c *credentialService) Register(ctx context.Context, registerDTO *dto.Regis
     return status.ErrInternal(err)
   }
 
+  isRep := true
   err = c.unit.DoTx(ctx, func(ctx context.Context, storage userUow.UserStorage) error {
     err := storage.User().Create(ctx, &user)
     if err != nil {
@@ -118,11 +119,23 @@ func (c *credentialService) Register(ctx context.Context, registerDTO *dto.Regis
     }
 
     err = storage.Profile().Create(ctx, &profile)
+    if err != nil {
+      return err
+    }
+
+    // Add user as default roles
+    err = c.config.RoleClient.SetUserAsDefault(ctx, user.Id)
+    if err != nil {
+      isRep = false
+    }
     return err
   })
   if err != nil {
     spanUtil.RecordError(err, span)
-    return status.FromRepository(err, status.NullCode)
+    if isRep {
+      return status.FromRepository(err, status.NullCode)
+    }
+    return status.ErrExternal(err)
   }
 
   // Create verification token

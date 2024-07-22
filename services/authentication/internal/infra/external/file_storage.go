@@ -5,60 +5,72 @@ import (
   storagev1 "github.com/arcorium/nexa/proto/gen/go/file_storage/v1"
   "github.com/arcorium/nexa/shared/types"
   spanUtil "github.com/arcorium/nexa/shared/util/span"
+  "github.com/sony/gobreaker"
   "go.opentelemetry.io/otel/trace"
   "google.golang.org/grpc"
+  "nexa/services/authentication/config"
   "nexa/services/authentication/internal/domain/dto"
   "nexa/services/authentication/internal/domain/external"
   "nexa/services/authentication/util"
 )
 
-func NewFileStorageClient(conn grpc.ClientConnInterface) external.IFileStorageClient {
+func NewFileStorageClient(conn grpc.ClientConnInterface, conf *config.CircuitBreaker) external.IFileStorageClient {
+  breaker := gobreaker.NewCircuitBreaker(gobreaker.Settings{
+    Name:         "nexa-file_storage",
+    MaxRequests:  conf.MaxRequest,
+    Interval:     conf.ResetInterval,
+    Timeout:      conf.OpenStateTimeout,
+    IsSuccessful: util.IsGrpcConnectivityError,
+  })
+
   return &fileStorageClient{
     client: storagev1.NewFileStorageServiceClient(conn),
     tracer: util.GetTracer(),
+    cb:     breaker,
   }
 }
 
 type fileStorageClient struct {
   client storagev1.FileStorageServiceClient
   tracer trace.Tracer
+  cb     *gobreaker.CircuitBreaker
 }
 
 func (f *fileStorageClient) UploadProfileImage(ctx context.Context, dto *dto.UploadImageDTO) (types.Id, types.FilePath, error) {
   ctx, span := f.tracer.Start(ctx, "FileStorageClient.UploadProfileImage")
   defer span.End()
 
-  stream, err := f.client.Store(ctx)
-  if err != nil {
-    spanUtil.RecordError(err, span)
-    return types.NullId(), "", err
-  }
-
-  for {
-    request := storagev1.StoreFileRequest{
-      Filename: dto.Filename,
-      IsPublic: true,
-      Chunk:    dto.Data,
-    }
-
-    // TODO: Split data
-    err = stream.Send(&request)
+  result, err := f.cb.Execute(func() (interface{}, error) {
+    stream, err := f.client.Store(ctx)
     if err != nil {
-      spanUtil.RecordError(err, span)
-      return types.NullId(), "", err
+      return nil, err
     }
-    break
-  }
 
-  recv, err := stream.CloseAndRecv()
+    for {
+      request := storagev1.StoreFileRequest{
+        Filename: dto.Filename,
+        IsPublic: true,
+        Chunk:    dto.Data,
+      }
+
+      // TODO: Split data
+      err = stream.Send(&request)
+      if err != nil {
+        return nil, err
+      }
+      break
+    }
+
+    return stream.CloseAndRecv()
+  })
   if err != nil {
     spanUtil.RecordError(err, span)
     return types.NullId(), "", err
   }
 
-  id, err := types.IdFromString(recv.FileId)
-
-  return id, types.FilePathFromString(*recv.Filepath), err
+  resp := result.(*storagev1.StoreFileResponse)
+  id, err := types.IdFromString(resp.FileId)
+  return id, types.FilePathFromString(*resp.Filepath), nil
 }
 
 func (f *fileStorageClient) DeleteProfileImage(ctx context.Context, id types.Id) error {
@@ -66,6 +78,8 @@ func (f *fileStorageClient) DeleteProfileImage(ctx context.Context, id types.Id)
   defer span.End()
 
   req := storagev1.DeleteFileRequest{FileId: id.String()}
-  _, err := f.client.Delete(ctx, &req)
+  _, err := f.cb.Execute(func() (interface{}, error) {
+    return f.client.Delete(ctx, &req)
+  })
   return err
 }

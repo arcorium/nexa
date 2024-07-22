@@ -11,6 +11,7 @@ import (
 )
 
 type UserMapOption = repo.DataAccessModelMapOption[*entity.User, *User]
+
 type PatchedUserMapOption = repo.DataAccessModelMapOption[*entity.PatchedUser, *User]
 
 func FromPatchedUserDomain(ent *entity.PatchedUser, opts ...PatchedUserMapOption) User {
@@ -79,11 +80,11 @@ func FromUserDomain(ent *entity.User, opts ...UserMapOption) User {
     },
     BannedUntil: sql.NullTime{
       Time:  ent.BannedUntil,
-      Valid: true,
+      Valid: ent.BannedUntil.IsZero(),
     },
     DeletedAt: sql.NullTime{
       Time:  ent.DeletedAt,
-      Valid: true,
+      Valid: ent.DeletedAt.IsZero(),
     },
     CreatedAt: ent.CreatedAt,
   }

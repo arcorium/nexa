@@ -3,14 +3,15 @@ module nexa/services/authentication
 go 1.22.4
 
 require (
-	github.com/arcorium/nexa/proto/gen/go v1.0.3
-	github.com/arcorium/nexa/shared v0.1.5
+	github.com/arcorium/nexa/proto/gen/go v1.0.5-0.20240722185652-7eea1482d7cb
+	github.com/arcorium/nexa/shared v0.1.6
 	github.com/brianvoe/gofakeit/v7 v7.0.4
 	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.0.1
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.1.0
 	github.com/prometheus/client_golang v1.19.1
 	github.com/redis/go-redis/v9 v9.5.3
+	github.com/sony/gobreaker v1.0.0
 	github.com/stretchr/testify v1.9.0
 	github.com/testcontainers/testcontainers-go v0.32.0
 	github.com/testcontainers/testcontainers-go/modules/postgres v0.32.0

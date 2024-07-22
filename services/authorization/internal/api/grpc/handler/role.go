@@ -262,6 +262,20 @@ func (r *RoleHandler) GetDefault(ctx context.Context, request *authZv1.GetDefaul
   return &authZv1.GetDefaultRoleResponse{Role: permission}, nil
 }
 
+func (r *RoleHandler) SetAsDefault(ctx context.Context, request *authZv1.SetAsDefaultRequest) (*emptypb.Empty, error) {
+  ctx, span := r.tracer.Start(ctx, "RoleHandler.SetAsDefault")
+  defer span.End()
+
+  userId, err := types.IdFromString(request.UserId)
+  if err != nil {
+    spanUtil.RecordError(err, span)
+    return nil, sharedErr.NewFieldError("user_id", err).ToGrpcError()
+  }
+
+  stat := r.roleService.SetUserAsDefault(ctx, userId)
+  return nil, stat.ToGRPCErrorWithSpan(span)
+}
+
 func (r *RoleHandler) SetAsSuper(ctx context.Context, request *authZv1.SetAsSuperRequest) (*emptypb.Empty, error) {
   ctx, span := r.tracer.Start(ctx, "RoleHandler.SetAsSuper")
   defer span.End()

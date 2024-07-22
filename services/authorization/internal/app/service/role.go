@@ -240,12 +240,11 @@ func (r *roleService) AppendDefaultRolesPermission(ctx context.Context, permIds 
   return r.appendDefaultRolesPermissions(ctx, constant.DEFAULT_ROLE_NAME, permIds...)
 }
 
-func (r *roleService) SetUserAsSuper(ctx context.Context, userId types.Id) status.Object {
-  ctx, span := r.tracer.Start(ctx, "RoleService.SetUserAsSuper")
-  defer span.End()
+func (r *roleService) setUserRolesByName(ctx context.Context, userId types.Id, roleName string) status.Object {
+  span := trace.SpanFromContext(ctx)
 
   // Get super roles
-  role, err := r.roleRepo.FindByName(ctx, constant.SUPER_ROLE_NAME)
+  role, err := r.roleRepo.FindByName(ctx, roleName)
   if err != nil {
     spanUtil.RecordError(err, span)
     return status.FromRepository(err, status.NullCode)
@@ -259,4 +258,18 @@ func (r *roleService) SetUserAsSuper(ctx context.Context, userId types.Id) statu
   }
 
   return status.Success()
+}
+
+func (r *roleService) SetUserAsSuper(ctx context.Context, userId types.Id) status.Object {
+  ctx, span := r.tracer.Start(ctx, "RoleService.SetUserAsSuper")
+  defer span.End()
+
+  return r.setUserRolesByName(ctx, userId, constant.SUPER_ROLE_NAME)
+}
+
+func (r *roleService) SetUserAsDefault(ctx context.Context, userId types.Id) status.Object {
+  ctx, span := r.tracer.Start(ctx, "RoleService.SetUserAsDefault")
+  defer span.End()
+
+  return r.setUserRolesByName(ctx, userId, constant.DEFAULT_ROLE_NAME)
 }

@@ -129,7 +129,7 @@ func (f *profileTestSuite) Test_profileRepository_Create() {
       wantErr: false,
     },
     {
-      name: "Duplicate User Id",
+      name: "Duplicate User UserId",
       args: args{
         ctx: context.Background(),
         profile: util.CopyWithP(generateRandomProfile(types.MustCreateId()), func(e *entity.Profile) {

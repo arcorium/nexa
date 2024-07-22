@@ -15,7 +15,8 @@ type Server struct {
   PrivateKeyPath            string        `env:"PRIVATE_KEY_PATH"`
   PublicKeyPath             string        `env:"PUBLIC_KEY_PATH"`
 
-  Service Service
+  CircuitBreaker CircuitBreaker
+  Service        Service
 
   signingMethod jwt.SigningMethod
 }
@@ -36,4 +37,10 @@ type Service struct {
   Token         string `env:"TOKEN_SERVICE_ADDR,notEmpty"`
   FileStorage   string `env:"FILE_STORAGE_SERVICE_ADDR,notEmpty"`
   Mailer        string `env:"MAILER_SERVICE_ADDR,notEmpty"`
+}
+
+type CircuitBreaker struct {
+  MaxRequest       uint32        `env:"HALF_STATE_MAX_REQUEST" envDefault:"5"`
+  ResetInterval    time.Duration `env:"HALF_STATE_RESET_INTERVAL" envDefault:"60s"`
+  OpenStateTimeout time.Duration `env:"OPEN_STATE_TIMEOUT" envDefault:"30s"`
 }
