@@ -115,6 +115,53 @@ func (x *GetDefaultRoleResponse) GetRole() *RolePermission {
 	return nil
 }
 
+type SetAsDefaultRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	UserId string `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+}
+
+func (x *SetAsDefaultRequest) Reset() {
+	*x = SetAsDefaultRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_authorization_v1_role_proto_msgTypes[1]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *SetAsDefaultRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetAsDefaultRequest) ProtoMessage() {}
+
+func (x *SetAsDefaultRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_authorization_v1_role_proto_msgTypes[1]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetAsDefaultRequest.ProtoReflect.Descriptor instead.
+func (*SetAsDefaultRequest) Descriptor() ([]byte, []int) {
+	return file_authorization_v1_role_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *SetAsDefaultRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
 type SetAsSuperRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -126,7 +173,7 @@ type SetAsSuperRequest struct {
 func (x *SetAsSuperRequest) Reset() {
 	*x = SetAsSuperRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authorization_v1_role_proto_msgTypes[1]
+		mi := &file_authorization_v1_role_proto_msgTypes[2]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -139,7 +186,7 @@ func (x *SetAsSuperRequest) String() string {
 func (*SetAsSuperRequest) ProtoMessage() {}
 
 func (x *SetAsSuperRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_authorization_v1_role_proto_msgTypes[1]
+	mi := &file_authorization_v1_role_proto_msgTypes[2]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -152,7 +199,7 @@ func (x *SetAsSuperRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetAsSuperRequest.ProtoReflect.Descriptor instead.
 func (*SetAsSuperRequest) Descriptor() ([]byte, []int) {
-	return file_authorization_v1_role_proto_rawDescGZIP(), []int{1}
+	return file_authorization_v1_role_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *SetAsSuperRequest) GetUserId() string {
@@ -174,7 +221,7 @@ type GetUserRolesRequest struct {
 func (x *GetUserRolesRequest) Reset() {
 	*x = GetUserRolesRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authorization_v1_role_proto_msgTypes[2]
+		mi := &file_authorization_v1_role_proto_msgTypes[3]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -187,7 +234,7 @@ func (x *GetUserRolesRequest) String() string {
 func (*GetUserRolesRequest) ProtoMessage() {}
 
 func (x *GetUserRolesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_authorization_v1_role_proto_msgTypes[2]
+	mi := &file_authorization_v1_role_proto_msgTypes[3]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -200,7 +247,7 @@ func (x *GetUserRolesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUserRolesRequest.ProtoReflect.Descriptor instead.
 func (*GetUserRolesRequest) Descriptor() ([]byte, []int) {
-	return file_authorization_v1_role_proto_rawDescGZIP(), []int{2}
+	return file_authorization_v1_role_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *GetUserRolesRequest) GetUserId() string {
@@ -228,7 +275,7 @@ type GetUserRolesResponse struct {
 func (x *GetUserRolesResponse) Reset() {
 	*x = GetUserRolesResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authorization_v1_role_proto_msgTypes[3]
+		mi := &file_authorization_v1_role_proto_msgTypes[4]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -241,7 +288,7 @@ func (x *GetUserRolesResponse) String() string {
 func (*GetUserRolesResponse) ProtoMessage() {}
 
 func (x *GetUserRolesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_authorization_v1_role_proto_msgTypes[3]
+	mi := &file_authorization_v1_role_proto_msgTypes[4]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -254,7 +301,7 @@ func (x *GetUserRolesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUserRolesResponse.ProtoReflect.Descriptor instead.
 func (*GetUserRolesResponse) Descriptor() ([]byte, []int) {
-	return file_authorization_v1_role_proto_rawDescGZIP(), []int{3}
+	return file_authorization_v1_role_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *GetUserRolesResponse) GetRolePermissions() []*RolePermission {
@@ -276,7 +323,7 @@ type AddUserRolesRequest struct {
 func (x *AddUserRolesRequest) Reset() {
 	*x = AddUserRolesRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authorization_v1_role_proto_msgTypes[4]
+		mi := &file_authorization_v1_role_proto_msgTypes[5]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -289,7 +336,7 @@ func (x *AddUserRolesRequest) String() string {
 func (*AddUserRolesRequest) ProtoMessage() {}
 
 func (x *AddUserRolesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_authorization_v1_role_proto_msgTypes[4]
+	mi := &file_authorization_v1_role_proto_msgTypes[5]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -302,7 +349,7 @@ func (x *AddUserRolesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddUserRolesRequest.ProtoReflect.Descriptor instead.
 func (*AddUserRolesRequest) Descriptor() ([]byte, []int) {
-	return file_authorization_v1_role_proto_rawDescGZIP(), []int{4}
+	return file_authorization_v1_role_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *AddUserRolesRequest) GetUserId() string {
@@ -331,7 +378,7 @@ type RemoveUserRolesRequest struct {
 func (x *RemoveUserRolesRequest) Reset() {
 	*x = RemoveUserRolesRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authorization_v1_role_proto_msgTypes[5]
+		mi := &file_authorization_v1_role_proto_msgTypes[6]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -344,7 +391,7 @@ func (x *RemoveUserRolesRequest) String() string {
 func (*RemoveUserRolesRequest) ProtoMessage() {}
 
 func (x *RemoveUserRolesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_authorization_v1_role_proto_msgTypes[5]
+	mi := &file_authorization_v1_role_proto_msgTypes[6]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -357,7 +404,7 @@ func (x *RemoveUserRolesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveUserRolesRequest.ProtoReflect.Descriptor instead.
 func (*RemoveUserRolesRequest) Descriptor() ([]byte, []int) {
-	return file_authorization_v1_role_proto_rawDescGZIP(), []int{5}
+	return file_authorization_v1_role_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *RemoveUserRolesRequest) GetUserId() string {
@@ -387,7 +434,7 @@ type CreateRoleRequest struct {
 func (x *CreateRoleRequest) Reset() {
 	*x = CreateRoleRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authorization_v1_role_proto_msgTypes[6]
+		mi := &file_authorization_v1_role_proto_msgTypes[7]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -400,7 +447,7 @@ func (x *CreateRoleRequest) String() string {
 func (*CreateRoleRequest) ProtoMessage() {}
 
 func (x *CreateRoleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_authorization_v1_role_proto_msgTypes[6]
+	mi := &file_authorization_v1_role_proto_msgTypes[7]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -413,7 +460,7 @@ func (x *CreateRoleRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateRoleRequest.ProtoReflect.Descriptor instead.
 func (*CreateRoleRequest) Descriptor() ([]byte, []int) {
-	return file_authorization_v1_role_proto_rawDescGZIP(), []int{6}
+	return file_authorization_v1_role_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *CreateRoleRequest) GetName() string {
@@ -448,7 +495,7 @@ type RoleCreateResponse struct {
 func (x *RoleCreateResponse) Reset() {
 	*x = RoleCreateResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authorization_v1_role_proto_msgTypes[7]
+		mi := &file_authorization_v1_role_proto_msgTypes[8]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -461,7 +508,7 @@ func (x *RoleCreateResponse) String() string {
 func (*RoleCreateResponse) ProtoMessage() {}
 
 func (x *RoleCreateResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_authorization_v1_role_proto_msgTypes[7]
+	mi := &file_authorization_v1_role_proto_msgTypes[8]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -474,7 +521,7 @@ func (x *RoleCreateResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RoleCreateResponse.ProtoReflect.Descriptor instead.
 func (*RoleCreateResponse) Descriptor() ([]byte, []int) {
-	return file_authorization_v1_role_proto_rawDescGZIP(), []int{7}
+	return file_authorization_v1_role_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *RoleCreateResponse) GetId() string {
@@ -497,7 +544,7 @@ type UpdateRoleRequest struct {
 func (x *UpdateRoleRequest) Reset() {
 	*x = UpdateRoleRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authorization_v1_role_proto_msgTypes[8]
+		mi := &file_authorization_v1_role_proto_msgTypes[9]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -510,7 +557,7 @@ func (x *UpdateRoleRequest) String() string {
 func (*UpdateRoleRequest) ProtoMessage() {}
 
 func (x *UpdateRoleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_authorization_v1_role_proto_msgTypes[8]
+	mi := &file_authorization_v1_role_proto_msgTypes[9]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -523,7 +570,7 @@ func (x *UpdateRoleRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateRoleRequest.ProtoReflect.Descriptor instead.
 func (*UpdateRoleRequest) Descriptor() ([]byte, []int) {
-	return file_authorization_v1_role_proto_rawDescGZIP(), []int{8}
+	return file_authorization_v1_role_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *UpdateRoleRequest) GetId() string {
@@ -558,7 +605,7 @@ type DeleteRoleRequest struct {
 func (x *DeleteRoleRequest) Reset() {
 	*x = DeleteRoleRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authorization_v1_role_proto_msgTypes[9]
+		mi := &file_authorization_v1_role_proto_msgTypes[10]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -571,7 +618,7 @@ func (x *DeleteRoleRequest) String() string {
 func (*DeleteRoleRequest) ProtoMessage() {}
 
 func (x *DeleteRoleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_authorization_v1_role_proto_msgTypes[9]
+	mi := &file_authorization_v1_role_proto_msgTypes[10]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -584,7 +631,7 @@ func (x *DeleteRoleRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteRoleRequest.ProtoReflect.Descriptor instead.
 func (*DeleteRoleRequest) Descriptor() ([]byte, []int) {
-	return file_authorization_v1_role_proto_rawDescGZIP(), []int{9}
+	return file_authorization_v1_role_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *DeleteRoleRequest) GetId() string {
@@ -605,7 +652,7 @@ type FindRoleRequest struct {
 func (x *FindRoleRequest) Reset() {
 	*x = FindRoleRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authorization_v1_role_proto_msgTypes[10]
+		mi := &file_authorization_v1_role_proto_msgTypes[11]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -618,7 +665,7 @@ func (x *FindRoleRequest) String() string {
 func (*FindRoleRequest) ProtoMessage() {}
 
 func (x *FindRoleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_authorization_v1_role_proto_msgTypes[10]
+	mi := &file_authorization_v1_role_proto_msgTypes[11]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -631,7 +678,7 @@ func (x *FindRoleRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FindRoleRequest.ProtoReflect.Descriptor instead.
 func (*FindRoleRequest) Descriptor() ([]byte, []int) {
-	return file_authorization_v1_role_proto_rawDescGZIP(), []int{10}
+	return file_authorization_v1_role_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *FindRoleRequest) GetRoleIds() []string {
@@ -652,7 +699,7 @@ type FindRoleResponse struct {
 func (x *FindRoleResponse) Reset() {
 	*x = FindRoleResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authorization_v1_role_proto_msgTypes[11]
+		mi := &file_authorization_v1_role_proto_msgTypes[12]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -665,7 +712,7 @@ func (x *FindRoleResponse) String() string {
 func (*FindRoleResponse) ProtoMessage() {}
 
 func (x *FindRoleResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_authorization_v1_role_proto_msgTypes[11]
+	mi := &file_authorization_v1_role_proto_msgTypes[12]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -678,7 +725,7 @@ func (x *FindRoleResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FindRoleResponse.ProtoReflect.Descriptor instead.
 func (*FindRoleResponse) Descriptor() ([]byte, []int) {
-	return file_authorization_v1_role_proto_rawDescGZIP(), []int{11}
+	return file_authorization_v1_role_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *FindRoleResponse) GetRoles() []*Role {
@@ -700,7 +747,7 @@ type FindAllRolesResponse struct {
 func (x *FindAllRolesResponse) Reset() {
 	*x = FindAllRolesResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authorization_v1_role_proto_msgTypes[12]
+		mi := &file_authorization_v1_role_proto_msgTypes[13]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -713,7 +760,7 @@ func (x *FindAllRolesResponse) String() string {
 func (*FindAllRolesResponse) ProtoMessage() {}
 
 func (x *FindAllRolesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_authorization_v1_role_proto_msgTypes[12]
+	mi := &file_authorization_v1_role_proto_msgTypes[13]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -726,7 +773,7 @@ func (x *FindAllRolesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FindAllRolesResponse.ProtoReflect.Descriptor instead.
 func (*FindAllRolesResponse) Descriptor() ([]byte, []int) {
-	return file_authorization_v1_role_proto_rawDescGZIP(), []int{12}
+	return file_authorization_v1_role_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *FindAllRolesResponse) GetDetails() *common.PagedElementOutput {
@@ -755,7 +802,7 @@ type AppendRolePermissionsRequest struct {
 func (x *AppendRolePermissionsRequest) Reset() {
 	*x = AppendRolePermissionsRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authorization_v1_role_proto_msgTypes[13]
+		mi := &file_authorization_v1_role_proto_msgTypes[14]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -768,7 +815,7 @@ func (x *AppendRolePermissionsRequest) String() string {
 func (*AppendRolePermissionsRequest) ProtoMessage() {}
 
 func (x *AppendRolePermissionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_authorization_v1_role_proto_msgTypes[13]
+	mi := &file_authorization_v1_role_proto_msgTypes[14]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -781,7 +828,7 @@ func (x *AppendRolePermissionsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AppendRolePermissionsRequest.ProtoReflect.Descriptor instead.
 func (*AppendRolePermissionsRequest) Descriptor() ([]byte, []int) {
-	return file_authorization_v1_role_proto_rawDescGZIP(), []int{13}
+	return file_authorization_v1_role_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *AppendRolePermissionsRequest) GetRoleId() string {
@@ -810,7 +857,7 @@ type RemoveRolePermissionsRequest struct {
 func (x *RemoveRolePermissionsRequest) Reset() {
 	*x = RemoveRolePermissionsRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authorization_v1_role_proto_msgTypes[14]
+		mi := &file_authorization_v1_role_proto_msgTypes[15]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -823,7 +870,7 @@ func (x *RemoveRolePermissionsRequest) String() string {
 func (*RemoveRolePermissionsRequest) ProtoMessage() {}
 
 func (x *RemoveRolePermissionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_authorization_v1_role_proto_msgTypes[14]
+	mi := &file_authorization_v1_role_proto_msgTypes[15]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -836,7 +883,7 @@ func (x *RemoveRolePermissionsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveRolePermissionsRequest.ProtoReflect.Descriptor instead.
 func (*RemoveRolePermissionsRequest) Descriptor() ([]byte, []int) {
-	return file_authorization_v1_role_proto_rawDescGZIP(), []int{14}
+	return file_authorization_v1_role_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *RemoveRolePermissionsRequest) GetRoleId() string {
@@ -865,7 +912,7 @@ type AppendDefaultRolePermissionsRequest struct {
 func (x *AppendDefaultRolePermissionsRequest) Reset() {
 	*x = AppendDefaultRolePermissionsRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authorization_v1_role_proto_msgTypes[15]
+		mi := &file_authorization_v1_role_proto_msgTypes[16]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -878,7 +925,7 @@ func (x *AppendDefaultRolePermissionsRequest) String() string {
 func (*AppendDefaultRolePermissionsRequest) ProtoMessage() {}
 
 func (x *AppendDefaultRolePermissionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_authorization_v1_role_proto_msgTypes[15]
+	mi := &file_authorization_v1_role_proto_msgTypes[16]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -891,7 +938,7 @@ func (x *AppendDefaultRolePermissionsRequest) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use AppendDefaultRolePermissionsRequest.ProtoReflect.Descriptor instead.
 func (*AppendDefaultRolePermissionsRequest) Descriptor() ([]byte, []int) {
-	return file_authorization_v1_role_proto_rawDescGZIP(), []int{15}
+	return file_authorization_v1_role_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *AppendDefaultRolePermissionsRequest) GetRole() DefaultRole {
@@ -920,7 +967,7 @@ type GetDefaultRoleRequest struct {
 func (x *GetDefaultRoleRequest) Reset() {
 	*x = GetDefaultRoleRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_authorization_v1_role_proto_msgTypes[16]
+		mi := &file_authorization_v1_role_proto_msgTypes[17]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -933,7 +980,7 @@ func (x *GetDefaultRoleRequest) String() string {
 func (*GetDefaultRoleRequest) ProtoMessage() {}
 
 func (x *GetDefaultRoleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_authorization_v1_role_proto_msgTypes[16]
+	mi := &file_authorization_v1_role_proto_msgTypes[17]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -946,7 +993,7 @@ func (x *GetDefaultRoleRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDefaultRoleRequest.ProtoReflect.Descriptor instead.
 func (*GetDefaultRoleRequest) Descriptor() ([]byte, []int) {
-	return file_authorization_v1_role_proto_rawDescGZIP(), []int{16}
+	return file_authorization_v1_role_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *GetDefaultRoleRequest) GetRole() DefaultRole {
@@ -979,7 +1026,10 @@ var file_authorization_v1_role_proto_rawDesc = []byte{
 	0x39, 0x0a, 0x04, 0x72, 0x6f, 0x6c, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x25, 0x2e,
 	0x6e, 0x65, 0x78, 0x61, 0x2e, 0x61, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a, 0x61, 0x74, 0x69,
 	0x6f, 0x6e, 0x2e, 0x76, 0x31, 0x2e, 0x52, 0x6f, 0x6c, 0x65, 0x50, 0x65, 0x72, 0x6d, 0x69, 0x73,
-	0x73, 0x69, 0x6f, 0x6e, 0x52, 0x04, 0x72, 0x6f, 0x6c, 0x65, 0x22, 0x2c, 0x0a, 0x11, 0x53, 0x65,
+	0x73, 0x69, 0x6f, 0x6e, 0x52, 0x04, 0x72, 0x6f, 0x6c, 0x65, 0x22, 0x2e, 0x0a, 0x13, 0x53, 0x65,
+	0x74, 0x41, 0x73, 0x44, 0x65, 0x66, 0x61, 0x75, 0x6c, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73,
+	0x74, 0x12, 0x17, 0x0a, 0x07, 0x75, 0x73, 0x65, 0x72, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01,
+	0x28, 0x09, 0x52, 0x06, 0x75, 0x73, 0x65, 0x72, 0x49, 0x64, 0x22, 0x2c, 0x0a, 0x11, 0x53, 0x65,
 	0x74, 0x41, 0x73, 0x53, 0x75, 0x70, 0x65, 0x72, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12,
 	0x17, 0x0a, 0x07, 0x75, 0x73, 0x65, 0x72, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09,
 	0x52, 0x06, 0x75, 0x73, 0x65, 0x72, 0x49, 0x64, 0x22, 0x5d, 0x0a, 0x13, 0x47, 0x65, 0x74, 0x55,
@@ -1073,7 +1123,7 @@ var file_authorization_v1_role_proto_rawDesc = []byte{
 	0x73, 0x2a, 0x2f, 0x0a, 0x0b, 0x44, 0x65, 0x66, 0x61, 0x75, 0x6c, 0x74, 0x52, 0x6f, 0x6c, 0x65,
 	0x12, 0x10, 0x0a, 0x0c, 0x44, 0x45, 0x46, 0x41, 0x55, 0x4c, 0x54, 0x5f, 0x52, 0x4f, 0x4c, 0x45,
 	0x10, 0x00, 0x12, 0x0e, 0x0a, 0x0a, 0x53, 0x55, 0x50, 0x45, 0x52, 0x5f, 0x52, 0x4f, 0x4c, 0x45,
-	0x10, 0x01, 0x32, 0xb1, 0x09, 0x0a, 0x0b, 0x52, 0x6f, 0x6c, 0x65, 0x53, 0x65, 0x72, 0x76, 0x69,
+	0x10, 0x01, 0x32, 0x85, 0x0a, 0x0a, 0x0b, 0x52, 0x6f, 0x6c, 0x65, 0x53, 0x65, 0x72, 0x76, 0x69,
 	0x63, 0x65, 0x12, 0x69, 0x0a, 0x0a, 0x47, 0x65, 0x74, 0x44, 0x65, 0x66, 0x61, 0x75, 0x6c, 0x74,
 	0x12, 0x2c, 0x2e, 0x6e, 0x65, 0x78, 0x61, 0x2e, 0x61, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a,
 	0x61, 0x74, 0x69, 0x6f, 0x6e, 0x2e, 0x76, 0x31, 0x2e, 0x47, 0x65, 0x74, 0x44, 0x65, 0x66, 0x61,
@@ -1136,34 +1186,39 @@ var file_authorization_v1_role_proto_rawDesc = []byte{
 	0x6d, 0x6f, 0x76, 0x65, 0x52, 0x6f, 0x6c, 0x65, 0x50, 0x65, 0x72, 0x6d, 0x69, 0x73, 0x73, 0x69,
 	0x6f, 0x6e, 0x73, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x16, 0x2e, 0x67, 0x6f, 0x6f,
 	0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2e, 0x45, 0x6d, 0x70,
-	0x74, 0x79, 0x12, 0x72, 0x0a, 0x1c, 0x41, 0x70, 0x70, 0x65, 0x6e, 0x64, 0x44, 0x65, 0x66, 0x61,
-	0x75, 0x6c, 0x74, 0x52, 0x6f, 0x6c, 0x65, 0x50, 0x65, 0x72, 0x6d, 0x69, 0x73, 0x73, 0x69, 0x6f,
-	0x6e, 0x73, 0x12, 0x3a, 0x2e, 0x6e, 0x65, 0x78, 0x61, 0x2e, 0x61, 0x75, 0x74, 0x68, 0x6f, 0x72,
-	0x69, 0x7a, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x2e, 0x76, 0x31, 0x2e, 0x41, 0x70, 0x70, 0x65, 0x6e,
-	0x64, 0x44, 0x65, 0x66, 0x61, 0x75, 0x6c, 0x74, 0x52, 0x6f, 0x6c, 0x65, 0x50, 0x65, 0x72, 0x6d,
-	0x69, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x73, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x16,
+	0x74, 0x79, 0x12, 0x52, 0x0a, 0x0c, 0x53, 0x65, 0x74, 0x41, 0x73, 0x44, 0x65, 0x66, 0x61, 0x75,
+	0x6c, 0x74, 0x12, 0x2a, 0x2e, 0x6e, 0x65, 0x78, 0x61, 0x2e, 0x61, 0x75, 0x74, 0x68, 0x6f, 0x72,
+	0x69, 0x7a, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x2e, 0x76, 0x31, 0x2e, 0x53, 0x65, 0x74, 0x41, 0x73,
+	0x44, 0x65, 0x66, 0x61, 0x75, 0x6c, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x16,
 	0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66,
-	0x2e, 0x45, 0x6d, 0x70, 0x74, 0x79, 0x12, 0x4e, 0x0a, 0x0a, 0x53, 0x65, 0x74, 0x41, 0x73, 0x53,
-	0x75, 0x70, 0x65, 0x72, 0x12, 0x28, 0x2e, 0x6e, 0x65, 0x78, 0x61, 0x2e, 0x61, 0x75, 0x74, 0x68,
-	0x6f, 0x72, 0x69, 0x7a, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x2e, 0x76, 0x31, 0x2e, 0x53, 0x65, 0x74,
-	0x41, 0x73, 0x53, 0x75, 0x70, 0x65, 0x72, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x16,
-	0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66,
-	0x2e, 0x45, 0x6d, 0x70, 0x74, 0x79, 0x42, 0xe4, 0x01, 0x0a, 0x19, 0x63, 0x6f, 0x6d, 0x2e, 0x6e,
-	0x65, 0x78, 0x61, 0x2e, 0x61, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a, 0x61, 0x74, 0x69, 0x6f,
-	0x6e, 0x2e, 0x76, 0x31, 0x42, 0x09, 0x52, 0x6f, 0x6c, 0x65, 0x50, 0x72, 0x6f, 0x74, 0x6f, 0x50,
-	0x01, 0x5a, 0x46, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x61, 0x72,
-	0x63, 0x6f, 0x72, 0x69, 0x75, 0x6d, 0x2f, 0x6e, 0x65, 0x78, 0x61, 0x2f, 0x70, 0x72, 0x6f, 0x74,
-	0x6f, 0x2f, 0x67, 0x65, 0x6e, 0x2f, 0x67, 0x6f, 0x2f, 0x61, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x69,
-	0x7a, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x2f, 0x76, 0x31, 0x3b, 0x61, 0x75, 0x74, 0x68, 0x6f, 0x72,
-	0x69, 0x7a, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x76, 0x31, 0xa2, 0x02, 0x03, 0x4e, 0x41, 0x58, 0xaa,
-	0x02, 0x15, 0x4e, 0x65, 0x78, 0x61, 0x2e, 0x41, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a, 0x61,
-	0x74, 0x69, 0x6f, 0x6e, 0x2e, 0x56, 0x31, 0xca, 0x02, 0x15, 0x4e, 0x65, 0x78, 0x61, 0x5c, 0x41,
-	0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x5c, 0x56, 0x31, 0xe2,
-	0x02, 0x21, 0x4e, 0x65, 0x78, 0x61, 0x5c, 0x41, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a, 0x61,
-	0x74, 0x69, 0x6f, 0x6e, 0x5c, 0x56, 0x31, 0x5c, 0x47, 0x50, 0x42, 0x4d, 0x65, 0x74, 0x61, 0x64,
-	0x61, 0x74, 0x61, 0xea, 0x02, 0x17, 0x4e, 0x65, 0x78, 0x61, 0x3a, 0x3a, 0x41, 0x75, 0x74, 0x68,
-	0x6f, 0x72, 0x69, 0x7a, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x3a, 0x3a, 0x56, 0x31, 0x62, 0x06, 0x70,
-	0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x2e, 0x45, 0x6d, 0x70, 0x74, 0x79, 0x12, 0x72, 0x0a, 0x1c, 0x41, 0x70, 0x70, 0x65, 0x6e, 0x64,
+	0x44, 0x65, 0x66, 0x61, 0x75, 0x6c, 0x74, 0x52, 0x6f, 0x6c, 0x65, 0x50, 0x65, 0x72, 0x6d, 0x69,
+	0x73, 0x73, 0x69, 0x6f, 0x6e, 0x73, 0x12, 0x3a, 0x2e, 0x6e, 0x65, 0x78, 0x61, 0x2e, 0x61, 0x75,
+	0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x2e, 0x76, 0x31, 0x2e, 0x41,
+	0x70, 0x70, 0x65, 0x6e, 0x64, 0x44, 0x65, 0x66, 0x61, 0x75, 0x6c, 0x74, 0x52, 0x6f, 0x6c, 0x65,
+	0x50, 0x65, 0x72, 0x6d, 0x69, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x73, 0x52, 0x65, 0x71, 0x75, 0x65,
+	0x73, 0x74, 0x1a, 0x16, 0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74,
+	0x6f, 0x62, 0x75, 0x66, 0x2e, 0x45, 0x6d, 0x70, 0x74, 0x79, 0x12, 0x4e, 0x0a, 0x0a, 0x53, 0x65,
+	0x74, 0x41, 0x73, 0x53, 0x75, 0x70, 0x65, 0x72, 0x12, 0x28, 0x2e, 0x6e, 0x65, 0x78, 0x61, 0x2e,
+	0x61, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x2e, 0x76, 0x31,
+	0x2e, 0x53, 0x65, 0x74, 0x41, 0x73, 0x53, 0x75, 0x70, 0x65, 0x72, 0x52, 0x65, 0x71, 0x75, 0x65,
+	0x73, 0x74, 0x1a, 0x16, 0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74,
+	0x6f, 0x62, 0x75, 0x66, 0x2e, 0x45, 0x6d, 0x70, 0x74, 0x79, 0x42, 0xe4, 0x01, 0x0a, 0x19, 0x63,
+	0x6f, 0x6d, 0x2e, 0x6e, 0x65, 0x78, 0x61, 0x2e, 0x61, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a,
+	0x61, 0x74, 0x69, 0x6f, 0x6e, 0x2e, 0x76, 0x31, 0x42, 0x09, 0x52, 0x6f, 0x6c, 0x65, 0x50, 0x72,
+	0x6f, 0x74, 0x6f, 0x50, 0x01, 0x5a, 0x46, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f,
+	0x6d, 0x2f, 0x61, 0x72, 0x63, 0x6f, 0x72, 0x69, 0x75, 0x6d, 0x2f, 0x6e, 0x65, 0x78, 0x61, 0x2f,
+	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x67, 0x65, 0x6e, 0x2f, 0x67, 0x6f, 0x2f, 0x61, 0x75, 0x74,
+	0x68, 0x6f, 0x72, 0x69, 0x7a, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x2f, 0x76, 0x31, 0x3b, 0x61, 0x75,
+	0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x76, 0x31, 0xa2, 0x02, 0x03,
+	0x4e, 0x41, 0x58, 0xaa, 0x02, 0x15, 0x4e, 0x65, 0x78, 0x61, 0x2e, 0x41, 0x75, 0x74, 0x68, 0x6f,
+	0x72, 0x69, 0x7a, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x2e, 0x56, 0x31, 0xca, 0x02, 0x15, 0x4e, 0x65,
+	0x78, 0x61, 0x5c, 0x41, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a, 0x61, 0x74, 0x69, 0x6f, 0x6e,
+	0x5c, 0x56, 0x31, 0xe2, 0x02, 0x21, 0x4e, 0x65, 0x78, 0x61, 0x5c, 0x41, 0x75, 0x74, 0x68, 0x6f,
+	0x72, 0x69, 0x7a, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x5c, 0x56, 0x31, 0x5c, 0x47, 0x50, 0x42, 0x4d,
+	0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0xea, 0x02, 0x17, 0x4e, 0x65, 0x78, 0x61, 0x3a, 0x3a,
+	0x41, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x3a, 0x3a, 0x56,
+	0x31, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -1179,68 +1234,71 @@ func file_authorization_v1_role_proto_rawDescGZIP() []byte {
 }
 
 var file_authorization_v1_role_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_authorization_v1_role_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
+var file_authorization_v1_role_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
 var file_authorization_v1_role_proto_goTypes = []interface{}{
 	(DefaultRole)(0),                            // 0: nexa.authorization.v1.DefaultRole
 	(*GetDefaultRoleResponse)(nil),              // 1: nexa.authorization.v1.GetDefaultRoleResponse
-	(*SetAsSuperRequest)(nil),                   // 2: nexa.authorization.v1.SetAsSuperRequest
-	(*GetUserRolesRequest)(nil),                 // 3: nexa.authorization.v1.GetUserRolesRequest
-	(*GetUserRolesResponse)(nil),                // 4: nexa.authorization.v1.GetUserRolesResponse
-	(*AddUserRolesRequest)(nil),                 // 5: nexa.authorization.v1.AddUserRolesRequest
-	(*RemoveUserRolesRequest)(nil),              // 6: nexa.authorization.v1.RemoveUserRolesRequest
-	(*CreateRoleRequest)(nil),                   // 7: nexa.authorization.v1.CreateRoleRequest
-	(*RoleCreateResponse)(nil),                  // 8: nexa.authorization.v1.RoleCreateResponse
-	(*UpdateRoleRequest)(nil),                   // 9: nexa.authorization.v1.UpdateRoleRequest
-	(*DeleteRoleRequest)(nil),                   // 10: nexa.authorization.v1.DeleteRoleRequest
-	(*FindRoleRequest)(nil),                     // 11: nexa.authorization.v1.FindRoleRequest
-	(*FindRoleResponse)(nil),                    // 12: nexa.authorization.v1.FindRoleResponse
-	(*FindAllRolesResponse)(nil),                // 13: nexa.authorization.v1.FindAllRolesResponse
-	(*AppendRolePermissionsRequest)(nil),        // 14: nexa.authorization.v1.AppendRolePermissionsRequest
-	(*RemoveRolePermissionsRequest)(nil),        // 15: nexa.authorization.v1.RemoveRolePermissionsRequest
-	(*AppendDefaultRolePermissionsRequest)(nil), // 16: nexa.authorization.v1.AppendDefaultRolePermissionsRequest
-	(*GetDefaultRoleRequest)(nil),               // 17: nexa.authorization.v1.GetDefaultRoleRequest
-	(*RolePermission)(nil),                      // 18: nexa.authorization.v1.RolePermission
-	(*Role)(nil),                                // 19: nexa.authorization.v1.Role
-	(*common.PagedElementOutput)(nil),           // 20: nexa.common.PagedElementOutput
-	(*common.PagedElementInput)(nil),            // 21: nexa.common.PagedElementInput
-	(*emptypb.Empty)(nil),                       // 22: google.protobuf.Empty
+	(*SetAsDefaultRequest)(nil),                 // 2: nexa.authorization.v1.SetAsDefaultRequest
+	(*SetAsSuperRequest)(nil),                   // 3: nexa.authorization.v1.SetAsSuperRequest
+	(*GetUserRolesRequest)(nil),                 // 4: nexa.authorization.v1.GetUserRolesRequest
+	(*GetUserRolesResponse)(nil),                // 5: nexa.authorization.v1.GetUserRolesResponse
+	(*AddUserRolesRequest)(nil),                 // 6: nexa.authorization.v1.AddUserRolesRequest
+	(*RemoveUserRolesRequest)(nil),              // 7: nexa.authorization.v1.RemoveUserRolesRequest
+	(*CreateRoleRequest)(nil),                   // 8: nexa.authorization.v1.CreateRoleRequest
+	(*RoleCreateResponse)(nil),                  // 9: nexa.authorization.v1.RoleCreateResponse
+	(*UpdateRoleRequest)(nil),                   // 10: nexa.authorization.v1.UpdateRoleRequest
+	(*DeleteRoleRequest)(nil),                   // 11: nexa.authorization.v1.DeleteRoleRequest
+	(*FindRoleRequest)(nil),                     // 12: nexa.authorization.v1.FindRoleRequest
+	(*FindRoleResponse)(nil),                    // 13: nexa.authorization.v1.FindRoleResponse
+	(*FindAllRolesResponse)(nil),                // 14: nexa.authorization.v1.FindAllRolesResponse
+	(*AppendRolePermissionsRequest)(nil),        // 15: nexa.authorization.v1.AppendRolePermissionsRequest
+	(*RemoveRolePermissionsRequest)(nil),        // 16: nexa.authorization.v1.RemoveRolePermissionsRequest
+	(*AppendDefaultRolePermissionsRequest)(nil), // 17: nexa.authorization.v1.AppendDefaultRolePermissionsRequest
+	(*GetDefaultRoleRequest)(nil),               // 18: nexa.authorization.v1.GetDefaultRoleRequest
+	(*RolePermission)(nil),                      // 19: nexa.authorization.v1.RolePermission
+	(*Role)(nil),                                // 20: nexa.authorization.v1.Role
+	(*common.PagedElementOutput)(nil),           // 21: nexa.common.PagedElementOutput
+	(*common.PagedElementInput)(nil),            // 22: nexa.common.PagedElementInput
+	(*emptypb.Empty)(nil),                       // 23: google.protobuf.Empty
 }
 var file_authorization_v1_role_proto_depIdxs = []int32{
-	18, // 0: nexa.authorization.v1.GetDefaultRoleResponse.role:type_name -> nexa.authorization.v1.RolePermission
-	18, // 1: nexa.authorization.v1.GetUserRolesResponse.role_permissions:type_name -> nexa.authorization.v1.RolePermission
-	19, // 2: nexa.authorization.v1.FindRoleResponse.roles:type_name -> nexa.authorization.v1.Role
-	20, // 3: nexa.authorization.v1.FindAllRolesResponse.details:type_name -> nexa.common.PagedElementOutput
-	19, // 4: nexa.authorization.v1.FindAllRolesResponse.roles:type_name -> nexa.authorization.v1.Role
+	19, // 0: nexa.authorization.v1.GetDefaultRoleResponse.role:type_name -> nexa.authorization.v1.RolePermission
+	19, // 1: nexa.authorization.v1.GetUserRolesResponse.role_permissions:type_name -> nexa.authorization.v1.RolePermission
+	20, // 2: nexa.authorization.v1.FindRoleResponse.roles:type_name -> nexa.authorization.v1.Role
+	21, // 3: nexa.authorization.v1.FindAllRolesResponse.details:type_name -> nexa.common.PagedElementOutput
+	20, // 4: nexa.authorization.v1.FindAllRolesResponse.roles:type_name -> nexa.authorization.v1.Role
 	0,  // 5: nexa.authorization.v1.AppendDefaultRolePermissionsRequest.role:type_name -> nexa.authorization.v1.DefaultRole
 	0,  // 6: nexa.authorization.v1.GetDefaultRoleRequest.role:type_name -> nexa.authorization.v1.DefaultRole
-	17, // 7: nexa.authorization.v1.RoleService.GetDefault:input_type -> nexa.authorization.v1.GetDefaultRoleRequest
-	7,  // 8: nexa.authorization.v1.RoleService.Create:input_type -> nexa.authorization.v1.CreateRoleRequest
-	9,  // 9: nexa.authorization.v1.RoleService.Update:input_type -> nexa.authorization.v1.UpdateRoleRequest
-	10, // 10: nexa.authorization.v1.RoleService.Delete:input_type -> nexa.authorization.v1.DeleteRoleRequest
-	3,  // 11: nexa.authorization.v1.RoleService.GetUsers:input_type -> nexa.authorization.v1.GetUserRolesRequest
-	11, // 12: nexa.authorization.v1.RoleService.Find:input_type -> nexa.authorization.v1.FindRoleRequest
-	21, // 13: nexa.authorization.v1.RoleService.FindAll:input_type -> nexa.common.PagedElementInput
-	5,  // 14: nexa.authorization.v1.RoleService.AddUser:input_type -> nexa.authorization.v1.AddUserRolesRequest
-	6,  // 15: nexa.authorization.v1.RoleService.RemoveUser:input_type -> nexa.authorization.v1.RemoveUserRolesRequest
-	14, // 16: nexa.authorization.v1.RoleService.AppendPermissions:input_type -> nexa.authorization.v1.AppendRolePermissionsRequest
-	15, // 17: nexa.authorization.v1.RoleService.RemovePermissions:input_type -> nexa.authorization.v1.RemoveRolePermissionsRequest
-	16, // 18: nexa.authorization.v1.RoleService.AppendDefaultRolePermissions:input_type -> nexa.authorization.v1.AppendDefaultRolePermissionsRequest
-	2,  // 19: nexa.authorization.v1.RoleService.SetAsSuper:input_type -> nexa.authorization.v1.SetAsSuperRequest
-	1,  // 20: nexa.authorization.v1.RoleService.GetDefault:output_type -> nexa.authorization.v1.GetDefaultRoleResponse
-	8,  // 21: nexa.authorization.v1.RoleService.Create:output_type -> nexa.authorization.v1.RoleCreateResponse
-	22, // 22: nexa.authorization.v1.RoleService.Update:output_type -> google.protobuf.Empty
-	22, // 23: nexa.authorization.v1.RoleService.Delete:output_type -> google.protobuf.Empty
-	4,  // 24: nexa.authorization.v1.RoleService.GetUsers:output_type -> nexa.authorization.v1.GetUserRolesResponse
-	12, // 25: nexa.authorization.v1.RoleService.Find:output_type -> nexa.authorization.v1.FindRoleResponse
-	13, // 26: nexa.authorization.v1.RoleService.FindAll:output_type -> nexa.authorization.v1.FindAllRolesResponse
-	22, // 27: nexa.authorization.v1.RoleService.AddUser:output_type -> google.protobuf.Empty
-	22, // 28: nexa.authorization.v1.RoleService.RemoveUser:output_type -> google.protobuf.Empty
-	22, // 29: nexa.authorization.v1.RoleService.AppendPermissions:output_type -> google.protobuf.Empty
-	22, // 30: nexa.authorization.v1.RoleService.RemovePermissions:output_type -> google.protobuf.Empty
-	22, // 31: nexa.authorization.v1.RoleService.AppendDefaultRolePermissions:output_type -> google.protobuf.Empty
-	22, // 32: nexa.authorization.v1.RoleService.SetAsSuper:output_type -> google.protobuf.Empty
-	20, // [20:33] is the sub-list for method output_type
-	7,  // [7:20] is the sub-list for method input_type
+	18, // 7: nexa.authorization.v1.RoleService.GetDefault:input_type -> nexa.authorization.v1.GetDefaultRoleRequest
+	8,  // 8: nexa.authorization.v1.RoleService.Create:input_type -> nexa.authorization.v1.CreateRoleRequest
+	10, // 9: nexa.authorization.v1.RoleService.Update:input_type -> nexa.authorization.v1.UpdateRoleRequest
+	11, // 10: nexa.authorization.v1.RoleService.Delete:input_type -> nexa.authorization.v1.DeleteRoleRequest
+	4,  // 11: nexa.authorization.v1.RoleService.GetUsers:input_type -> nexa.authorization.v1.GetUserRolesRequest
+	12, // 12: nexa.authorization.v1.RoleService.Find:input_type -> nexa.authorization.v1.FindRoleRequest
+	22, // 13: nexa.authorization.v1.RoleService.FindAll:input_type -> nexa.common.PagedElementInput
+	6,  // 14: nexa.authorization.v1.RoleService.AddUser:input_type -> nexa.authorization.v1.AddUserRolesRequest
+	7,  // 15: nexa.authorization.v1.RoleService.RemoveUser:input_type -> nexa.authorization.v1.RemoveUserRolesRequest
+	15, // 16: nexa.authorization.v1.RoleService.AppendPermissions:input_type -> nexa.authorization.v1.AppendRolePermissionsRequest
+	16, // 17: nexa.authorization.v1.RoleService.RemovePermissions:input_type -> nexa.authorization.v1.RemoveRolePermissionsRequest
+	2,  // 18: nexa.authorization.v1.RoleService.SetAsDefault:input_type -> nexa.authorization.v1.SetAsDefaultRequest
+	17, // 19: nexa.authorization.v1.RoleService.AppendDefaultRolePermissions:input_type -> nexa.authorization.v1.AppendDefaultRolePermissionsRequest
+	3,  // 20: nexa.authorization.v1.RoleService.SetAsSuper:input_type -> nexa.authorization.v1.SetAsSuperRequest
+	1,  // 21: nexa.authorization.v1.RoleService.GetDefault:output_type -> nexa.authorization.v1.GetDefaultRoleResponse
+	9,  // 22: nexa.authorization.v1.RoleService.Create:output_type -> nexa.authorization.v1.RoleCreateResponse
+	23, // 23: nexa.authorization.v1.RoleService.Update:output_type -> google.protobuf.Empty
+	23, // 24: nexa.authorization.v1.RoleService.Delete:output_type -> google.protobuf.Empty
+	5,  // 25: nexa.authorization.v1.RoleService.GetUsers:output_type -> nexa.authorization.v1.GetUserRolesResponse
+	13, // 26: nexa.authorization.v1.RoleService.Find:output_type -> nexa.authorization.v1.FindRoleResponse
+	14, // 27: nexa.authorization.v1.RoleService.FindAll:output_type -> nexa.authorization.v1.FindAllRolesResponse
+	23, // 28: nexa.authorization.v1.RoleService.AddUser:output_type -> google.protobuf.Empty
+	23, // 29: nexa.authorization.v1.RoleService.RemoveUser:output_type -> google.protobuf.Empty
+	23, // 30: nexa.authorization.v1.RoleService.AppendPermissions:output_type -> google.protobuf.Empty
+	23, // 31: nexa.authorization.v1.RoleService.RemovePermissions:output_type -> google.protobuf.Empty
+	23, // 32: nexa.authorization.v1.RoleService.SetAsDefault:output_type -> google.protobuf.Empty
+	23, // 33: nexa.authorization.v1.RoleService.AppendDefaultRolePermissions:output_type -> google.protobuf.Empty
+	23, // 34: nexa.authorization.v1.RoleService.SetAsSuper:output_type -> google.protobuf.Empty
+	21, // [21:35] is the sub-list for method output_type
+	7,  // [7:21] is the sub-list for method input_type
 	7,  // [7:7] is the sub-list for extension type_name
 	7,  // [7:7] is the sub-list for extension extendee
 	0,  // [0:7] is the sub-list for field type_name
@@ -1266,7 +1324,7 @@ func file_authorization_v1_role_proto_init() {
 			}
 		}
 		file_authorization_v1_role_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SetAsSuperRequest); i {
+			switch v := v.(*SetAsDefaultRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1278,7 +1336,7 @@ func file_authorization_v1_role_proto_init() {
 			}
 		}
 		file_authorization_v1_role_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetUserRolesRequest); i {
+			switch v := v.(*SetAsSuperRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1290,7 +1348,7 @@ func file_authorization_v1_role_proto_init() {
 			}
 		}
 		file_authorization_v1_role_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetUserRolesResponse); i {
+			switch v := v.(*GetUserRolesRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1302,7 +1360,7 @@ func file_authorization_v1_role_proto_init() {
 			}
 		}
 		file_authorization_v1_role_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*AddUserRolesRequest); i {
+			switch v := v.(*GetUserRolesResponse); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1314,7 +1372,7 @@ func file_authorization_v1_role_proto_init() {
 			}
 		}
 		file_authorization_v1_role_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*RemoveUserRolesRequest); i {
+			switch v := v.(*AddUserRolesRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1326,7 +1384,7 @@ func file_authorization_v1_role_proto_init() {
 			}
 		}
 		file_authorization_v1_role_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*CreateRoleRequest); i {
+			switch v := v.(*RemoveUserRolesRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1338,7 +1396,7 @@ func file_authorization_v1_role_proto_init() {
 			}
 		}
 		file_authorization_v1_role_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*RoleCreateResponse); i {
+			switch v := v.(*CreateRoleRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1350,7 +1408,7 @@ func file_authorization_v1_role_proto_init() {
 			}
 		}
 		file_authorization_v1_role_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*UpdateRoleRequest); i {
+			switch v := v.(*RoleCreateResponse); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1362,7 +1420,7 @@ func file_authorization_v1_role_proto_init() {
 			}
 		}
 		file_authorization_v1_role_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*DeleteRoleRequest); i {
+			switch v := v.(*UpdateRoleRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1374,7 +1432,7 @@ func file_authorization_v1_role_proto_init() {
 			}
 		}
 		file_authorization_v1_role_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*FindRoleRequest); i {
+			switch v := v.(*DeleteRoleRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1386,7 +1444,7 @@ func file_authorization_v1_role_proto_init() {
 			}
 		}
 		file_authorization_v1_role_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*FindRoleResponse); i {
+			switch v := v.(*FindRoleRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1398,7 +1456,7 @@ func file_authorization_v1_role_proto_init() {
 			}
 		}
 		file_authorization_v1_role_proto_msgTypes[12].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*FindAllRolesResponse); i {
+			switch v := v.(*FindRoleResponse); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1410,7 +1468,7 @@ func file_authorization_v1_role_proto_init() {
 			}
 		}
 		file_authorization_v1_role_proto_msgTypes[13].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*AppendRolePermissionsRequest); i {
+			switch v := v.(*FindAllRolesResponse); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1422,7 +1480,7 @@ func file_authorization_v1_role_proto_init() {
 			}
 		}
 		file_authorization_v1_role_proto_msgTypes[14].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*RemoveRolePermissionsRequest); i {
+			switch v := v.(*AppendRolePermissionsRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1434,7 +1492,7 @@ func file_authorization_v1_role_proto_init() {
 			}
 		}
 		file_authorization_v1_role_proto_msgTypes[15].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*AppendDefaultRolePermissionsRequest); i {
+			switch v := v.(*RemoveRolePermissionsRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1446,6 +1504,18 @@ func file_authorization_v1_role_proto_init() {
 			}
 		}
 		file_authorization_v1_role_proto_msgTypes[16].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*AppendDefaultRolePermissionsRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_authorization_v1_role_proto_msgTypes[17].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetDefaultRoleRequest); i {
 			case 0:
 				return &v.state
@@ -1458,15 +1528,15 @@ func file_authorization_v1_role_proto_init() {
 			}
 		}
 	}
-	file_authorization_v1_role_proto_msgTypes[6].OneofWrappers = []interface{}{}
-	file_authorization_v1_role_proto_msgTypes[8].OneofWrappers = []interface{}{}
+	file_authorization_v1_role_proto_msgTypes[7].OneofWrappers = []interface{}{}
+	file_authorization_v1_role_proto_msgTypes[9].OneofWrappers = []interface{}{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_authorization_v1_role_proto_rawDesc,
 			NumEnums:      1,
-			NumMessages:   17,
+			NumMessages:   18,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

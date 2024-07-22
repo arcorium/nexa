@@ -4,7 +4,6 @@ option go_package = "nexa/proto/generated/golang/authentication/v1";
 
 import "google/protobuf/duration.proto";
 import "google/protobuf/empty.proto";
-import "authentication/v1/profile.proto";
 import "token/v1/token.proto";
 import "common/paged.proto";
 
