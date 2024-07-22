@@ -1,0 +1,8 @@
+services:
+  nexa-authz:
+    environment:
+      - OTLP_GRPC_COLLECTOR_ADDRESS=jaeger:4317
+    ports:
+      - "8082:8080"
+    networks:
+      - nr_network

@@ -144,7 +144,7 @@ func (s *Server) grpcServerSetup() error {
     return nil
   }
 
-  authorizationConfig := authz.NewUserConfig(s.publicKey, nil)
+  authorizationConfig := authz.NewUserConfig(s.publicKey, inter.PermissionCheck)
   skipServices := []string{
     grpc_health_v1.Health_ServiceDesc.ServiceName,
   }

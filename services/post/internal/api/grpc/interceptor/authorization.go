@@ -10,7 +10,7 @@ import (
   "nexa/services/post/constant"
 )
 
-func AuthorizationSelector(_ context.Context, meta interceptors.CallMeta) bool {
+func AuthSelector(_ context.Context, meta interceptors.CallMeta) bool {
   return true // All endpoint needs authorization
 }
 

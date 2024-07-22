@@ -1,0 +1,82 @@
+include:
+  - ../authorization/docker-compose.yml
+
+services:
+  reaction-db:
+    image: postgres
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U nexa -d nexa-reaction" ]
+      interval: 5s
+      retries: 10
+    environment:
+      - POSTGRES_DB=nexa-reaction
+      - POSTGRES_USER=nexa
+      - POSTGRES_PASSWORD=nexa
+    networks:
+      - nr_network
+  nexa-reaction-migrate:
+    build:
+      dockerfile: ./docker/migrate.Dockerfile
+    restart: on-failure
+    depends_on:
+      reaction-db:
+        condition: service_healthy
+    environment:
+      - PG_ADDRESS=reaction-db
+      - PG_USERNAME=nexa
+      - PG_PASSWORD=nexa
+      - PG_DB_NAME=nexa-reaction
+      - PG_IS_SECURE=false
+    networks:
+      - nr_network
+  jaeger:
+    image: jaegertracing/all-in-one:1.58
+    ports:
+      - 6831:6831/udp
+      - 6832:6832/udp
+      - 5778:5778
+      - 16686:16686
+      - 4317:4317
+      - 4318:4318
+      - 14250:14250
+      - 14268:14268
+      - 14269:14269
+      - 9411:9411
+    networks:
+      - nr_network
+  token_generator:
+    build:
+      context: ../../token_generator/
+      dockerfile: Dockerfile
+    entrypoint: /bin/sh -c "./main > /output/token.txt"
+    volumes:
+      - reaction-token_output:/output
+  nexa-reaction-seed:
+    build:
+      dockerfile: ./docker/seed.Dockerfile
+    restart: on-failure
+    depends_on:
+      nexa-reaction-migrate:
+        condition: service_completed_successfully
+      token_generator:
+        condition: service_completed_successfully
+#      nexa-authz:
+#        condition: service_healthy
+    environment:
+      - PG_ADDRESS=reaction-db
+      - PG_USERNAME=nexa
+      - PG_PASSWORD=nexa
+      - PG_DB_NAME=nexa-reaction
+      - PG_IS_SECURE=false
+#      - AUTHZ_SERVICE_ADDR=nexa-authz:8080
+    networks:
+      - nr_network
+    volumes:
+      - reaction-token_output:/output
+
+networks:
+  nr_network:
+    driver: bridge
+
+volumes:
+  reaction-token_output:

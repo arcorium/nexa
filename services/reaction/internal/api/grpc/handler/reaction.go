@@ -9,6 +9,7 @@ import (
   sharedUtil "github.com/arcorium/nexa/shared/util"
   spanUtil "github.com/arcorium/nexa/shared/util/span"
   "go.opentelemetry.io/otel/trace"
+  "google.golang.org/grpc"
   "google.golang.org/protobuf/types/known/emptypb"
   "nexa/services/reaction/internal/api/grpc/mapper"
   "nexa/services/reaction/internal/domain/service"
@@ -26,6 +27,10 @@ type ReactionHandler struct {
   reactionv1.UnimplementedReactionServiceServer
   svc    service.IReaction
   tracer trace.Tracer
+}
+
+func (r *ReactionHandler) Register(server *grpc.Server) {
+  reactionv1.RegisterReactionServiceServer(server, r)
 }
 
 func (r *ReactionHandler) Like(ctx context.Context, request *reactionv1.LikeRequest) (*emptypb.Empty, error) {

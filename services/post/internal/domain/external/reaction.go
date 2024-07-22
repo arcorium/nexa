@@ -6,7 +6,7 @@ import (
   "nexa/services/post/internal/domain/dto"
 )
 
-type ILikeClient interface {
+type IReactionClient interface {
   GetPostCounts(ctx context.Context, postIds ...types.Id) ([]dto.LikeCountResponseDTO, error)
   DeletePostsLikes(ctx context.Context, postIds ...types.Id) error
 }

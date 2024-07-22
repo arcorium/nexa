@@ -15,7 +15,7 @@ import (
   "nexa/services/post/util"
 )
 
-func NewLike(conn grpc.ClientConnInterface, conf *config.CircuitBreaker) external.ILikeClient {
+func NewReaction(conn grpc.ClientConnInterface, conf *config.CircuitBreaker) external.IReactionClient {
   breaker := gobreaker.NewCircuitBreaker(gobreaker.Settings{
     Name:         "nexa-like",
     MaxRequests:  conf.MaxRequest,

@@ -1,0 +1,23 @@
+services:
+  nexa-authz:
+    environment:
+      - OTLP_GRPC_COLLECTOR_ADDRESS=jaeger:4317
+    ports:
+      - "8082:8080"
+    networks:
+      - nc_network
+  nexa-reaction-seed:
+    depends_on:
+      nexa-authz:
+        condition: service_healthy
+    environment:
+      - AUTHZ_SERVICE_ADDR=nexa-authz:8080
+    networks:
+      - nc_network
+  nexa-reaction:
+    environment:
+      - OTLP_GRPC_COLLECTOR_ADDRESS=jaeger:4317
+    ports:
+      - "8083:8080"
+    networks:
+      - nc_network

@@ -1,0 +1,87 @@
+services:
+  relation-db:
+    image: postgres
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U nexa -d nexa-relation" ]
+      interval: 5s
+      retries: 10
+    environment:
+      - POSTGRES_DB=nexa-relation
+      - POSTGRES_USER=nexa
+      - POSTGRES_PASSWORD=nexa
+    networks:
+      - nr_network
+  nexa-relation-migrate:
+    build:
+      dockerfile: ./docker/migrate.Dockerfile
+    restart: on-failure
+    depends_on:
+      relation-db:
+        condition: service_healthy
+    environment:
+      - PG_ADDRESS=relation-db
+      - PG_USERNAME=nexa
+      - PG_PASSWORD=nexa
+      - PG_DB_NAME=nexa-relation
+      - PG_IS_SECURE=false
+    networks:
+      - nr_network
+  token_generator:
+    build:
+      context: ../../token_generator/
+      dockerfile: Dockerfile
+    entrypoint: /bin/sh -c "./main > /output/token.txt"
+    volumes:
+      - relation-token_output:/output
+  nexa-relation-seed:
+    build:
+      dockerfile: ./docker/seed.Dockerfile
+    restart: on-failure
+    depends_on:
+      nexa-relation-migrate:
+        condition: service_completed_successfully
+      token_generator:
+        condition: service_completed_successfully
+#      nexa-authz:
+#        condition: service_healthy
+    environment:
+      - PG_ADDRESS=relation-db
+      - PG_USERNAME=nexa
+      - PG_PASSWORD=nexa
+      - PG_DB_NAME=nexa-relation
+      - PG_IS_SECURE=false
+#      - AUTHZ_SERVICE_ADDR=nexa-authz:8080
+    networks:
+      - nr_network
+    volumes:
+      - relation-token_output:/output
+  nexa-relation:
+    build:
+      dockerfile: ./docker/app.Dockerfile
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "grpc_health_probe", "-addr=localhost:8080"]
+      retries: 3
+      interval: 60s
+      start_period: 5s
+      timeout: 30s
+    depends_on:
+      nexa-relation-seed:
+        condition: service_completed_successfully
+    networks:
+      - nr_network
+    environment:
+      - PG_ADDRESS=relation-db
+      - PG_USERNAME=nexa
+      - PG_PASSWORD=nexa
+      - PG_DB_NAME=nexa-relation
+      - PG_PARAMETER=application_name=nexa-authn
+      - PG_IS_SECURE=false
+#      - OTLP_GRPC_COLLECTOR_ADDRESS=
+
+networks:
+  nr_network:
+    driver: bridge
+
+volumes:
+  relation-token_output:

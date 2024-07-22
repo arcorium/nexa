@@ -7,11 +7,15 @@ import (
 
 // User
 const (
+  POST_GET    types.Action = "get:post"
+  POST_CREATE types.Action = "create:post"
+  POST_UPDATE types.Action = "update:post"
+  POST_DELETE types.Action = "delete:post"
+)
+
+// Super
+const (
   POST_GET_ARB    types.Action = "get:post:arb"
-  POST_GET        types.Action = "get:post"
-  POST_CREATE     types.Action = "create:post"
-  POST_UPDATE     types.Action = "update:post"
-  POST_DELETE     types.Action = "delete:post"
   POST_DELETE_ARB types.Action = "delete:post:arb"
 )
 

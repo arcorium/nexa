@@ -36,7 +36,7 @@ type postService struct {
   mediaClient   external.IMediaStore
   userClient    external.IUserClient
   followClient  external.IFollowClient
-  likeClient    external.ILikeClient
+  likeClient    external.IReactionClient
   commentClient external.ICommentClient
 }
 

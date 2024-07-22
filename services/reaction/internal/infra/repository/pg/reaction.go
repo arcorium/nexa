@@ -10,16 +10,18 @@ import (
   "github.com/uptrace/bun"
   "go.opentelemetry.io/otel/trace"
   "nexa/services/reaction/internal/domain/entity"
+  "nexa/services/reaction/internal/domain/repository"
   "nexa/services/reaction/internal/infra/repository/model"
+  "nexa/services/reaction/util"
   "nexa/services/reaction/util/errors"
 )
 
-//func NewReaction(db bun.IDB) {
-//  return &reactionRepository{
-//    db:    db,
-//    tracer: util.GetTracer(),
-//  }
-//}
+func NewReaction(db bun.IDB) repository.IReaction {
+  return &reactionRepository{
+    db:     db,
+    tracer: util.GetTracer(),
+  }
+}
 
 type reactionRepository struct {
   db     bun.IDB

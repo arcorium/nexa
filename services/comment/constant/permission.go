@@ -7,10 +7,14 @@ import (
 
 // User
 const (
-  COMMENT_CREATE     types.Action = "create:comment"
-  COMMENT_UPDATE     types.Action = "update:comment"
-  COMMENT_GET        types.Action = "get:comment"
-  COMMENT_DELETE     types.Action = "delete:comment"
+  COMMENT_CREATE types.Action = "create:comment"
+  COMMENT_UPDATE types.Action = "update:comment"
+  COMMENT_GET    types.Action = "get:comment"
+  COMMENT_DELETE types.Action = "delete:comment"
+)
+
+// Super
+const (
   COMMENT_DELETE_ARB types.Action = "delete:comment:arb"
 )
 

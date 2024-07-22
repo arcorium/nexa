@@ -7,9 +7,13 @@ import (
 
 // User
 const (
-  REACTION_CREATE     types.Action = "create:reaction"
-  REACTION_GET        types.Action = "get:reaction"
-  REACTION_DELETE     types.Action = "delete:reaction"
+  REACTION_CREATE types.Action = "create:reaction"
+  REACTION_GET    types.Action = "get:reaction"
+  REACTION_DELETE types.Action = "delete:reaction"
+)
+
+// Super
+const (
   REACTION_DELETE_ARB types.Action = "delete:reaction:arb"
 )
 

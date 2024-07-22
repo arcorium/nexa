@@ -1,0 +1,92 @@
+services:
+  post-db:
+    image: postgres
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U nexa -d nexa-post" ]
+      interval: 5s
+      retries: 10
+    environment:
+      - POSTGRES_DB=nexa-post
+      - POSTGRES_USER=nexa
+      - POSTGRES_PASSWORD=nexa
+    networks:
+      - np_network
+  nexa-post-migrate:
+    build:
+      dockerfile: ./docker/migrate.Dockerfile
+    restart: on-failure
+    depends_on:
+      post-db:
+        condition: service_healthy
+    environment:
+      - PG_ADDRESS=post-db
+      - PG_USERNAME=nexa
+      - PG_PASSWORD=nexa
+      - PG_DB_NAME=nexa-post
+      - PG_IS_SECURE=false
+    networks:
+      - np_network
+  token_generator:
+    build:
+      context: ../../token_generator/
+      dockerfile: Dockerfile
+    entrypoint: /bin/sh -c "./main > /output/token.txt"
+    volumes:
+      - post-token_output:/output
+  nexa-post-seed:
+    build:
+      dockerfile: ./docker/seed.Dockerfile
+    restart: on-failure
+    depends_on:
+      nexa-post-migrate:
+        condition: service_completed_successfully
+      token_generator:
+        condition: service_completed_successfully
+#      nexa-authz:
+#        condition: service_healthy
+    environment:
+      - PG_ADDRESS=post-db
+      - PG_USERNAME=nexa
+      - PG_PASSWORD=nexa
+      - PG_DB_NAME=nexa-post
+      - PG_IS_SECURE=false
+#      - AUTHZ_SERVICE_ADDR=nexa-authz:8080
+    networks:
+      - np_network
+    volumes:
+      - post-token_output:/output
+  nexa-post:
+    build:
+      dockerfile: ./docker/app.Dockerfile
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "grpc_health_probe", "-addr=localhost:8080"]
+      retries: 3
+      interval: 60s
+      start_period: 5s
+      timeout: 30s
+    depends_on:
+      nexa-post-seed:
+        condition: service_completed_successfully
+    networks:
+      - np_network
+    environment:
+      - PG_ADDRESS=post-db
+      - PG_USERNAME=nexa
+      - PG_PASSWORD=nexa
+      - PG_DB_NAME=nexa-post
+      - PG_PARAMETER=application_name=nexa-post
+      - PG_IS_SECURE=false
+#      - OTLP_GRPC_COLLECTOR_ADDRESS=
+#      - COMMENT_SERVICE_ADDRESS=
+#      - FOLLOW_SERVICE_ADDRESS=
+#      - MEDIA_STORAGE_SERVICE_ADDRESS=
+#      - REACTION_SERVICE_ADDRESS=
+#      - USER_SERVICE_ADDRESS=
+
+networks:
+  np_network:
+    driver: bridge
+
+volumes:
+  post-token_output:

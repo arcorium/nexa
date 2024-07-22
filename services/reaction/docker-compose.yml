@@ -1,0 +1,87 @@
+services:
+  reaction-db:
+    image: postgres
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U nexa -d nexa-reaction" ]
+      interval: 5s
+      retries: 10
+    environment:
+      - POSTGRES_DB=nexa-reaction
+      - POSTGRES_USER=nexa
+      - POSTGRES_PASSWORD=nexa
+    networks:
+      - nr_network
+  nexa-reaction-migrate:
+    build:
+      dockerfile: ./docker/migrate.Dockerfile
+    restart: on-failure
+    depends_on:
+      reaction-db:
+        condition: service_healthy
+    environment:
+      - PG_ADDRESS=reaction-db
+      - PG_USERNAME=nexa
+      - PG_PASSWORD=nexa
+      - PG_DB_NAME=nexa-reaction
+      - PG_IS_SECURE=false
+    networks:
+      - nr_network
+  token_generator:
+    build:
+      context: ../../token_generator/
+      dockerfile: Dockerfile
+    entrypoint: /bin/sh -c "./main > /output/token.txt"
+    volumes:
+      - reaction-token_output:/output
+  nexa-reaction-seed:
+    build:
+      dockerfile: ./docker/seed.Dockerfile
+    restart: on-failure
+    depends_on:
+      nexa-reaction-migrate:
+        condition: service_completed_successfully
+      token_generator:
+        condition: service_completed_successfully
+#      nexa-authz:
+#        condition: service_healthy
+    environment:
+      - PG_ADDRESS=reaction-db
+      - PG_USERNAME=nexa
+      - PG_PASSWORD=nexa
+      - PG_DB_NAME=nexa-reaction
+      - PG_IS_SECURE=false
+#      - AUTHZ_SERVICE_ADDR=nexa-authz:8080
+    networks:
+      - nr_network
+    volumes:
+      - reaction-token_output:/output
+  nexa-reaction:
+    build:
+      dockerfile: ./docker/app.Dockerfile
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "grpc_health_probe", "-addr=localhost:8080"]
+      retries: 3
+      interval: 60s
+      start_period: 5s
+      timeout: 30s
+    depends_on:
+      nexa-reaction-seed:
+        condition: service_completed_successfully
+    networks:
+      - nr_network
+    environment:
+      - PG_ADDRESS=reaction-db
+      - PG_USERNAME=nexa
+      - PG_PASSWORD=nexa
+      - PG_DB_NAME=nexa-reaction
+      - PG_PARAMETER=application_name=nexa-reaction
+      - PG_IS_SECURE=false
+#      - OTLP_GRPC_COLLECTOR_ADDRESS=
+
+networks:
+  nr_network:
+    driver: bridge
+
+volumes:
+  reaction-token_output:
