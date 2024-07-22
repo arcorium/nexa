@@ -24,6 +24,7 @@ const (
 	UserService_Create_FullMethodName               = "/nexa.authentication.v1.UserService/Create"
 	UserService_Update_FullMethodName               = "/nexa.authentication.v1.UserService/Update"
 	UserService_UpdatePassword_FullMethodName       = "/nexa.authentication.v1.UserService/UpdatePassword"
+	UserService_UpdateAvatar_FullMethodName         = "/nexa.authentication.v1.UserService/UpdateAvatar"
 	UserService_Find_FullMethodName                 = "/nexa.authentication.v1.UserService/Find"
 	UserService_FindByIds_FullMethodName            = "/nexa.authentication.v1.UserService/FindByIds"
 	UserService_Banned_FullMethodName               = "/nexa.authentication.v1.UserService/Banned"
@@ -41,6 +42,7 @@ type UserServiceClient interface {
 	Create(ctx context.Context, in *CreateUserRequest, opts ...grpc.CallOption) (*CreateUserResponse, error)
 	Update(ctx context.Context, in *UpdateUserRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	UpdatePassword(ctx context.Context, in *UpdateUserPasswordRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	UpdateAvatar(ctx context.Context, opts ...grpc.CallOption) (UserService_UpdateAvatarClient, error)
 	Find(ctx context.Context, in *common.PagedElementInput, opts ...grpc.CallOption) (*FindUsersResponse, error)
 	FindByIds(ctx context.Context, in *FindUsersByIdsRequest, opts ...grpc.CallOption) (*FindUserByIdsResponse, error)
 	Banned(ctx context.Context, in *BannedUserRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
@@ -87,6 +89,40 @@ func (c *userServiceClient) UpdatePassword(ctx context.Context, in *UpdateUserPa
 		return nil, err
 	}
 	return out, nil
+}
+
+func (c *userServiceClient) UpdateAvatar(ctx context.Context, opts ...grpc.CallOption) (UserService_UpdateAvatarClient, error) {
+	stream, err := c.cc.NewStream(ctx, &UserService_ServiceDesc.Streams[0], UserService_UpdateAvatar_FullMethodName, opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &userServiceUpdateAvatarClient{stream}
+	return x, nil
+}
+
+type UserService_UpdateAvatarClient interface {
+	Send(*UpdateProfileAvatarRequest) error
+	CloseAndRecv() (*emptypb.Empty, error)
+	grpc.ClientStream
+}
+
+type userServiceUpdateAvatarClient struct {
+	grpc.ClientStream
+}
+
+func (x *userServiceUpdateAvatarClient) Send(m *UpdateProfileAvatarRequest) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *userServiceUpdateAvatarClient) CloseAndRecv() (*emptypb.Empty, error) {
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	m := new(emptypb.Empty)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 func (c *userServiceClient) Find(ctx context.Context, in *common.PagedElementInput, opts ...grpc.CallOption) (*FindUsersResponse, error) {
@@ -168,6 +204,7 @@ type UserServiceServer interface {
 	Create(context.Context, *CreateUserRequest) (*CreateUserResponse, error)
 	Update(context.Context, *UpdateUserRequest) (*emptypb.Empty, error)
 	UpdatePassword(context.Context, *UpdateUserPasswordRequest) (*emptypb.Empty, error)
+	UpdateAvatar(UserService_UpdateAvatarServer) error
 	Find(context.Context, *common.PagedElementInput) (*FindUsersResponse, error)
 	FindByIds(context.Context, *FindUsersByIdsRequest) (*FindUserByIdsResponse, error)
 	Banned(context.Context, *BannedUserRequest) (*emptypb.Empty, error)
@@ -194,6 +231,9 @@ func (UnimplementedUserServiceServer) Update(context.Context, *UpdateUserRequest
 }
 func (UnimplementedUserServiceServer) UpdatePassword(context.Context, *UpdateUserPasswordRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdatePassword not implemented")
+}
+func (UnimplementedUserServiceServer) UpdateAvatar(UserService_UpdateAvatarServer) error {
+	return status.Errorf(codes.Unimplemented, "method UpdateAvatar not implemented")
 }
 func (UnimplementedUserServiceServer) Find(context.Context, *common.PagedElementInput) (*FindUsersResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Find not implemented")
@@ -284,6 +324,32 @@ func _UserService_UpdatePassword_Handler(srv interface{}, ctx context.Context, d
 		return srv.(UserServiceServer).UpdatePassword(ctx, req.(*UpdateUserPasswordRequest))
 	}
 	return interceptor(ctx, in, info, handler)
+}
+
+func _UserService_UpdateAvatar_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(UserServiceServer).UpdateAvatar(&userServiceUpdateAvatarServer{stream})
+}
+
+type UserService_UpdateAvatarServer interface {
+	SendAndClose(*emptypb.Empty) error
+	Recv() (*UpdateProfileAvatarRequest, error)
+	grpc.ServerStream
+}
+
+type userServiceUpdateAvatarServer struct {
+	grpc.ServerStream
+}
+
+func (x *userServiceUpdateAvatarServer) SendAndClose(m *emptypb.Empty) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *userServiceUpdateAvatarServer) Recv() (*UpdateProfileAvatarRequest, error) {
+	m := new(UpdateProfileAvatarRequest)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 func _UserService_Find_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -482,6 +548,12 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _UserService_VerifyEmail_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "UpdateAvatar",
+			Handler:       _UserService_UpdateAvatar_Handler,
+			ClientStreams: true,
+		},
+	},
 	Metadata: "authentication/v1/user.proto",
 }

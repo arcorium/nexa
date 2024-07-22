@@ -32,6 +32,7 @@ const (
 	RoleService_RemoveUser_FullMethodName                   = "/nexa.authorization.v1.RoleService/RemoveUser"
 	RoleService_AppendPermissions_FullMethodName            = "/nexa.authorization.v1.RoleService/AppendPermissions"
 	RoleService_RemovePermissions_FullMethodName            = "/nexa.authorization.v1.RoleService/RemovePermissions"
+	RoleService_SetAsDefault_FullMethodName                 = "/nexa.authorization.v1.RoleService/SetAsDefault"
 	RoleService_AppendDefaultRolePermissions_FullMethodName = "/nexa.authorization.v1.RoleService/AppendDefaultRolePermissions"
 	RoleService_SetAsSuper_FullMethodName                   = "/nexa.authorization.v1.RoleService/SetAsSuper"
 )
@@ -52,6 +53,8 @@ type RoleServiceClient interface {
 	RemoveUser(ctx context.Context, in *RemoveUserRolesRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	AppendPermissions(ctx context.Context, in *AppendRolePermissionsRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	RemovePermissions(ctx context.Context, in *RemoveRolePermissionsRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	// Public API
+	SetAsDefault(ctx context.Context, in *SetAsDefaultRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	// Protected API
 	AppendDefaultRolePermissions(ctx context.Context, in *AppendDefaultRolePermissionsRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	//  rpc GetSuper(google.protobuf.Empty) returns (RolePermission); // Get super roles information
@@ -165,6 +168,15 @@ func (c *roleServiceClient) RemovePermissions(ctx context.Context, in *RemoveRol
 	return out, nil
 }
 
+func (c *roleServiceClient) SetAsDefault(ctx context.Context, in *SetAsDefaultRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, RoleService_SetAsDefault_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *roleServiceClient) AppendDefaultRolePermissions(ctx context.Context, in *AppendDefaultRolePermissionsRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, RoleService_AppendDefaultRolePermissions_FullMethodName, in, out, opts...)
@@ -199,6 +211,8 @@ type RoleServiceServer interface {
 	RemoveUser(context.Context, *RemoveUserRolesRequest) (*emptypb.Empty, error)
 	AppendPermissions(context.Context, *AppendRolePermissionsRequest) (*emptypb.Empty, error)
 	RemovePermissions(context.Context, *RemoveRolePermissionsRequest) (*emptypb.Empty, error)
+	// Public API
+	SetAsDefault(context.Context, *SetAsDefaultRequest) (*emptypb.Empty, error)
 	// Protected API
 	AppendDefaultRolePermissions(context.Context, *AppendDefaultRolePermissionsRequest) (*emptypb.Empty, error)
 	//  rpc GetSuper(google.protobuf.Empty) returns (RolePermission); // Get super roles information
@@ -242,6 +256,9 @@ func (UnimplementedRoleServiceServer) AppendPermissions(context.Context, *Append
 }
 func (UnimplementedRoleServiceServer) RemovePermissions(context.Context, *RemoveRolePermissionsRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RemovePermissions not implemented")
+}
+func (UnimplementedRoleServiceServer) SetAsDefault(context.Context, *SetAsDefaultRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetAsDefault not implemented")
 }
 func (UnimplementedRoleServiceServer) AppendDefaultRolePermissions(context.Context, *AppendDefaultRolePermissionsRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AppendDefaultRolePermissions not implemented")
@@ -460,6 +477,24 @@ func _RoleService_RemovePermissions_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RoleService_SetAsDefault_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetAsDefaultRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RoleServiceServer).SetAsDefault(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RoleService_SetAsDefault_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RoleServiceServer).SetAsDefault(ctx, req.(*SetAsDefaultRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _RoleService_AppendDefaultRolePermissions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(AppendDefaultRolePermissionsRequest)
 	if err := dec(in); err != nil {
@@ -546,6 +581,10 @@ var RoleService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RemovePermissions",
 			Handler:    _RoleService_RemovePermissions_Handler,
+		},
+		{
+			MethodName: "SetAsDefault",
+			Handler:    _RoleService_SetAsDefault_Handler,
 		},
 		{
 			MethodName: "AppendDefaultRolePermissions",

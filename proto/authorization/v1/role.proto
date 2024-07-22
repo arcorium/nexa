@@ -24,15 +24,21 @@ service RoleService {
   rpc AppendPermissions(AppendRolePermissionsRequest) returns (google.protobuf.Empty);
   rpc RemovePermissions(RemoveRolePermissionsRequest) returns (google.protobuf.Empty);
 
+  // Public API
+  rpc SetAsDefault(SetAsDefaultRequest) returns(google.protobuf.Empty);
+
   // Protected API
   rpc AppendDefaultRolePermissions(AppendDefaultRolePermissionsRequest) returns (google.protobuf.Empty);
 //  rpc GetSuper(google.protobuf.Empty) returns (RolePermission); // Get super roles information
   rpc SetAsSuper(SetAsSuperRequest) returns (google.protobuf.Empty); // Set user as super role
 }
 
-
 message GetDefaultRoleResponse {
   RolePermission role = 1;
+}
+
+message SetAsDefaultRequest {
+  string user_id = 1;
 }
 
 message SetAsSuperRequest {

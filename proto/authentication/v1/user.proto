@@ -5,7 +5,6 @@ option go_package = "nexa/proto/generated/golang/authentication/v1";
 import "google/protobuf/duration.proto";
 import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
-import "authentication/v1/profile.proto";
 import "token/v1/token.proto";
 import "common/paged.proto";
 
@@ -14,6 +13,8 @@ service UserService {
   rpc Create(CreateUserRequest) returns (CreateUserResponse);
   rpc Update(UpdateUserRequest) returns (google.protobuf.Empty);
   rpc UpdatePassword(UpdateUserPasswordRequest) returns (google.protobuf.Empty);
+  rpc UpdateAvatar(stream UpdateProfileAvatarRequest) returns (google.protobuf.Empty);
+
   rpc Find(common.PagedElementInput) returns(FindUsersResponse);
   rpc FindByIds(FindUsersByIdsRequest) returns (FindUserByIdsResponse);
   rpc Banned(BannedUserRequest) returns (google.protobuf.Empty);
@@ -33,7 +34,10 @@ message User {
   string username = 2;
   string email = 3;
   bool is_verified = 4;
-  Profile profile = 5;
+  string first_name = 5;
+  string last_name = 6;
+  string bio = 7;
+  string image_path = 8;
 }
 
 message VerifyUserEmailRequest {
@@ -70,6 +74,9 @@ message UpdateUserRequest {
   string id = 1;
   optional string username = 2;
   optional string email = 3;
+  optional string first_name = 4;
+  optional string last_name = 5;
+  optional string bio = 6;
 }
 
 message UpdateUserPasswordRequest {
@@ -122,3 +129,8 @@ message FindUserByIdsResponse {
   repeated User users = 1;
 }
 
+message UpdateProfileAvatarRequest {
+  string id = 1;
+  string filename = 2;
+  bytes chunk = 3;
+}
