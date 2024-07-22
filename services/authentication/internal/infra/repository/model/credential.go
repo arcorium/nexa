@@ -5,13 +5,13 @@ import (
   "github.com/arcorium/nexa/shared/util"
   "github.com/arcorium/nexa/shared/util/repo"
   "github.com/arcorium/nexa/shared/variadic"
-  domain "nexa/services/authentication/internal/domain/entity"
+  "nexa/services/authentication/internal/domain/entity"
   "time"
 )
 
-type CredentialMapOption = repo.DataAccessModelMapOption[*domain.Credential, *Credential]
+type CredentialMapOption = repo.DataAccessModelMapOption[*entity.Credential, *Credential]
 
-func FromCredentialModel(domain *domain.Credential, opts ...CredentialMapOption) Credential {
+func FromCredentialModel(domain *entity.Credential, opts ...CredentialMapOption) Credential {
 
   cred := Credential{
     Id:            util.ReturnOnEqual(domain.Id.Underlying().String(), types.NullIdStr, ""),
@@ -56,12 +56,12 @@ func (c *Credential) OmitZero() map[string]any {
   return result
 }
 
-func (c *Credential) ToDomain() domain.Credential {
-  return domain.Credential{
+func (c *Credential) ToDomain() entity.Credential {
+  return entity.Credential{
     Id:            types.DropError(types.IdFromString(c.Id)),
     UserId:        types.DropError(types.IdFromString(c.UserId)),
     AccessTokenId: types.DropError(types.IdFromString(c.AccessTokenId)),
-    Device: domain.Device{
+    Device: entity.Device{
       Name: c.Device,
     },
     RefreshToken: c.RefreshToken,

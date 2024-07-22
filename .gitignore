@@ -114,3 +114,4 @@ fabric.properties
 **/dev.*.env
 **/dev.env
 *.pem
+**/*.spec.txt

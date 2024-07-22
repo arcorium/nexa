@@ -24,28 +24,31 @@ distribute.key:
 	@echo "Distributing done"
 
 create.service:
-	mkdir services\$(service)
-	mkdir services\$(service)\cmd
-	mkdir services\$(service)\config
-	mkdir services\$(service)\constant
-	mkdir services\$(service)\cmd\server
-	mkdir services\$(service)\cmd\migrate
-	mkdir services\$(service)\cmd\seed
-	mkdir services\$(service)\internal
-	mkdir services\$(service)\internal\api
-	mkdir services\$(service)\internal\api\grpc\handler
-	mkdir services\$(service)\internal\api\grpc\mapper
-	mkdir services\$(service)\internal\api\grpc\interceptor
-	mkdir services\$(service)\internal\app\service
-	mkdir services\$(service)\internal\domain
-	mkdir services\$(service)\internal\domain\dto
-	mkdir services\$(service)\internal\domain\mapper
-	mkdir services\$(service)\internal\domain\entity
-	mkdir services\$(service)\internal\domain\service
-	mkdir services\$(service)\internal\domain\repository
-	mkdir services\$(service)\internal\infra
-	mkdir services\$(service)\internal\infra\repository
-	mkdir services\$(service)\util
+	mkdir services/$(service)
+	mkdir services/$(service)/cmd
+	mkdir services/$(service)/config
+	mkdir services/$(service)/constant
+	mkdir services/$(service)/cmd/server
+	mkdir services/$(service)/cmd/migrate
+	mkdir services/$(service)/cmd/seed
+	mkdir services/$(service)/internal
+	mkdir services/$(service)/internal/api
+	mkdir services/$(service)/internal/api/grpc
+	mkdir services/$(service)/internal/api/grpc/handler
+	mkdir services/$(service)/internal/api/grpc/mapper
+	mkdir services/$(service)/internal/api/grpc/interceptor
+	mkdir services/$(service)/internal/app
+	mkdir services/$(service)/internal/app/service
+	mkdir services/$(service)/internal/domain
+	mkdir services/$(service)/internal/domain/dto
+	mkdir services/$(service)/internal/domain/mapper
+	mkdir services/$(service)/internal/domain/entity
+	mkdir services/$(service)/internal/domain/service
+	mkdir services/$(service)/internal/domain/repository
+	mkdir services/$(service)/internal/infra
+	mkdir services/$(service)/internal/infra/repository
+	mkdir services/$(service)/internal/infra/repository/model
+	mkdir services/$(service)/util
 
 gen.go:
 	buf generate
