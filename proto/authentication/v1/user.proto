@@ -9,7 +9,6 @@ import "token/v1/token.proto";
 import "common/paged.proto";
 
 service UserService {
-
   rpc Create(CreateUserRequest) returns (CreateUserResponse);
   rpc Update(UpdateUserRequest) returns (google.protobuf.Empty);
   rpc UpdatePassword(UpdateUserPasswordRequest) returns (google.protobuf.Empty);
@@ -95,7 +94,7 @@ message FindUsersByIdsRequest {
 }
 
 message DeleteUserRequest {
-  string ids = 1;
+  optional string user_id = 1;
 }
 
 message BannedUserRequest {
