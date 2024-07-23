@@ -22,7 +22,6 @@ const _ = grpc.SupportPackageIsVersion7
 const (
 	FileStorageService_Find_FullMethodName         = "/nexa.storage.v1.FileStorageService/Find"
 	FileStorageService_FindMetadata_FullMethodName = "/nexa.storage.v1.FileStorageService/FindMetadata"
-	FileStorageService_GetUrls_FullMethodName      = "/nexa.storage.v1.FileStorageService/GetUrls"
 	FileStorageService_Store_FullMethodName        = "/nexa.storage.v1.FileStorageService/Store"
 	FileStorageService_Update_FullMethodName       = "/nexa.storage.v1.FileStorageService/Update"
 	FileStorageService_Delete_FullMethodName       = "/nexa.storage.v1.FileStorageService/Delete"
@@ -34,7 +33,6 @@ const (
 type FileStorageServiceClient interface {
 	Find(ctx context.Context, in *FindFileRequest, opts ...grpc.CallOption) (FileStorageService_FindClient, error)
 	FindMetadata(ctx context.Context, in *FindFileMetadataRequest, opts ...grpc.CallOption) (*FindFileMetadataResponse, error)
-	GetUrls(ctx context.Context, in *GetFileUrlRequest, opts ...grpc.CallOption) (*GetFileUrlResponse, error)
 	Store(ctx context.Context, opts ...grpc.CallOption) (FileStorageService_StoreClient, error)
 	Update(ctx context.Context, in *UpdateFileRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	Delete(ctx context.Context, in *DeleteFileRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
@@ -83,15 +81,6 @@ func (x *fileStorageServiceFindClient) Recv() (*FindFileResponse, error) {
 func (c *fileStorageServiceClient) FindMetadata(ctx context.Context, in *FindFileMetadataRequest, opts ...grpc.CallOption) (*FindFileMetadataResponse, error) {
 	out := new(FindFileMetadataResponse)
 	err := c.cc.Invoke(ctx, FileStorageService_FindMetadata_FullMethodName, in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *fileStorageServiceClient) GetUrls(ctx context.Context, in *GetFileUrlRequest, opts ...grpc.CallOption) (*GetFileUrlResponse, error) {
-	out := new(GetFileUrlResponse)
-	err := c.cc.Invoke(ctx, FileStorageService_GetUrls_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -156,7 +145,6 @@ func (c *fileStorageServiceClient) Delete(ctx context.Context, in *DeleteFileReq
 type FileStorageServiceServer interface {
 	Find(*FindFileRequest, FileStorageService_FindServer) error
 	FindMetadata(context.Context, *FindFileMetadataRequest) (*FindFileMetadataResponse, error)
-	GetUrls(context.Context, *GetFileUrlRequest) (*GetFileUrlResponse, error)
 	Store(FileStorageService_StoreServer) error
 	Update(context.Context, *UpdateFileRequest) (*emptypb.Empty, error)
 	Delete(context.Context, *DeleteFileRequest) (*emptypb.Empty, error)
@@ -172,9 +160,6 @@ func (UnimplementedFileStorageServiceServer) Find(*FindFileRequest, FileStorageS
 }
 func (UnimplementedFileStorageServiceServer) FindMetadata(context.Context, *FindFileMetadataRequest) (*FindFileMetadataResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method FindMetadata not implemented")
-}
-func (UnimplementedFileStorageServiceServer) GetUrls(context.Context, *GetFileUrlRequest) (*GetFileUrlResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetUrls not implemented")
 }
 func (UnimplementedFileStorageServiceServer) Store(FileStorageService_StoreServer) error {
 	return status.Errorf(codes.Unimplemented, "method Store not implemented")
@@ -233,24 +218,6 @@ func _FileStorageService_FindMetadata_Handler(srv interface{}, ctx context.Conte
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(FileStorageServiceServer).FindMetadata(ctx, req.(*FindFileMetadataRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _FileStorageService_GetUrls_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetFileUrlRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(FileStorageServiceServer).GetUrls(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: FileStorageService_GetUrls_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(FileStorageServiceServer).GetUrls(ctx, req.(*GetFileUrlRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -327,10 +294,6 @@ var FileStorageService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "FindMetadata",
 			Handler:    _FileStorageService_FindMetadata_Handler,
-		},
-		{
-			MethodName: "GetUrls",
-			Handler:    _FileStorageService_GetUrls_Handler,
 		},
 		{
 			MethodName: "Update",

@@ -65,8 +65,9 @@ message CreateUserRequest {
   string email = 2;
   string password = 3;
   string first_name = 4;
-  optional string last_name = 5;
-  optional string bio = 6;
+  repeated string role_ids = 5;
+  optional string last_name = 6;
+  optional string bio = 7;
 }
 
 message UpdateUserRequest {
