@@ -172,6 +172,8 @@ func (x *Mail) GetTags() []*Tag {
 	return nil
 }
 
+// TODO: Rework it, the client should upload it by their-self and use only the id here
+// And this service should remove the file from file storage service after sending the email
 type FileAttachment struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

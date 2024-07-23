@@ -35,11 +35,12 @@ message BlockCount {
 }
 
 message GetUsersBlockCountRequest {
-  optional string user_id = 1;
+  // Currently allow only to get self user data
+//  optional string user_id = 1;
 }
 
 message GetUsersBlockCountResponse {
-  BlockCount counts = 1;
+  BlockCount count = 1;
 }
 
 message ClearUsersBlockRequest {

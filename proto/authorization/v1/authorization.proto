@@ -13,6 +13,6 @@ service AuthorizationService {
 }
 
 message CheckUserRequest {
-  optional string user_id = 1;
+  string user_id = 1;
   string expected_permission = 2;
 }

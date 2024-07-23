@@ -25,6 +25,7 @@ const (
 	UserService_Update_FullMethodName               = "/nexa.authentication.v1.UserService/Update"
 	UserService_UpdatePassword_FullMethodName       = "/nexa.authentication.v1.UserService/UpdatePassword"
 	UserService_UpdateAvatar_FullMethodName         = "/nexa.authentication.v1.UserService/UpdateAvatar"
+	UserService_DeleteAvatar_FullMethodName         = "/nexa.authentication.v1.UserService/DeleteAvatar"
 	UserService_Find_FullMethodName                 = "/nexa.authentication.v1.UserService/Find"
 	UserService_FindByIds_FullMethodName            = "/nexa.authentication.v1.UserService/FindByIds"
 	UserService_Banned_FullMethodName               = "/nexa.authentication.v1.UserService/Banned"
@@ -43,6 +44,7 @@ type UserServiceClient interface {
 	Update(ctx context.Context, in *UpdateUserRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	UpdatePassword(ctx context.Context, in *UpdateUserPasswordRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	UpdateAvatar(ctx context.Context, opts ...grpc.CallOption) (UserService_UpdateAvatarClient, error)
+	DeleteAvatar(ctx context.Context, in *DeleteProfileAvatarRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	Find(ctx context.Context, in *common.PagedElementInput, opts ...grpc.CallOption) (*FindUsersResponse, error)
 	FindByIds(ctx context.Context, in *FindUsersByIdsRequest, opts ...grpc.CallOption) (*FindUserByIdsResponse, error)
 	Banned(ctx context.Context, in *BannedUserRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
@@ -125,6 +127,15 @@ func (x *userServiceUpdateAvatarClient) CloseAndRecv() (*emptypb.Empty, error) {
 	return m, nil
 }
 
+func (c *userServiceClient) DeleteAvatar(ctx context.Context, in *DeleteProfileAvatarRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, UserService_DeleteAvatar_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *userServiceClient) Find(ctx context.Context, in *common.PagedElementInput, opts ...grpc.CallOption) (*FindUsersResponse, error) {
 	out := new(FindUsersResponse)
 	err := c.cc.Invoke(ctx, UserService_Find_FullMethodName, in, out, opts...)
@@ -205,6 +216,7 @@ type UserServiceServer interface {
 	Update(context.Context, *UpdateUserRequest) (*emptypb.Empty, error)
 	UpdatePassword(context.Context, *UpdateUserPasswordRequest) (*emptypb.Empty, error)
 	UpdateAvatar(UserService_UpdateAvatarServer) error
+	DeleteAvatar(context.Context, *DeleteProfileAvatarRequest) (*emptypb.Empty, error)
 	Find(context.Context, *common.PagedElementInput) (*FindUsersResponse, error)
 	FindByIds(context.Context, *FindUsersByIdsRequest) (*FindUserByIdsResponse, error)
 	Banned(context.Context, *BannedUserRequest) (*emptypb.Empty, error)
@@ -234,6 +246,9 @@ func (UnimplementedUserServiceServer) UpdatePassword(context.Context, *UpdateUse
 }
 func (UnimplementedUserServiceServer) UpdateAvatar(UserService_UpdateAvatarServer) error {
 	return status.Errorf(codes.Unimplemented, "method UpdateAvatar not implemented")
+}
+func (UnimplementedUserServiceServer) DeleteAvatar(context.Context, *DeleteProfileAvatarRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteAvatar not implemented")
 }
 func (UnimplementedUserServiceServer) Find(context.Context, *common.PagedElementInput) (*FindUsersResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Find not implemented")
@@ -350,6 +365,24 @@ func (x *userServiceUpdateAvatarServer) Recv() (*UpdateProfileAvatarRequest, err
 		return nil, err
 	}
 	return m, nil
+}
+
+func _UserService_DeleteAvatar_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteProfileAvatarRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).DeleteAvatar(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_DeleteAvatar_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).DeleteAvatar(ctx, req.(*DeleteProfileAvatarRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _UserService_Find_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -514,6 +547,10 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpdatePassword",
 			Handler:    _UserService_UpdatePassword_Handler,
+		},
+		{
+			MethodName: "DeleteAvatar",
+			Handler:    _UserService_DeleteAvatar_Handler,
 		},
 		{
 			MethodName: "Find",

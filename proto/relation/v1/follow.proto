@@ -34,7 +34,7 @@ message UnfollowRequest {
 }
 
 message GetUserFollowersRequest {
-  string user_id = 1;
+  optional string user_id = 1;
   common.PagedElementInput details = 2;
 }
 
@@ -44,7 +44,7 @@ message GetUserFollowersResponse {
 }
 
 message GetUserFolloweesRequest {
-  string user_id = 1;
+  optional string user_id = 1;
   common.PagedElementInput details = 2;
 }
 
@@ -54,8 +54,8 @@ message GetUserFolloweesResponse {
 }
 
 message GetFollowStatusRequest {
-  string user_id = 1;
-  repeated string opponent_user_id = 2;
+  optional string user_id = 1;
+  repeated string opponent_user_ids = 2;
 }
 
 message GetFollowStatusResponse {
@@ -63,7 +63,7 @@ message GetFollowStatusResponse {
 }
 
 message GetUsersFollowCountRequest {
-  repeated string user_ids = 1;
+  repeated string user_ids = 1; // zero length means the user itself
 }
 
 message FollowCount {
