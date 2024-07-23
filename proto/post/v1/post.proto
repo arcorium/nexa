@@ -86,8 +86,8 @@ message FindPostByIdResponse {
 }
 
 message FindUserPostRequest {
-  common.PagedElementInput details = 1;
-  string user_id = 2;
+  optional string user_id = 1;
+  common.PagedElementInput details = 2;
 }
 
 message FindUserPostResponse {
@@ -100,7 +100,7 @@ message CreatePostRequest {
   optional string content = 2;
   Visibility visibility = 3;
   repeated string media_ids = 4;
-  repeated string user_ids = 5;
+  repeated string user_ids = 5; // Tags
 }
 
 message CreatePostResponse {
@@ -132,7 +132,7 @@ message BookmarkPostRequest {
 }
 
 message GetBookmarkedPostRequest {
-  string user_id = 1; // Allow to get other bookmarked posts for authorized user
+//  string user_id = 1; // Allow to get other bookmarked posts for authorized user
   common.PagedElementInput details = 2;
 }
 
