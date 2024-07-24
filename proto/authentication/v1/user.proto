@@ -34,10 +34,11 @@ message User {
   string username = 2;
   string email = 3;
   bool is_verified = 4;
-  string first_name = 5;
-  string last_name = 6;
-  string bio = 7;
-  string image_path = 8;
+  bool is_banned = 5;
+  string first_name = 6;
+  string last_name = 7;
+  string bio = 8;
+  string image_path = 9;
 }
 
 message VerifyUserEmailRequest {

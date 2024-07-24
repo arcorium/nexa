@@ -19,6 +19,7 @@ service AuthenticationService {
 message Credential{
   string id = 1;
   string device = 2;
+  optional bool is_current = 3;
 }
 
 message LoginRequest {
