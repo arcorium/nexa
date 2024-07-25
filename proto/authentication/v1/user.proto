@@ -25,8 +25,10 @@ service UserService {
   rpc ForgotPassword(ForgotUserPasswordRequest) returns (ForgotUserPasswordResponse);
   // Handle validating token for reset password
   rpc ResetPasswordByToken(ResetPasswordByTokenRequest) returns (google.protobuf.Empty);
-  // Handle request and validation of email verification
-  rpc VerifyEmail(VerifyUserEmailRequest) returns (VerifyUserEmailResponse);
+  // Handle validation of email verification
+  rpc VerifyEmail(VerifyUserEmailRequest) returns (google.protobuf.Empty);
+  // Handle email verification request
+  rpc EmailVerificationRequest(UserEmailVerificationRequest) returns (VerifyUserEmailResponse);
 }
 
 message User {
@@ -45,8 +47,11 @@ message VerifyUserEmailRequest {
   optional string token = 2;
 }
 
+message UserEmailVerificationRequest {
+}
+
 message VerifyUserEmailResponse {
-  optional token.v1.Token token = 1;
+  token.v1.Token token = 1;
 }
 
 message ValidateUserRequest {

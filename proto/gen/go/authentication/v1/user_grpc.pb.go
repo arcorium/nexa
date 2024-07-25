@@ -21,19 +21,20 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	UserService_Create_FullMethodName               = "/nexa.authentication.v1.UserService/Create"
-	UserService_Update_FullMethodName               = "/nexa.authentication.v1.UserService/Update"
-	UserService_UpdatePassword_FullMethodName       = "/nexa.authentication.v1.UserService/UpdatePassword"
-	UserService_UpdateAvatar_FullMethodName         = "/nexa.authentication.v1.UserService/UpdateAvatar"
-	UserService_DeleteAvatar_FullMethodName         = "/nexa.authentication.v1.UserService/DeleteAvatar"
-	UserService_Find_FullMethodName                 = "/nexa.authentication.v1.UserService/Find"
-	UserService_FindByIds_FullMethodName            = "/nexa.authentication.v1.UserService/FindByIds"
-	UserService_Banned_FullMethodName               = "/nexa.authentication.v1.UserService/Banned"
-	UserService_Delete_FullMethodName               = "/nexa.authentication.v1.UserService/Delete"
-	UserService_ResetPassword_FullMethodName        = "/nexa.authentication.v1.UserService/ResetPassword"
-	UserService_ForgotPassword_FullMethodName       = "/nexa.authentication.v1.UserService/ForgotPassword"
-	UserService_ResetPasswordByToken_FullMethodName = "/nexa.authentication.v1.UserService/ResetPasswordByToken"
-	UserService_VerifyEmail_FullMethodName          = "/nexa.authentication.v1.UserService/VerifyEmail"
+	UserService_Create_FullMethodName                   = "/nexa.authentication.v1.UserService/Create"
+	UserService_Update_FullMethodName                   = "/nexa.authentication.v1.UserService/Update"
+	UserService_UpdatePassword_FullMethodName           = "/nexa.authentication.v1.UserService/UpdatePassword"
+	UserService_UpdateAvatar_FullMethodName             = "/nexa.authentication.v1.UserService/UpdateAvatar"
+	UserService_DeleteAvatar_FullMethodName             = "/nexa.authentication.v1.UserService/DeleteAvatar"
+	UserService_Find_FullMethodName                     = "/nexa.authentication.v1.UserService/Find"
+	UserService_FindByIds_FullMethodName                = "/nexa.authentication.v1.UserService/FindByIds"
+	UserService_Banned_FullMethodName                   = "/nexa.authentication.v1.UserService/Banned"
+	UserService_Delete_FullMethodName                   = "/nexa.authentication.v1.UserService/Delete"
+	UserService_ResetPassword_FullMethodName            = "/nexa.authentication.v1.UserService/ResetPassword"
+	UserService_ForgotPassword_FullMethodName           = "/nexa.authentication.v1.UserService/ForgotPassword"
+	UserService_ResetPasswordByToken_FullMethodName     = "/nexa.authentication.v1.UserService/ResetPasswordByToken"
+	UserService_VerifyEmail_FullMethodName              = "/nexa.authentication.v1.UserService/VerifyEmail"
+	UserService_EmailVerificationRequest_FullMethodName = "/nexa.authentication.v1.UserService/EmailVerificationRequest"
 )
 
 // UserServiceClient is the client API for UserService service.
@@ -54,8 +55,10 @@ type UserServiceClient interface {
 	ForgotPassword(ctx context.Context, in *ForgotUserPasswordRequest, opts ...grpc.CallOption) (*ForgotUserPasswordResponse, error)
 	// Handle validating token for reset password
 	ResetPasswordByToken(ctx context.Context, in *ResetPasswordByTokenRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	// Handle request and validation of email verification
-	VerifyEmail(ctx context.Context, in *VerifyUserEmailRequest, opts ...grpc.CallOption) (*VerifyUserEmailResponse, error)
+	// Handle validation of email verification
+	VerifyEmail(ctx context.Context, in *VerifyUserEmailRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	// Handle email verification request
+	EmailVerificationRequest(ctx context.Context, in *UserEmailVerificationRequest, opts ...grpc.CallOption) (*VerifyUserEmailResponse, error)
 }
 
 type userServiceClient struct {
@@ -199,9 +202,18 @@ func (c *userServiceClient) ResetPasswordByToken(ctx context.Context, in *ResetP
 	return out, nil
 }
 
-func (c *userServiceClient) VerifyEmail(ctx context.Context, in *VerifyUserEmailRequest, opts ...grpc.CallOption) (*VerifyUserEmailResponse, error) {
-	out := new(VerifyUserEmailResponse)
+func (c *userServiceClient) VerifyEmail(ctx context.Context, in *VerifyUserEmailRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, UserService_VerifyEmail_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userServiceClient) EmailVerificationRequest(ctx context.Context, in *UserEmailVerificationRequest, opts ...grpc.CallOption) (*VerifyUserEmailResponse, error) {
+	out := new(VerifyUserEmailResponse)
+	err := c.cc.Invoke(ctx, UserService_EmailVerificationRequest_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -226,8 +238,10 @@ type UserServiceServer interface {
 	ForgotPassword(context.Context, *ForgotUserPasswordRequest) (*ForgotUserPasswordResponse, error)
 	// Handle validating token for reset password
 	ResetPasswordByToken(context.Context, *ResetPasswordByTokenRequest) (*emptypb.Empty, error)
-	// Handle request and validation of email verification
-	VerifyEmail(context.Context, *VerifyUserEmailRequest) (*VerifyUserEmailResponse, error)
+	// Handle validation of email verification
+	VerifyEmail(context.Context, *VerifyUserEmailRequest) (*emptypb.Empty, error)
+	// Handle email verification request
+	EmailVerificationRequest(context.Context, *UserEmailVerificationRequest) (*VerifyUserEmailResponse, error)
 	mustEmbedUnimplementedUserServiceServer()
 }
 
@@ -271,8 +285,11 @@ func (UnimplementedUserServiceServer) ForgotPassword(context.Context, *ForgotUse
 func (UnimplementedUserServiceServer) ResetPasswordByToken(context.Context, *ResetPasswordByTokenRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ResetPasswordByToken not implemented")
 }
-func (UnimplementedUserServiceServer) VerifyEmail(context.Context, *VerifyUserEmailRequest) (*VerifyUserEmailResponse, error) {
+func (UnimplementedUserServiceServer) VerifyEmail(context.Context, *VerifyUserEmailRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method VerifyEmail not implemented")
+}
+func (UnimplementedUserServiceServer) EmailVerificationRequest(context.Context, *UserEmailVerificationRequest) (*VerifyUserEmailResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method EmailVerificationRequest not implemented")
 }
 func (UnimplementedUserServiceServer) mustEmbedUnimplementedUserServiceServer() {}
 
@@ -529,6 +546,24 @@ func _UserService_VerifyEmail_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UserService_EmailVerificationRequest_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UserEmailVerificationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).EmailVerificationRequest(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_EmailVerificationRequest_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).EmailVerificationRequest(ctx, req.(*UserEmailVerificationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // UserService_ServiceDesc is the grpc.ServiceDesc for UserService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -583,6 +618,10 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "VerifyEmail",
 			Handler:    _UserService_VerifyEmail_Handler,
+		},
+		{
+			MethodName: "EmailVerificationRequest",
+			Handler:    _UserService_EmailVerificationRequest_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
