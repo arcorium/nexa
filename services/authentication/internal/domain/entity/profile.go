@@ -33,7 +33,8 @@ func (p *Profile) HasAvatar() bool {
 
 // PatchedProfile used for patchable profile which contains all nullable data
 type PatchedProfile struct {
-  Id        types.Id
+  //Id        types.Id
+  UserId    types.Id
   FirstName string
   LastName  types.NullableString
   Bio       types.NullableString

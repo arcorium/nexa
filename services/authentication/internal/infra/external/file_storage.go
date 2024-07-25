@@ -8,6 +8,8 @@ import (
   "github.com/sony/gobreaker"
   "go.opentelemetry.io/otel/trace"
   "google.golang.org/grpc"
+  "google.golang.org/grpc/codes"
+  "google.golang.org/grpc/status"
   "nexa/services/authentication/config"
   "nexa/services/authentication/internal/domain/dto"
   "nexa/services/authentication/internal/domain/external"
@@ -70,7 +72,8 @@ func (f *fileStorageClient) UploadProfileImage(ctx context.Context, dto *dto.Upl
 
   resp := result.(*storagev1.StoreFileResponse)
   id, err := types.IdFromString(resp.FileId)
-  return id, types.FilePathFromString(*resp.Filepath), nil
+  path := types.NewNullable(resp.Filepath)
+  return id, types.FilePathFromString(path.ValueOr("")), nil
 }
 
 func (f *fileStorageClient) DeleteProfileImage(ctx context.Context, id types.Id) error {
@@ -81,5 +84,13 @@ func (f *fileStorageClient) DeleteProfileImage(ctx context.Context, id types.Id)
   _, err := f.cb.Execute(func() (interface{}, error) {
     return f.client.Delete(ctx, &req)
   })
+  stat, ok := status.FromError(err)
+  if !ok {
+    return err
+  }
+  // Allow not found status
+  if stat.Code() == codes.NotFound {
+    return nil
+  }
   return err
 }

@@ -7,6 +7,7 @@ import (
   sharedDto "github.com/arcorium/nexa/shared/dto"
   sharedErr "github.com/arcorium/nexa/shared/errors"
   "github.com/arcorium/nexa/shared/grpc/interceptor/authz"
+  "github.com/arcorium/nexa/shared/jwt"
   "github.com/arcorium/nexa/shared/types"
   sharedUtil "github.com/arcorium/nexa/shared/util"
   spanUtil "github.com/arcorium/nexa/shared/util/span"
@@ -64,13 +65,14 @@ func (u *UserHandler) Update(ctx context.Context, request *authNv1.UpdateUserReq
   ctx, span := u.tracer.Start(ctx, "UserHandler.Update")
   defer span.End()
 
-  dtoInput, err := mapper.ToUserUpdateDTO(request)
+  claims := types.Must(jwt.GetUserClaimsFromCtx(ctx))
+  updateDTO, err := mapper.ToUserUpdateDTO(claims, request)
   if err != nil {
     spanUtil.RecordError(err, span)
     return nil, err
   }
 
-  stat := u.svc.Update(ctx, &dtoInput)
+  stat := u.svc.Update(ctx, &updateDTO)
   return nil, stat.ToGRPCErrorWithSpan(span)
 }
 
@@ -79,7 +81,6 @@ func (u *UserHandler) UpdateAvatar(server authNv1.UserService_UpdateAvatarServer
   ctx, span := u.tracer.Start(ctx, "UserHandler.UpdateAvatar")
   defer span.End()
 
-  var userId string
   var filename string
   var bytes []byte
   for {
@@ -91,12 +92,12 @@ func (u *UserHandler) UpdateAvatar(server authNv1.UserService_UpdateAvatarServer
       spanUtil.RecordError(err, span)
       return err
     }
-    userId = recv.Id
     filename = recv.Filename
     bytes = append(bytes, recv.Chunk...)
   }
 
-  id, err := types.IdFromString(userId)
+  claims := types.Must(jwt.GetUserClaimsFromCtx(ctx))
+  userId, err := types.IdFromString(claims.UserId)
   if err != nil {
     spanUtil.RecordError(err, span)
     err = sharedErr.GrpcFieldErrors2(sharedErr.NewFieldError("user_id", err))
@@ -105,7 +106,7 @@ func (u *UserHandler) UpdateAvatar(server authNv1.UserService_UpdateAvatarServer
 
   // Mapping and Validation
   dtoInput := dto.UpdateUserAvatarDTO{
-    UserId:   id,
+    UserId:   userId,
     Filename: filename,
     Bytes:    bytes,
   }
@@ -129,7 +130,8 @@ func (u *UserHandler) UpdatePassword(ctx context.Context, request *authNv1.Updat
   ctx, span := u.tracer.Start(ctx, "UserHandler.UpdatePassword")
   defer span.End()
 
-  dtoInput, err := mapper.ToUserUpdatePasswordDTO(request)
+  claims := types.Must(jwt.GetUserClaimsFromCtx(ctx))
+  dtoInput, err := mapper.ToUserUpdatePasswordDTO(claims, request)
   if err != nil {
     spanUtil.RecordError(err, span)
     return nil, err
@@ -170,6 +172,12 @@ func (u *UserHandler) FindByIds(ctx context.Context, request *authNv1.FindUsersB
   ctx, span := u.tracer.Start(ctx, "UserHandler.FindByIds")
   defer span.End()
 
+  // Nil means to get the user itself
+  if len(request.Ids) == 0 {
+    // Get id from claims
+    claims := types.Must(jwt.GetUserClaimsFromCtx(ctx))
+    request.Ids = append(request.Ids, claims.UserId)
+  }
   userIds, ierr := sharedUtil.CastSliceErrs(request.Ids, types.IdFromString)
   if !ierr.IsNil() {
     spanUtil.RecordError(ierr, span)
@@ -204,12 +212,35 @@ func (u *UserHandler) Banned(ctx context.Context, request *authNv1.BannedUserReq
   return nil, stats.ToGRPCErrorWithSpan(span)
 }
 
+func (u *UserHandler) DeleteAvatar(ctx context.Context, request *authNv1.DeleteProfileAvatarRequest) (*emptypb.Empty, error) {
+  ctx, span := u.tracer.Start(ctx, "UserHandler.DeleteAvatar")
+  defer span.End()
+
+  claims := types.Must(jwt.GetUserClaimsFromCtx(ctx))
+  id := types.NewNullable(request.UserId)
+  userId, err := types.IdFromString(id.ValueOr(claims.UserId))
+  if err != nil {
+    spanUtil.RecordError(err, span)
+    return nil, sharedErr.NewFieldError("user_id", err).ToGrpcError()
+  }
+
+  stat := u.svc.DeleteAvatar(ctx, userId)
+  if stat.IsError() {
+    spanUtil.RecordError(stat.Error, span)
+    return nil, stat.ToGRPCError()
+  }
+
+  return nil, nil
+}
+
 func (u *UserHandler) Delete(ctx context.Context, request *authNv1.DeleteUserRequest) (*emptypb.Empty, error) {
   ctx, span := u.tracer.Start(ctx, "UserHandler.Delete")
   defer span.End()
 
   // Validation
-  userId, err := types.IdFromString(request.Ids)
+  claims := types.Must(jwt.GetUserClaimsFromCtx(ctx))
+  id := types.NewNullable(request.UserId)
+  userId, err := types.IdFromString(id.ValueOr(claims.UserId))
   if err != nil {
     spanUtil.RecordError(err, span)
     return nil, sharedErr.NewFieldError("ids", err).ToGrpcError()
@@ -268,29 +299,31 @@ func (u *UserHandler) ResetPassword(ctx context.Context, request *authNv1.ResetU
   return nil, stats.ToGRPCErrorWithSpan(span)
 }
 
-func (u *UserHandler) VerifyEmail(ctx context.Context, request *authNv1.VerifyUserEmailRequest) (*authNv1.VerifyUserEmailResponse, error) {
+func (u *UserHandler) VerifyEmail(ctx context.Context, request *authNv1.VerifyUserEmailRequest) (*emptypb.Empty, error) {
   ctx, span := u.tracer.Start(ctx, "UserHandler.VerifyEmail")
   defer span.End()
 
-  token := types.NewNullable(request.Token)
-  if token.HasValue() {
-    // Verify
-    stat := u.svc.VerifyEmail(ctx, token.RawValue())
-    if stat.IsError() {
-      spanUtil.RecordError(stat.Error, span)
-      return nil, stat.ToGRPCError()
-    }
-    return nil, nil
+  stat := u.svc.VerifyEmail(ctx, request.Token)
+  if stat.IsError() {
+    spanUtil.RecordError(stat.Error, span)
+    return nil, stat.ToGRPCError()
   }
+  return nil, nil
+}
+
+func (u *UserHandler) EmailVerificationRequest(ctx context.Context, request *authNv1.UserEmailVerificationRequest) (*authNv1.VerifyUserEmailResponse, error) {
+  ctx, span := u.tracer.Start(ctx, "UserHandler.EmailVerificationRequest")
+  defer span.End()
 
   // Request
-  tokenResp, stat := u.svc.EmailVerificationRequest(ctx)
+  result, stat := u.svc.EmailVerificationRequest(ctx)
   if stat.IsError() {
     spanUtil.RecordError(stat.Error, span)
     return nil, stat.ToGRPCError()
   }
 
-  return &authNv1.VerifyUserEmailResponse{
-    Token: mapper.ToProtoTokenResponse(&tokenResp),
-  }, nil
+  resp := &authNv1.VerifyUserEmailResponse{
+    Token: mapper.ToProtoTokenResponse(&result),
+  }
+  return resp, nil
 }

@@ -45,7 +45,35 @@ func (r *roleClient) SetUserAsDefault(ctx context.Context, userId types.Id) erro
     return r.client.SetAsDefault(ctx, &authZv1.SetAsDefaultRequest{UserId: userId.String()})
   })
 
-  return err
+  if err != nil {
+    err = util.CastBreakerError(err)
+    spanUtil.RecordError(err, span)
+    return err
+  }
+
+  return nil
+}
+
+func (r *roleClient) SetUserRoles(ctx context.Context, userId types.Id, roleIds ...types.Id) error {
+  ctx, span := r.tracer.Start(ctx, "RoleClient.SetUserRoles")
+  defer span.End()
+
+  req := authZv1.AddUserRolesRequest{
+    UserId:  userId.String(),
+    RoleIds: sharedUtil.CastSlice(roleIds, sharedUtil.ToString[types.Id]),
+  }
+
+  _, err := r.cb.Execute(func() (interface{}, error) {
+    return r.client.AddUser(ctx, &req)
+  })
+
+  if err != nil {
+    err = util.CastBreakerError(err)
+    spanUtil.RecordError(err, span)
+    return err
+  }
+
+  return nil
 }
 
 func (r *roleClient) GetUserRoles(ctx context.Context, userId types.Id) ([]dto.RoleResponseDTO, error) {
@@ -61,6 +89,7 @@ func (r *roleClient) GetUserRoles(ctx context.Context, userId types.Id) ([]dto.R
     return r.client.GetUsers(ctx, &req)
   })
   if err != nil {
+    err = util.CastBreakerError(err)
     spanUtil.RecordError(err, span)
     return nil, err
   }
@@ -115,6 +144,7 @@ func (r *roleClient) RemoveUserRoles(ctx context.Context, userId types.Id) error
     return r.client.RemoveUser(ctx, &req)
   })
   if err != nil {
+    err = util.CastBreakerError(err)
     spanUtil.RecordError(err, span)
     return err
   }

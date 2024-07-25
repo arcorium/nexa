@@ -5,6 +5,7 @@ import (
 )
 
 type CredentialResponseDTO struct {
-  Id     types.Id
-  Device string
+  Id        types.Id
+  Device    string
+  IsCurrent bool
 }

@@ -33,7 +33,6 @@ func (p profileRepository) Create(ctx context.Context, profile *entity.Profile) 
   defer span.End()
 
   dbModel := model.FromProfileDomain(profile)
-
   res, err := p.db.NewInsert().
     Model(&dbModel).
     Returning("NULL").
@@ -70,7 +69,6 @@ func (p profileRepository) FindByIds(ctx context.Context, userIds ...types.Id) (
   return profiles, nil
 }
 
-// NOTE: Currently not used, because each user can only have single profile
 func (p profileRepository) FindByUserId(ctx context.Context, userId types.Id) (*entity.Profile, error) {
   ctx, span := p.tracer.Start(ctx, "ProfileRepository.FindByIds")
   defer span.End()
@@ -107,7 +105,8 @@ func (p profileRepository) Update(ctx context.Context, profile *entity.Profile) 
 
   res, err := p.db.NewUpdate().
     Model(&dbModel).
-    WherePK().
+    //WherePK().
+    Where("user_id = ?", dbModel.UserId).
     ExcludeColumn("user_id", "id").
     Exec(ctx)
 
@@ -122,12 +121,27 @@ func (p profileRepository) Patch(ctx context.Context, profile *entity.PatchedPro
     profile.UpdatedAt = time.Now()
   })
 
-  res, err := p.db.NewUpdate().
+  query := p.db.NewUpdate().
     Model(&dbModel).
-    WherePK().
+    //WherePK().
+    Where("user_id = ?", dbModel.UserId).
     OmitZero().
-    ExcludeColumn("user_id", "id").
-    Exec(ctx)
+    ExcludeColumn("user_id", "id")
+
+  if util.IsStringNull(dbModel.LastName) {
+    query = query.Value("last_name", "NULL")
+  }
+  if util.IsStringNull(dbModel.Bio) {
+    query = query.Value("bio", "NULL")
+  }
+  if util.IsStringNull(dbModel.PhotoURL) {
+    query = query.Value("photo_url", "NULL")
+  }
+  if util.IsStringNull(dbModel.PhotoId) {
+    query = query.Value("photo_id", "NULL")
+  }
+
+  res, err := query.Exec(ctx)
 
   return repo.CheckResultWithSpan(res, err, span)
 }

@@ -3,6 +3,7 @@ package mapper
 import (
   authv1 "github.com/arcorium/nexa/proto/gen/go/authentication/v1"
   sharedErr "github.com/arcorium/nexa/shared/errors"
+  sharedJwt "github.com/arcorium/nexa/shared/jwt"
   "github.com/arcorium/nexa/shared/types"
   sharedUtil "github.com/arcorium/nexa/shared/util"
   "google.golang.org/protobuf/types/known/durationpb"
@@ -43,14 +44,19 @@ func ToRefreshTokenDTO(req *authv1.RefreshTokenRequest) (dto.RefreshTokenDTO, er
   return dtos, err
 }
 
-func ToLogoutDTO(req *authv1.LogoutRequest) (dto.LogoutDTO, error) {
+func ToLogoutDTO(claims *sharedJwt.UserClaims, req *authv1.LogoutRequest) (dto.LogoutDTO, error) {
   var fieldErrors []sharedErr.FieldError
 
-  userId, err := types.IdFromString(req.UserId)
+  id := types.NewNullable(req.UserId)
+  userId, err := types.IdFromString(id.ValueOr(claims.UserId))
   if err != nil {
     fieldErrors = append(fieldErrors, sharedErr.NewFieldError("user_id", err))
   }
 
+  // Delete current credential when the length is zero
+  if len(req.CredIds) == 0 {
+    req.CredIds = append(req.CredIds, claims.CredentialId)
+  }
   credIds, ierr := sharedUtil.CastSliceErrs(req.CredIds, types.IdFromString)
   if !ierr.IsNil() {
     fieldErrors = append(fieldErrors, ierr.ToFieldError("cred_ids"))
@@ -83,8 +89,13 @@ func ToProtoLoginResponse(respDTO *dto.LoginResponseDTO) *authv1.LoginResponse {
 }
 
 func ToProtoCredential(responseDTO *dto.CredentialResponseDTO) *authv1.Credential {
+  var isCurrent *bool
+  if responseDTO.IsCurrent {
+    isCurrent = &responseDTO.IsCurrent
+  }
   return &authv1.Credential{
-    Id:     responseDTO.Id.String(),
-    Device: responseDTO.Device,
+    Id:        responseDTO.Id.String(),
+    Device:    responseDTO.Device,
+    IsCurrent: isCurrent,
   }
 }

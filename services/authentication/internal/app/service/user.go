@@ -3,6 +3,7 @@ package service
 import (
   "context"
   "database/sql"
+  "errors"
   sharedDto "github.com/arcorium/nexa/shared/dto"
   sharedErr "github.com/arcorium/nexa/shared/errors"
   sharedJwt "github.com/arcorium/nexa/shared/jwt"
@@ -50,7 +51,7 @@ type userService struct {
 
 func (u userService) checkPermission(ctx context.Context, targetId types.Id, permission string) error {
   // Validate permission
-  claims, _ := sharedJwt.GetUserClaimsFromCtx(ctx)
+  claims := types.Must(sharedJwt.GetUserClaimsFromCtx(ctx))
   if !targetId.EqWithString(claims.UserId) {
     // Need permission to update other users
     if !authUtil.ContainsPermission(claims.Roles, permission) {
@@ -70,21 +71,35 @@ func (u userService) Create(ctx context.Context, createDto *dto.UserCreateDTO) (
     return types.NullId(), status.ErrBadRequest(err)
   }
 
+  stat := status.Created()
   err = u.unit.DoTx(ctx, func(ctx context.Context, storage userUow.UserStorage) error {
+    // Create user
     err := storage.User().Create(ctx, &user)
     if err != nil {
+      spanUtil.RecordError(err, span)
+      stat = status.FromRepository(err, status.NullCode)
       return err
     }
 
+    // Create profile
     err = storage.Profile().Create(ctx, &profile)
-    return err
-  })
-  if err != nil {
-    spanUtil.RecordError(err, span)
-    return types.NullId(), status.FromRepository(err, status.NullCode)
-  }
+    if err != nil {
+      spanUtil.RecordError(err, span)
+      stat = status.FromRepository(err, status.NullCode)
+      return err
+    }
 
-  return user.Id, status.Created()
+    // Set roles
+    err = u.config.RoleClient.SetUserRoles(ctx, user.Id, createDto.RoleIds...)
+    if err != nil {
+      spanUtil.RecordError(err, span)
+      stat = status.ErrExternal(err)
+      return err
+    }
+    return nil
+  })
+
+  return user.Id, stat
 }
 
 func (u userService) Update(ctx context.Context, updateDto *dto.UserUpdateDTO) status.Object {
@@ -126,7 +141,7 @@ func (u userService) UpdateAvatar(ctx context.Context, updateDto *dto.UpdateUser
 
   // Check if user already has photo
   repos := u.unit.Repositories()
-  profiles, err := repos.Profile().FindByIds(ctx, updateDto.UserId)
+  profiles, err := repos.Profile().FindByUserId(ctx, updateDto.UserId)
   if err != nil {
     spanUtil.RecordError(err, span)
     return status.FromRepository(err, status.NullCode)
@@ -144,7 +159,7 @@ func (u userService) UpdateAvatar(ctx context.Context, updateDto *dto.UpdateUser
 
   // Update profiles data
   profile := entity.PatchedProfile{
-    Id:       updateDto.UserId,
+    UserId:   updateDto.UserId,
     PhotoId:  types.SomeNullable(fileId),
     PhotoURL: types.SomeNullable(filePath),
   }
@@ -162,8 +177,8 @@ func (u userService) UpdateAvatar(ctx context.Context, updateDto *dto.UpdateUser
   }
 
   // Delete last avatar
-  if profiles[0].HasAvatar() {
-    err = u.config.StorageClient.DeleteProfileImage(ctx, profiles[0].PhotoId)
+  if profiles.HasAvatar() {
+    err = u.config.StorageClient.DeleteProfileImage(ctx, profiles.PhotoId)
     if err != nil {
       spanUtil.RecordError(err, span)
       return status.ErrExternal(err)
@@ -218,13 +233,27 @@ func (u userService) BannedUser(ctx context.Context, bannedDto *dto.UserBannedDT
   defer span.End()
 
   user := bannedDto.ToDomain()
+  err := u.unit.DoTx(ctx, func(ctx context.Context, storage userUow.UserStorage) error {
+    // Banned user
+    err := storage.User().Patch(ctx, &user)
+    if err != nil {
+      return err
+    }
 
-  repos := u.unit.Repositories()
-  err := repos.User().Patch(ctx, &user)
+    if user.IsBan() {
+      // Remove current user credentials
+      err = u.credRepo.DeleteByUserId(ctx, bannedDto.Id)
+      if err != nil && !errors.Is(err, sql.ErrNoRows) {
+        return err
+      }
+    }
+    return nil
+  })
   if err != nil {
     spanUtil.RecordError(err, span)
     return status.FromRepository(err, status.NullCode)
   }
+
   return status.Success()
 }
 
@@ -235,7 +264,7 @@ func (u userService) GetAll(ctx context.Context, pagedDto sharedDto.PagedElement
   repos := u.unit.Repositories()
 
   result, err := repos.User().Get(ctx, pagedDto.ToQueryParam())
-  if err != nil {
+  if err != nil && !errors.Is(err, sql.ErrNoRows) {
     spanUtil.RecordError(err, span)
     return sharedDto.PagedElementResult[dto.UserResponseDTO]{}, status.FromRepository(err, status.NullCode)
   }
@@ -262,6 +291,59 @@ func (u userService) FindByIds(ctx context.Context, ids ...types.Id) ([]dto.User
   return responses, status.Success()
 }
 
+func (u userService) DeleteAvatar(ctx context.Context, userId types.Id) status.Object {
+  ctx, span := u.tracer.Start(ctx, "UserService.DeleteAvatar")
+  defer span.End()
+
+  // Check for permission to delete other user
+  if err := u.checkPermission(ctx, userId, constant.AUTHN_PERMISSIONS[constant.AUTHN_UPDATE_USER_ARB]); err != nil {
+    spanUtil.RecordError(err, span)
+    return status.ErrUnAuthorized(err)
+  }
+  repos := u.unit.Repositories()
+  profiles, err := repos.Profile().FindByUserId(ctx, userId)
+  if err != nil {
+    spanUtil.RecordError(err, span)
+    return status.FromRepository(err, status.NullCode)
+  }
+
+  if !profiles.HasAvatar() {
+    return status.Success()
+  }
+
+  // Delete data from repository
+  stat := status.Updated()
+  _ = u.unit.DoTx(ctx, func(ctx context.Context, storage userUow.UserStorage) error {
+    ctx, span := u.tracer.Start(ctx, "UOW.DeleteAvatar")
+    defer span.End()
+
+    err = u.config.StorageClient.DeleteProfileImage(ctx, profiles.PhotoId)
+    if err != nil {
+      spanUtil.RecordError(err, span)
+      stat = status.ErrExternal(err)
+      return err
+    }
+
+    // Delete id and url
+    patch := entity.PatchedProfile{
+      UserId:   userId,
+      PhotoId:  types.SomeNullable(types.NullId()),
+      PhotoURL: types.SomeNullable[types.FilePath](""),
+    }
+
+    err = storage.Profile().Patch(ctx, &patch)
+    if err != nil {
+      spanUtil.RecordError(err, span)
+      stat = status.FromRepository(err, status.NullCode)
+      return err
+    }
+
+    return nil
+  })
+
+  return stat
+}
+
 func (u userService) DeleteById(ctx context.Context, userId types.Id) status.Object {
   ctx, span := u.tracer.Start(ctx, "UserService.DeleteById")
   defer span.End()
@@ -284,7 +366,7 @@ func (u userService) DeleteById(ctx context.Context, userId types.Id) status.Obj
 
     // Delete all user credentials
     err = u.credRepo.DeleteByUserId(ctx, userId)
-    if err != nil && err != sql.ErrNoRows {
+    if err != nil && !errors.Is(err, sql.ErrNoRows) {
       span.RecordError(err)
       stat = status.FromRepository(err, status.NullCode)
       return err

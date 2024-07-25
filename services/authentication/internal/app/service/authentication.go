@@ -4,6 +4,8 @@ import (
   "context"
   "crypto/rsa"
   "database/sql"
+  "errors"
+  "fmt"
   sharedErr "github.com/arcorium/nexa/shared/errors"
   sharedJwt "github.com/arcorium/nexa/shared/jwt"
   "github.com/arcorium/nexa/shared/optional"
@@ -24,7 +26,7 @@ import (
   "nexa/services/authentication/internal/domain/repository"
   "nexa/services/authentication/internal/domain/service"
   "nexa/services/authentication/util"
-  "nexa/services/authentication/util/errors"
+  "nexa/services/authentication/util/errs"
   "time"
 )
 
@@ -85,17 +87,15 @@ func (c *credentialService) getTokenClaims(tokenStr string) (*sharedJwt.UserClai
   token, err := jwt.ParseWithClaims(tokenStr, &sharedJwt.UserClaims{}, func(token *jwt.Token) (interface{}, error) {
     return c.config.PublicKey, nil
   })
-  if err != nil {
-    return nil, errors.ErrMalformedToken
-  }
 
-  if !token.Valid {
-    return nil, errors.ErrMalformedToken
+  // Allow expired token
+  if err != nil && !errors.Is(err, jwt.ErrTokenExpired) {
+    return nil, errs.ErrMalformedToken
   }
 
   claims, ok := token.Claims.(*sharedJwt.UserClaims)
   if !ok {
-    return nil, errors.ErrMalformedToken
+    return nil, errs.ErrMalformedToken
   }
   return claims, nil
 }
@@ -175,7 +175,14 @@ func (c *credentialService) Login(ctx context.Context, loginDto *dto.LoginDTO) (
     spanUtil.RecordError(err, span)
     return dto.LoginResponseDTO{}, status.FromRepository(err, status.NullCode)
   }
+  // Validate user password
   if err = users[0].ValidatePassword(loginDto.Password); err != nil {
+    spanUtil.RecordError(err, span)
+    return dto.LoginResponseDTO{}, status.ErrBadRequest(err)
+  }
+  // Check if user banned
+  if users[0].IsBanned() {
+    err = fmt.Errorf("user is currently banned until: %s", users[0].BannedUntil)
     spanUtil.RecordError(err, span)
     return dto.LoginResponseDTO{}, status.ErrBadRequest(err)
   }
@@ -215,8 +222,8 @@ func (c *credentialService) RefreshToken(ctx context.Context, refreshDto *dto.Re
 
   // Check scheme
   if refreshDto.TokenType != constant.TOKEN_TYPE {
-    spanUtil.RecordError(errors.ErrDifferentScheme, span)
-    return dto.RefreshTokenResponseDTO{}, status.ErrBadRequest(errors.ErrDifferentScheme)
+    spanUtil.RecordError(errs.ErrDifferentScheme, span)
+    return dto.RefreshTokenResponseDTO{}, status.ErrBadRequest(errs.ErrDifferentScheme)
   }
 
   // Parse token
@@ -228,31 +235,33 @@ func (c *credentialService) RefreshToken(ctx context.Context, refreshDto *dto.Re
 
   credId, err := types.IdFromString(claims.CredentialId)
   if err != nil {
-    spanUtil.RecordError(errors.ErrMalformedToken, span)
-    return dto.RefreshTokenResponseDTO{}, status.ErrBadRequest(errors.ErrMalformedToken)
+    spanUtil.RecordError(errs.ErrMalformedToken, span)
+    return dto.RefreshTokenResponseDTO{}, status.ErrBadRequest(errs.ErrMalformedToken)
   }
 
   cred, err := c.credRepo.Find(ctx, credId)
   if err != nil {
     spanUtil.RecordError(err, span)
     if err == sql.ErrNoRows {
-      return dto.RefreshTokenResponseDTO{}, status.ErrBadRequest(errors.ErrRefreshTokenNotFound)
+      return dto.RefreshTokenResponseDTO{}, status.ErrBadRequest(errs.ErrRefreshTokenNotFound)
     }
     return dto.RefreshTokenResponseDTO{}, status.FromRepository(err, optional.Some(status.BAD_REQUEST_ERROR))
   }
 
   // Check relation
   if !cred.UserId.EqWithString(claims.UserId) || !cred.AccessTokenId.EqWithString(claims.ID) {
-    spanUtil.RecordError(errors.ErrBadRelation, span)
-    return dto.RefreshTokenResponseDTO{}, status.ErrBadRequest(errors.ErrBadRelation)
+    spanUtil.RecordError(errs.ErrBadRelation, span)
+    return dto.RefreshTokenResponseDTO{}, status.ErrBadRequest(errs.ErrBadRelation)
   }
 
+  // Check if user still exist
   repos := c.unit.Repositories()
   _, err = repos.User().FindByIds(ctx, cred.UserId)
   if err != nil {
-    // NOTE: Delete refresh token?
+    // Delete refresh token when the user doesn't exist (could be deleted)
+    _ = c.credRepo.Delete(ctx, credId)
     spanUtil.RecordError(err, span)
-    return dto.RefreshTokenResponseDTO{}, status.ErrBadRequest(errors.ErrTokenBelongToNothing)
+    return dto.RefreshTokenResponseDTO{}, status.ErrBadRequest(errs.ErrTokenBelongToNothing)
   }
 
   // Get user roles and permission
@@ -300,7 +309,10 @@ func (c *credentialService) GetCredentials(ctx context.Context, userId types.Id)
     return nil, status.FromRepository(err, status.NullCode)
   }
 
-  response := sharedUtil.CastSliceP(credentials, mapper.ToCredentialResponseDTO)
+  claims := types.Must(sharedJwt.GetUserClaimsFromCtx(ctx))
+  response := sharedUtil.CastSliceP(credentials, func(from *entity.Credential) dto.CredentialResponseDTO {
+    return mapper.ToCredentialResponseDTO(from, optional.Some(claims.CredentialId))
+  })
   return response, status.Success()
 }
 
@@ -411,7 +423,7 @@ func (c *CredentialConfig) generateAccessToken(username string, userId, refreshI
     RegisteredClaims: jwt.RegisteredClaims{
       Issuer:    constant.CLAIMS_ISSUER,
       ExpiresAt: expAt,
-      NotBefore: expAt,
+      NotBefore: jwt.NewNumericDate(ct),
       IssuedAt:  jwt.NewNumericDate(ct),
       ID:        id.String(),
     },

@@ -44,6 +44,10 @@ func (u *User) ValidatePassword(password types.Password) error {
   return u.Password.Eq(password)
 }
 
+func (u *User) IsBanned() bool {
+  return u.BannedUntil.After(time.Now())
+}
+
 type PatchedUser struct {
   Id         types.Id
   Username   string
@@ -66,4 +70,8 @@ func (u *PatchedUser) SqlIsVerified() sql.NullBool {
     Bool:  u.IsVerified.RawValue(),
     Valid: true,
   }
+}
+
+func (u *PatchedUser) IsBan() bool {
+  return u.BannedDuration.HasValue() && u.BannedDuration.RawValue().Seconds() != 0
 }

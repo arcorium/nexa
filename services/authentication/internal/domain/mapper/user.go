@@ -12,6 +12,7 @@ func ToUserResponse(user *entity.User) dto.UserResponseDTO {
     Username:   user.Username,
     Email:      user.Email,
     IsVerified: user.IsVerified,
+    IsBanned:   user.IsBanned(),
     Profile: types.NilOrElse[dto.ProfileResponseDTO](user.Profile, func(obj *entity.Profile) *dto.ProfileResponseDTO {
       tmp := ToProfileResponse(obj)
       return &tmp

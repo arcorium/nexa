@@ -4,6 +4,7 @@ import (
   "context"
   authNv1 "github.com/arcorium/nexa/proto/gen/go/authentication/v1"
   sharedErr "github.com/arcorium/nexa/shared/errors"
+  "github.com/arcorium/nexa/shared/jwt"
   "github.com/arcorium/nexa/shared/types"
   sharedUtil "github.com/arcorium/nexa/shared/util"
   spanUtil "github.com/arcorium/nexa/shared/util/span"
@@ -37,13 +38,13 @@ func (c *CredentialHandler) Register(ctx context.Context, req *authNv1.RegisterR
   ctx, span := c.tracer.Start(ctx, "CredentialHandler.Register")
   defer span.End()
 
-  dtos, err := mapper.ToRegisterDTO(req)
+  registerDTO, err := mapper.ToRegisterDTO(req)
   if err != nil {
     spanUtil.RecordError(err, span)
     return nil, err
   }
 
-  stat := c.credService.Register(ctx, &dtos)
+  stat := c.credService.Register(ctx, &registerDTO)
   return nil, stat.ToGRPCErrorWithSpan(span)
 }
 
@@ -88,7 +89,9 @@ func (c *CredentialHandler) GetCredentials(ctx context.Context, req *authNv1.Get
   ctx, span := c.tracer.Start(ctx, "CredentialHandler.GetCredentials")
   defer span.End()
 
-  userId, err := types.IdFromString(req.UserId)
+  claims := types.Must(jwt.GetUserClaimsFromCtx(ctx))
+  id := types.NewNullable(req.UserId)
+  userId, err := types.IdFromString(id.ValueOr(claims.UserId))
   if err != nil {
     spanUtil.RecordError(err, span)
     return nil, sharedErr.NewFieldError("user_id", err).ToGrpcError()
@@ -108,7 +111,8 @@ func (c *CredentialHandler) Logout(ctx context.Context, req *authNv1.LogoutReque
   ctx, span := c.tracer.Start(ctx, "CredentialHandler.Logout")
   defer span.End()
 
-  logoutDTO, err := mapper.ToLogoutDTO(req)
+  claims := types.Must(jwt.GetUserClaimsFromCtx(ctx))
+  logoutDTO, err := mapper.ToLogoutDTO(claims, req)
   if err != nil {
     spanUtil.RecordError(err, span)
     return nil, err
@@ -122,7 +126,9 @@ func (c *CredentialHandler) LogoutAll(ctx context.Context, req *authNv1.LogoutAl
   ctx, span := c.tracer.Start(ctx, "CredentialHandler.LogoutAll")
   defer span.End()
 
-  userId, err := types.IdFromString(req.UserId)
+  claims := types.Must(jwt.GetUserClaimsFromCtx(ctx))
+  id := types.NewNullable(req.UserId)
+  userId, err := types.IdFromString(id.ValueOr(claims.UserId))
   if err != nil {
     spanUtil.RecordError(err, span)
     return nil, sharedErr.NewFieldError("user_id", err).ToGrpcError()

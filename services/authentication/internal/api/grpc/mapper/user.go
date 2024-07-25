@@ -3,6 +3,8 @@ package mapper
 import (
   authNv1 "github.com/arcorium/nexa/proto/gen/go/authentication/v1"
   sharedErr "github.com/arcorium/nexa/shared/errors"
+  sharedJwt "github.com/arcorium/nexa/shared/jwt"
+  "github.com/arcorium/nexa/shared/status"
   "github.com/arcorium/nexa/shared/types"
   sharedUtil "github.com/arcorium/nexa/shared/util"
   "nexa/services/authentication/internal/domain/dto"
@@ -29,9 +31,20 @@ func ToUserCreateDTO(request *authNv1.CreateUserRequest) (dto.UserCreateDTO, err
   // Hash Password
   pass := types.PasswordFromString(request.Password)
 
+  var fieldsError []sharedErr.FieldError
+
   email, err := types.EmailFromString(request.Email)
   if err != nil {
-    return dto.UserCreateDTO{}, err
+    fieldsError = append(fieldsError, sharedErr.NewFieldError("email", err))
+  }
+
+  roleIds, ierr := sharedUtil.CastSliceErrs(request.RoleIds, types.IdFromString)
+  if !ierr.IsNil() && !ierr.IsEmptySlice() {
+    fieldsError = append(fieldsError, sharedErr.NewFieldError("email", err))
+  }
+
+  if len(fieldsError) != 0 {
+    return dto.UserCreateDTO{}, sharedErr.GrpcFieldErrors2(fieldsError...)
   }
 
   dtos := dto.UserCreateDTO{
@@ -41,14 +54,16 @@ func ToUserCreateDTO(request *authNv1.CreateUserRequest) (dto.UserCreateDTO, err
     FirstName: request.FirstName,
     LastName:  types.NewNullable(request.LastName),
     Bio:       types.NewNullable(request.Bio),
+    RoleIds:   roleIds,
   }
 
   err = sharedUtil.ValidateStruct(&dtos)
   return dtos, err
 }
 
-func ToUserUpdateDTO(request *authNv1.UpdateUserRequest) (dto.UserUpdateDTO, error) {
-  id, err := types.IdFromString(request.Id)
+func ToUserUpdateDTO(claims *sharedJwt.UserClaims, request *authNv1.UpdateUserRequest) (dto.UserUpdateDTO, error) {
+  id := types.NewNullable(request.Id)
+  userId, err := types.IdFromString(id.ValueOr(claims.UserId))
   if err != nil {
     err = sharedErr.GrpcFieldErrors2(sharedErr.NewFieldError("id", err))
     return dto.UserUpdateDTO{}, err
@@ -64,7 +79,7 @@ func ToUserUpdateDTO(request *authNv1.UpdateUserRequest) (dto.UserUpdateDTO, err
   }
 
   return dto.UserUpdateDTO{
-    Id:        id,
+    Id:        userId,
     Username:  types.NewNullable(request.Username),
     Email:     types.NewNullable(emails),
     FirstName: types.NewNullable(request.FirstName),
@@ -73,11 +88,11 @@ func ToUserUpdateDTO(request *authNv1.UpdateUserRequest) (dto.UserUpdateDTO, err
   }, nil
 }
 
-func ToUserUpdatePasswordDTO(request *authNv1.UpdateUserPasswordRequest) (dto.UserUpdatePasswordDTO, error) {
-  id, err := types.IdFromString(request.Id)
+func ToUserUpdatePasswordDTO(claims *sharedJwt.UserClaims, request *authNv1.UpdateUserPasswordRequest) (dto.UserUpdatePasswordDTO, error) {
+  id, err := types.IdFromString(claims.UserId)
   if err != nil {
-    err = sharedErr.GrpcFieldErrors2(sharedErr.NewFieldError("id", err))
-    return dto.UserUpdatePasswordDTO{}, err
+    stat := status.ErrBadRequest(err)
+    return dto.UserUpdatePasswordDTO{}, stat.ToGRPCError()
   }
 
   lastPassword := types.PasswordFromString(request.LastPassword)
@@ -167,6 +182,7 @@ func ToProtoUser(responseDTO *dto.UserResponseDTO) *authNv1.User {
     Username:   responseDTO.Username,
     Email:      responseDTO.Email.String(),
     IsVerified: responseDTO.IsVerified,
+    IsBanned:   responseDTO.IsBanned,
     FirstName:  responseDTO.Profile.FirstName,
     LastName:   responseDTO.Profile.LastName,
     Bio:        responseDTO.Profile.Bio,

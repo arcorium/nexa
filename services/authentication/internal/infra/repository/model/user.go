@@ -80,11 +80,11 @@ func FromUserDomain(ent *entity.User, opts ...UserMapOption) User {
     },
     BannedUntil: sql.NullTime{
       Time:  ent.BannedUntil,
-      Valid: ent.BannedUntil.IsZero(),
+      Valid: !ent.BannedUntil.IsZero(),
     },
     DeletedAt: sql.NullTime{
       Time:  ent.DeletedAt,
-      Valid: ent.DeletedAt.IsZero(),
+      Valid: !ent.DeletedAt.IsZero(),
     },
     CreatedAt: ent.CreatedAt,
   }
@@ -104,8 +104,8 @@ type User struct {
   Password   string       `bun:",nullzero,notnull"`
   IsVerified sql.NullBool `bun:",notnull,default:false"`
 
-  BannedUntil sql.NullTime `bun:","` // Use nullable type to be able to unban
-  DeletedAt   sql.NullTime `bun:","` // Use nullable type to be able to undelete
+  BannedUntil sql.NullTime `bun:",nullzero"` // Use nullable type to be able to unban
+  DeletedAt   sql.NullTime `bun:",nullzero"` // Use nullable type to be able to undelete
   UpdatedAt   time.Time    `bun:",nullzero"`
   CreatedAt   time.Time    `bun:",nullzero,notnull"`
 

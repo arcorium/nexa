@@ -44,7 +44,7 @@ message User {
 }
 
 message VerifyUserEmailRequest {
-  optional string token = 2;
+  string token = 2;
 }
 
 message UserEmailVerificationRequest {

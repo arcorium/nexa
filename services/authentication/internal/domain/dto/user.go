@@ -11,6 +11,7 @@ type UserResponseDTO struct {
   Username   string
   Email      types.Email
   IsVerified bool
+  IsBanned   bool
   Profile    *ProfileResponseDTO
 }
 
@@ -21,6 +22,7 @@ type UserCreateDTO struct {
   FirstName string `validate:"required"`
   LastName  types.NullableString
   Bio       types.NullableString
+  RoleIds   []types.Id
 }
 
 func (d *UserCreateDTO) ToDomain() (entity.User, entity.Profile, error) {
@@ -58,7 +60,8 @@ func (d *UserUpdateDTO) ToDomain() (entity.PatchedUser, entity.PatchedProfile) {
   types.SetOnNonNull(&user.Email, d.Email)
 
   profile := entity.PatchedProfile{
-    Id:       d.Id,
+    //Id:       d.Id,
+    UserId:   d.Id,
     LastName: d.LastName,
     Bio:      d.Bio,
   }

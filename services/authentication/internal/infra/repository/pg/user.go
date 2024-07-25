@@ -24,8 +24,7 @@ func NewUser(db bun.IDB) repository.IUser {
 }
 
 type userRepository struct {
-  db bun.IDB
-
+  db     bun.IDB
   tracer trace.Tracer
 }
 
@@ -70,13 +69,21 @@ func (u userRepository) Patch(ctx context.Context, user *entity.PatchedUser) err
     user.UpdatedAt = time.Now()
   })
 
-  res, err := u.db.NewUpdate().
+  query := u.db.NewUpdate().
     Model(&dbModel).
     OmitZero().
     WherePK().
-    ExcludeColumn("id", "created_at").
-    Exec(ctx)
+    ExcludeColumn("id", "created_at")
 
+  // Set to NULL for zero time
+  if util.IsTimeNull(&dbModel.BannedUntil) {
+    query = query.Value("banned_until", "NULL")
+  }
+  if util.IsTimeNull(&dbModel.DeletedAt) {
+    query = query.Value("deleted_at", "NULL")
+  }
+
+  res, err := query.Exec(ctx)
   return repo.CheckResultWithSpan(res, err, span)
 }
 
@@ -90,7 +97,7 @@ func (u userRepository) FindByIds(ctx context.Context, userIds ...types.Id) ([]e
   err := u.db.NewSelect().
     Model(&dbModel).
     Relation("Profile").
-    Where("u.id IN (?)", bun.In(ids)).
+    Where("u.id IN (?) AND deleted_at IS NULL", bun.In(ids)).
     Distinct().
     OrderExpr("created_at DESC").
     Scan(ctx)
@@ -117,7 +124,7 @@ func (u userRepository) FindByEmails(ctx context.Context, emails ...types.Email)
   err := u.db.NewSelect().
     Model(&dbModel).
     Relation("Profile").
-    Where("email IN (?)", bun.In(emails)).
+    Where("email IN (?) AND deleted_at IS NULL", bun.In(emails)).
     Distinct().
     OrderExpr("created_at DESC").
     Scan(ctx)
@@ -143,9 +150,11 @@ func (u userRepository) Get(ctx context.Context, query repo.QueryParameter) (rep
   var dbModel []model.User
   count, err := u.db.NewSelect().
     Model(&dbModel).
+    Relation("Profile").
     Offset(int(query.Offset)).
     Limit(int(query.Limit)).
     OrderExpr("created_at DESC").
+    Where("deleted_at IS NULL").
     ScanAndCount(ctx)
 
   result := repo.CheckPaginationResultWithSpan(dbModel, count, err, span)

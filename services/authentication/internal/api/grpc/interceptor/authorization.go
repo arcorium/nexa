@@ -39,6 +39,8 @@ func PermissionCheck(claims *sharedJwt.UserClaims, meta interceptors.CallMeta) b
   case authNv1.UserService_Update_FullMethodName:
     fallthrough
   case authNv1.UserService_UpdatePassword_FullMethodName:
+    fallthrough
+  case authNv1.UserService_DeleteAvatar_FullMethodName:
     return authUtil.ContainsPermission(claims.Roles, constant.AUTHN_PERMISSIONS[constant.AUTHN_UPDATE_USER])
   case authNv1.UserService_Find_FullMethodName:
     fallthrough
@@ -50,6 +52,8 @@ func PermissionCheck(claims *sharedJwt.UserClaims, meta interceptors.CallMeta) b
     return authUtil.ContainsPermission(claims.Roles, constant.AUTHN_PERMISSIONS[constant.AUTHN_DELETE_USER])
   case authNv1.UserService_ResetPassword_FullMethodName:
     return authUtil.ContainsPermission(claims.Roles, constant.AUTHN_PERMISSIONS[constant.AUTHN_UPDATE_USER_ARB])
+  case authNv1.UserService_EmailVerificationRequest_FullMethodName:
+    return authUtil.ContainsPermission(claims.Roles, constant.AUTHN_PERMISSIONS[constant.AUTHN_VERIF_REQUEST])
   // Profile
   case authNv1.UserService_UpdateAvatar_FullMethodName:
     return authUtil.ContainsPermission(claims.Roles, constant.AUTHN_PERMISSIONS[constant.AUTHN_UPDATE_USER])

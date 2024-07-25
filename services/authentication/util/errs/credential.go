@@ -1,4 +1,4 @@
-package errors
+package errs
 
 import "errors"
 
@@ -11,3 +11,5 @@ var ErrMalformedToken = errors.New("your token is malformed")
 var ErrBadRelation = errors.New("refresh token is not associated with this access token")
 
 var ErrTokenBelongToNothing = errors.New("token has no owner, please login again")
+
+var ErrTokenVerificationNotFound = errors.New("expected token verification")

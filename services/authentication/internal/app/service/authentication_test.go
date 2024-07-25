@@ -27,7 +27,6 @@ import (
   "nexa/services/authentication/internal/domain/entity"
   extMock "nexa/services/authentication/internal/domain/external/mocks"
   repoMock "nexa/services/authentication/internal/domain/repository/mocks"
-  "nexa/services/authentication/util/errors"
   "reflect"
   "testing"
   "time"
@@ -1161,7 +1160,7 @@ func Test_credentialService_RefreshToken(t *testing.T) {
           AccessToken: "",
         },
       },
-      want1: status.ErrBadRequest(errors.ErrTokenBelongToNothing),
+      want1: status.ErrBadRequest(errs.ErrTokenBelongToNothing),
     },
     {
       name: "Token has different scheme",
@@ -1174,7 +1173,7 @@ func Test_credentialService_RefreshToken(t *testing.T) {
           AccessToken: "",
         },
       },
-      want1: status.ErrBadRequest(errors.ErrDifferentScheme),
+      want1: status.ErrBadRequest(errs.ErrDifferentScheme),
     },
     {
       name: "Access token malformed",
@@ -1188,7 +1187,7 @@ func Test_credentialService_RefreshToken(t *testing.T) {
           AccessToken: sharedUtil.RandomString(128),
         },
       },
-      want1: status.ErrBadRequest(errors.ErrMalformedToken),
+      want1: status.ErrBadRequest(errs.ErrMalformedToken),
     },
     {
       name: "Access token has no refresh token",
@@ -1225,7 +1224,7 @@ func Test_credentialService_RefreshToken(t *testing.T) {
           AccessToken: "",
         },
       },
-      want1: status.ErrBadRequest(errors.ErrRefreshTokenNotFound),
+      want1: status.ErrBadRequest(errs.ErrRefreshTokenNotFound),
     },
     {
       name: "Failed to get user roles",

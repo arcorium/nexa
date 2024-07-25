@@ -15,7 +15,8 @@ type PatchedProfileMapOption = repo.DataAccessModelMapOption[*entity.PatchedProf
 
 func FromPatchedProfileDomain(ent *entity.PatchedProfile, opts ...PatchedProfileMapOption) Profile {
   profile := Profile{
-    Id:        ent.Id.String(),
+    //Id:        ent.Id.String(),
+    UserId:    ent.UserId.String(),
     FirstName: ent.FirstName,
     LastName:  ent.LastName.ValueOrNil(),
     PhotoId:   types.GetValueOrNilCasted(ent.PhotoId, sharedUtil.ToString[types.Id]),
@@ -40,14 +41,24 @@ func FromProfileDomain(ent *entity.Profile, opts ...ProfileMapOption) Profile {
     photoURL = &url
   }
 
+  var lastName *string
+  if len(ent.LastName) != 0 {
+    lastName = &ent.LastName
+  }
+
+  var bio *string
+  if len(ent.Bio) != 0 {
+    bio = &ent.Bio
+  }
+
   profile := Profile{
     Id:        ent.Id.String(),
     UserId:    ent.UserId.String(),
     FirstName: ent.FirstName,
-    LastName:  &ent.LastName,
+    LastName:  lastName,
     PhotoId:   photoId,
     PhotoURL:  photoURL,
-    Bio:       &ent.Bio,
+    Bio:       bio,
   }
 
   variadic.New(opts...).DoAll(repo.MapOptionFunc(ent, &profile))
@@ -61,10 +72,10 @@ type Profile struct {
   Id        string  `bun:",type:uuid,pk"`
   UserId    string  `bun:",type:uuid,notnull,nullzero"` // Profile is unique per user
   FirstName string  `bun:",notnull,nullzero"`
-  LastName  *string `bun:","`
-  PhotoId   *string `bun:",type:uuid"` // Id of profile image on file storage
-  PhotoURL  *string `bun:","`
-  Bio       *string `bun:","`
+  LastName  *string `bun:",nullzero"`
+  PhotoId   *string `bun:",type:uuid,nullzero"` // Id of profile image on file storage
+  PhotoURL  *string `bun:",nullzero"`
+  Bio       *string `bun:",nullzero"`
 
   UpdatedAt time.Time `bun:",nullzero"`
 
