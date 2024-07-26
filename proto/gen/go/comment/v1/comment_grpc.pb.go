@@ -23,6 +23,7 @@ const (
 	CommentService_Create_FullMethodName     = "/nexa.comment.v1.CommentService/Create"
 	CommentService_Edit_FullMethodName       = "/nexa.comment.v1.CommentService/Edit"
 	CommentService_Delete_FullMethodName     = "/nexa.comment.v1.CommentService/Delete"
+	CommentService_IsExist_FullMethodName    = "/nexa.comment.v1.CommentService/IsExist"
 	CommentService_GetPosts_FullMethodName   = "/nexa.comment.v1.CommentService/GetPosts"
 	CommentService_GetReplies_FullMethodName = "/nexa.comment.v1.CommentService/GetReplies"
 	CommentService_GetCounts_FullMethodName  = "/nexa.comment.v1.CommentService/GetCounts"
@@ -37,6 +38,7 @@ type CommentServiceClient interface {
 	Create(ctx context.Context, in *CreateCommentRequest, opts ...grpc.CallOption) (*CreateCommentResponse, error)
 	Edit(ctx context.Context, in *EditCommentRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	Delete(ctx context.Context, in *DeleteCommentRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	IsExist(ctx context.Context, in *IsCommentExistRequest, opts ...grpc.CallOption) (*IsCommentExistResponse, error)
 	GetPosts(ctx context.Context, in *GetPostCommentsRequest, opts ...grpc.CallOption) (*GetPostCommentsResponse, error)
 	GetReplies(ctx context.Context, in *GetCommentRepliesRequest, opts ...grpc.CallOption) (*GetCommentRepliesResponse, error)
 	GetCounts(ctx context.Context, in *GetCountsRequest, opts ...grpc.CallOption) (*GetCountsResponse, error)
@@ -75,6 +77,15 @@ func (c *commentServiceClient) Edit(ctx context.Context, in *EditCommentRequest,
 func (c *commentServiceClient) Delete(ctx context.Context, in *DeleteCommentRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, CommentService_Delete_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *commentServiceClient) IsExist(ctx context.Context, in *IsCommentExistRequest, opts ...grpc.CallOption) (*IsCommentExistResponse, error) {
+	out := new(IsCommentExistResponse)
+	err := c.cc.Invoke(ctx, CommentService_IsExist_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -133,6 +144,7 @@ type CommentServiceServer interface {
 	Create(context.Context, *CreateCommentRequest) (*CreateCommentResponse, error)
 	Edit(context.Context, *EditCommentRequest) (*emptypb.Empty, error)
 	Delete(context.Context, *DeleteCommentRequest) (*emptypb.Empty, error)
+	IsExist(context.Context, *IsCommentExistRequest) (*IsCommentExistResponse, error)
 	GetPosts(context.Context, *GetPostCommentsRequest) (*GetPostCommentsResponse, error)
 	GetReplies(context.Context, *GetCommentRepliesRequest) (*GetCommentRepliesResponse, error)
 	GetCounts(context.Context, *GetCountsRequest) (*GetCountsResponse, error)
@@ -155,6 +167,9 @@ func (UnimplementedCommentServiceServer) Edit(context.Context, *EditCommentReque
 }
 func (UnimplementedCommentServiceServer) Delete(context.Context, *DeleteCommentRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
+}
+func (UnimplementedCommentServiceServer) IsExist(context.Context, *IsCommentExistRequest) (*IsCommentExistResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method IsExist not implemented")
 }
 func (UnimplementedCommentServiceServer) GetPosts(context.Context, *GetPostCommentsRequest) (*GetPostCommentsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetPosts not implemented")
@@ -234,6 +249,24 @@ func _CommentService_Delete_Handler(srv interface{}, ctx context.Context, dec fu
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(CommentServiceServer).Delete(ctx, req.(*DeleteCommentRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CommentService_IsExist_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(IsCommentExistRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CommentServiceServer).IsExist(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CommentService_IsExist_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CommentServiceServer).IsExist(ctx, req.(*IsCommentExistRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -346,6 +379,10 @@ var CommentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Delete",
 			Handler:    _CommentService_Delete_Handler,
+		},
+		{
+			MethodName: "IsExist",
+			Handler:    _CommentService_IsExist_Handler,
 		},
 		{
 			MethodName: "GetPosts",

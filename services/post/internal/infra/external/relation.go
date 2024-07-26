@@ -13,7 +13,7 @@ import (
   "nexa/services/post/util"
 )
 
-func NewFollow(conn grpc.ClientConnInterface, conf *config.CircuitBreaker) external.IFollowClient {
+func NewFollow(conn grpc.ClientConnInterface, conf *config.CircuitBreaker) external.IRelationClient {
   breaker := gobreaker.NewCircuitBreaker(gobreaker.Settings{
     Name:         "nexa-follow",
     MaxRequests:  conf.MaxRequest,

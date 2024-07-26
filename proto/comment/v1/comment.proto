@@ -10,6 +10,7 @@ service CommentService {
   rpc Create(CreateCommentRequest) returns (CreateCommentResponse);
   rpc Edit(EditCommentRequest) returns (google.protobuf.Empty);
   rpc Delete(DeleteCommentRequest) returns (google.protobuf.Empty);
+  rpc IsExist(IsCommentExistRequest) returns (IsCommentExistResponse);
   rpc GetPosts(GetPostCommentsRequest) returns (GetPostCommentsResponse);
   rpc GetReplies(GetCommentRepliesRequest) returns (GetCommentRepliesResponse);
   rpc GetCounts(GetCountsRequest) returns (GetCountsResponse);
@@ -54,6 +55,14 @@ message EditCommentRequest {
 
 message DeleteCommentRequest {
   string comment_id = 1;
+}
+
+message IsCommentExistRequest {
+  repeated string comment_ids = 1;
+}
+
+message IsCommentExistResponse {
+  bool is_exists = 1;
 }
 
 message GetPostCommentsRequest {
