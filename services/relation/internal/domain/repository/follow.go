@@ -9,7 +9,8 @@ import (
 
 type IFollow interface {
   Create(ctx context.Context, follow *entity.Follow) error
-  Delete(ctx context.Context, follow *entity.Follow) error
+  Creates(ctx context.Context, follows []entity.Follow) error
+  Delete(ctx context.Context, follows ...entity.Follow) error
   GetFollowers(ctx context.Context, userId types.Id, parameter repo.QueryParameter) (repo.PaginatedResult[entity.Follow], error)
   GetFollowings(ctx context.Context, userId types.Id, parameter repo.QueryParameter) (repo.PaginatedResult[entity.Follow], error)
   IsFollowing(ctx context.Context, userId types.Id, followeeIds ...types.Id) ([]bool, error)

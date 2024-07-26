@@ -12,7 +12,7 @@ import (
   "nexa/services/relation/internal/domain/repository"
   "nexa/services/relation/internal/infra/repository/model"
   "nexa/services/relation/util"
-  "nexa/services/relation/util/errors"
+  "nexa/services/relation/util/errs"
 )
 
 func NewFollow(db bun.IDB) repository.IFollow {
@@ -40,13 +40,35 @@ func (f *followRepository) Create(ctx context.Context, follow *entity.Follow) er
   return repo.CheckResultWithSpan(res, err, span)
 }
 
-func (f *followRepository) Delete(ctx context.Context, follow *entity.Follow) error {
+func (f *followRepository) Creates(ctx context.Context, follows []entity.Follow) error {
+  ctx, span := f.tracer.Start(ctx, "FollowRepository.Creates")
+  defer span.End()
+
+  var dbModels = make([]model.Follow, 0, len(follows))
+  for _, follow := range follows {
+    dbModel := model.FromFollowDomain(&follow)
+    dbModels = append(dbModels, dbModel)
+  }
+  res, err := f.db.NewInsert().
+    Model(&dbModels).
+    Returning("NULL").
+    Exec(ctx)
+
+  return repo.CheckResultWithSpan(res, err, span)
+}
+
+func (f *followRepository) Delete(ctx context.Context, follows ...entity.Follow) error {
   ctx, span := f.tracer.Start(ctx, "FollowRepository.Delete")
   defer span.End()
 
-  dbModel := model.FromFollowDomain(follow)
+  var dbModels = make([]model.Follow, 0, len(follows))
+  for _, follow := range follows {
+    dbModel := model.FromFollowDomain(&follow)
+    dbModels = append(dbModels, dbModel)
+  }
+
   res, err := f.db.NewDelete().
-    Model(&dbModel).
+    Model(&dbModels).
     WherePK().
     Exec(ctx)
 
@@ -69,7 +91,7 @@ func (f *followRepository) Delsert(ctx context.Context, follow *entity.Follow) e
   }
 
   if exists {
-    return f.Delete(ctx, follow)
+    return f.Delete(ctx, *follow)
   }
   return f.Create(ctx, follow)
 }
@@ -161,7 +183,7 @@ func (f *followRepository) IsFollowing(ctx context.Context, userId types.Id, fol
 
   if len(dbModels) != len(followeeIds) {
     // TODO: It should be internal error
-    err = errors.ErrResultWithDifferentLength
+    err = errs.ErrResultWithDifferentLength
     spanUtil.RecordError(err, span)
     return nil, err
   }
@@ -198,7 +220,7 @@ func (f *followRepository) GetCounts(ctx context.Context, userIds ...types.Id) (
 
   if len(dbModels) != len(userIds) {
     // TODO: It should be internal error
-    err = errors.ErrResultWithDifferentLength
+    err = errs.ErrResultWithDifferentLength
     spanUtil.RecordError(err, span)
     return nil, err
   }
@@ -216,8 +238,8 @@ func (f *followRepository) DeleteByUserId(ctx context.Context, deleteFollower bo
   ctx, span := f.tracer.Start(ctx, "FollowRepository.DeleteByUserId")
   defer span.End()
 
-  query := f.db.NewSelect().
-    Model(types.Nil[model.Block]())
+  query := f.db.NewDelete().
+    Model(types.Nil[model.Follow]())
   if deleteFollower {
     // Delete user that follows this user
     query = query.

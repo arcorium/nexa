@@ -6,16 +6,16 @@ import (
   "nexa/services/relation/internal/domain/entity"
 )
 
-func ToProtoFollowStatus(status entity.FollowStatus) relationv1.FollowStatus {
+func ToProtoFollowStatus(status entity.FollowStatus) relationv1.Relation {
   switch status {
   case entity.FollowStatusNone:
-    return relationv1.FollowStatus_NONE
+    return relationv1.Relation_NONE
   case entity.FollowStatusFollower:
-    return relationv1.FollowStatus_FOLLOWER
+    return relationv1.Relation_FOLLOWER
   case entity.FollowStatusMutual:
-    return relationv1.FollowStatus_MUTUAL
+    return relationv1.Relation_MUTUAL
   default:
-    return relationv1.FollowStatus_UNKNOWN
+    return relationv1.Relation_UNKNOWN
   }
 }
 

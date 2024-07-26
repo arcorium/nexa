@@ -36,7 +36,7 @@ func PermissionCheck(claims *sharedJwt.UserClaims, meta interceptors.CallMeta) b
     fallthrough
   case relationv1.FollowService_GetFollowees_FullMethodName:
     fallthrough
-  case relationv1.FollowService_GetFollowStatus_FullMethodName:
+  case relationv1.FollowService_GetRelation_FullMethodName:
     fallthrough
   case relationv1.FollowService_GetUsersCount_FullMethodName:
     return authUtil.ContainsPermission(claims.Roles, constant.RELATION_PERMISSIONS[constant.RELATION_GET_FOLLOW])

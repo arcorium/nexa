@@ -5,6 +5,7 @@ import (
   relationv1 "github.com/arcorium/nexa/proto/gen/go/relation/v1"
   sharedDto "github.com/arcorium/nexa/shared/dto"
   sharedErr "github.com/arcorium/nexa/shared/errors"
+  "github.com/arcorium/nexa/shared/jwt"
   "github.com/arcorium/nexa/shared/types"
   sharedUtil "github.com/arcorium/nexa/shared/util"
   spanUtil "github.com/arcorium/nexa/shared/util/span"
@@ -66,7 +67,9 @@ func (f *FollowHandler) GetFollowers(ctx context.Context, request *relationv1.Ge
   ctx, span := f.tracer.Start(ctx, "FollowHandler.GetFollowers")
   defer span.End()
 
-  userId, err := types.IdFromString(request.UserId)
+  claims := types.Must(jwt.GetUserClaimsFromCtx(ctx))
+  id := types.NewNullable(request.UserId)
+  userId, err := types.IdFromString(id.ValueOr(claims.UserId))
   if err != nil {
     spanUtil.RecordError(err, span)
     return nil, sharedErr.NewFieldError("user_id", err).ToGrpcError()
@@ -96,7 +99,9 @@ func (f *FollowHandler) GetFollowees(ctx context.Context, request *relationv1.Ge
   ctx, span := f.tracer.Start(ctx, "FollowHandler.GetFollowees")
   defer span.End()
 
-  userId, err := types.IdFromString(request.UserId)
+  claims := types.Must(jwt.GetUserClaimsFromCtx(ctx))
+  id := types.NewNullable(request.UserId)
+  userId, err := types.IdFromString(id.ValueOr(claims.UserId))
   if err != nil {
     spanUtil.RecordError(err, span)
     return nil, sharedErr.NewFieldError("user_id", err).ToGrpcError()
@@ -122,17 +127,19 @@ func (f *FollowHandler) GetFollowees(ctx context.Context, request *relationv1.Ge
   return resp, nil
 }
 
-func (f *FollowHandler) GetFollowStatus(ctx context.Context, request *relationv1.GetFollowStatusRequest) (*relationv1.GetFollowStatusResponse, error) {
+func (f *FollowHandler) GetRelation(ctx context.Context, request *relationv1.GetRelationRequest) (*relationv1.GetRelationResponse, error) {
   ctx, span := f.tracer.Start(ctx, "FollowHandler.GetFollowStatus")
   defer span.End()
 
-  userId, err := types.IdFromString(request.UserId)
+  claims := types.Must(jwt.GetUserClaimsFromCtx(ctx))
+  id := types.NewNullable(request.UserId)
+  userId, err := types.IdFromString(id.ValueOr(claims.UserId))
   if err != nil {
     spanUtil.RecordError(err, span)
     return nil, sharedErr.NewFieldError("user_id", err).ToGrpcError()
   }
 
-  opponentIds, ierr := sharedUtil.CastSliceErrs(request.OpponentUserId, types.IdFromString)
+  opponentIds, ierr := sharedUtil.CastSliceErrs(request.OpponentUserIds, types.IdFromString)
   if !ierr.IsNil() {
     spanUtil.RecordError(ierr, span)
     return nil, ierr.ToGRPCError("opponent_user_ids")
@@ -144,7 +151,7 @@ func (f *FollowHandler) GetFollowStatus(ctx context.Context, request *relationv1
     return nil, stat.ToGRPCError()
   }
 
-  resp := &relationv1.GetFollowStatusResponse{
+  resp := &relationv1.GetRelationResponse{
     Status: sharedUtil.CastSlice(statuses, mapper.ToProtoFollowStatus),
   }
   return resp, nil
@@ -154,6 +161,12 @@ func (f *FollowHandler) GetUsersCount(ctx context.Context, request *relationv1.G
   ctx, span := f.tracer.Start(ctx, "FollowHandler.GetUsersCount")
   defer span.End()
 
+  // Nil means to get the user itself
+  if len(request.UserIds) == 0 {
+    // Get id from claims
+    claims := types.Must(jwt.GetUserClaimsFromCtx(ctx))
+    request.UserIds = append(request.UserIds, claims.UserId)
+  }
   userIds, ierr := sharedUtil.CastSliceErrs(request.UserIds, types.IdFromString)
   if !ierr.IsNil() {
     spanUtil.RecordError(ierr, span)
@@ -175,7 +188,9 @@ func (f *FollowHandler) ClearUsers(ctx context.Context, request *relationv1.Clea
   ctx, span := f.tracer.Start(ctx, "FollowHandler.ClearUsers")
   defer span.End()
 
-  userId, err := types.IdFromString(request.UserId)
+  claims := types.Must(jwt.GetUserClaimsFromCtx(ctx))
+  id := types.NewNullable(request.UserId)
+  userId, err := types.IdFromString(id.ValueOr(claims.UserId))
   if err != nil {
     spanUtil.RecordError(err, span)
     return nil, sharedErr.NewFieldError("user_id", err).ToGrpcError()

@@ -12,7 +12,7 @@ import (
   "nexa/services/relation/internal/domain/repository"
   "nexa/services/relation/internal/infra/repository/model"
   "nexa/services/relation/util"
-  "nexa/services/relation/util/errors"
+  "nexa/services/relation/util/errs"
 )
 
 func NewBlock(db bun.IDB) repository.IBlock {
@@ -88,6 +88,7 @@ func (f *blockRepository) GetBlocked(ctx context.Context, userId types.Id, param
     Where("blocker_id = ?", userId.String()).
     Limit(int(parameter.Limit)).
     Offset(int(parameter.Offset)).
+    OrderExpr("created_at DESC").
     ScanAndCount(ctx)
 
   result := repo.CheckSliceResult(dbModels, err)
@@ -131,7 +132,7 @@ func (f *blockRepository) GetCounts(ctx context.Context, userIds ...types.Id) ([
 
   if len(dbModels) != len(userIds) {
     // TODO: It should be internal error
-    err = errors.ErrResultWithDifferentLength
+    err = errs.ErrResultWithDifferentLength
     spanUtil.RecordError(err, span)
     return nil, err
   }
@@ -145,7 +146,7 @@ func (f *blockRepository) GetCounts(ctx context.Context, userIds ...types.Id) ([
 }
 
 func (f *blockRepository) IsBlocked(ctx context.Context, blockerId, targetId types.Id) (bool, error) {
-  ctx, span := f.tracer.Start(ctx, "BlockRepository.GetStatus")
+  ctx, span := f.tracer.Start(ctx, "BlockRepository.IsBlocked")
   defer span.End()
 
   count, err := f.db.NewSelect().
@@ -166,7 +167,7 @@ func (f *blockRepository) DeleteByUserId(ctx context.Context, deleteBlocker bool
   ctx, span := f.tracer.Start(ctx, "BlockRepository.DeleteByUserId")
   defer span.End()
 
-  query := f.db.NewSelect().
+  query := f.db.NewDelete().
     Model(types.Nil[model.Block]())
   if deleteBlocker {
     // Delete other user that blocked this user

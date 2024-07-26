@@ -14,23 +14,26 @@ import (
   "nexa/services/relation/constant"
   "nexa/services/relation/internal/domain/dto"
   "nexa/services/relation/internal/domain/entity"
+  "nexa/services/relation/internal/domain/external"
   "nexa/services/relation/internal/domain/mapper"
   "nexa/services/relation/internal/domain/repository"
   "nexa/services/relation/internal/domain/service"
   "nexa/services/relation/util"
-  "nexa/services/relation/util/errors"
+  "nexa/services/relation/util/errs"
 )
 
-func NewBlock(block repository.IBlock) service.IBlock {
+func NewBlock(block repository.IBlock, client external.IUserClient) service.IBlock {
   return &blockService{
-    repo:   block,
-    tracer: util.GetTracer(),
+    repo:       block,
+    userClient: client,
+    tracer:     util.GetTracer(),
   }
 }
 
 type blockService struct {
-  repo   repository.IBlock
-  tracer trace.Tracer
+  repo       repository.IBlock
+  userClient external.IUserClient
+  tracer     trace.Tracer
 }
 
 func (b *blockService) getUserClaims(ctx context.Context) (types.Id, error) {
@@ -64,6 +67,16 @@ func (b *blockService) checkPermission(ctx context.Context, targetId types.Id, p
   return nil
 }
 
+func (b *blockService) isUserExists(ctx context.Context, userId types.Id) error {
+  // Validate the user id
+  exist, err := b.userClient.Validate(ctx, userId)
+  if err != nil {
+    return err
+  }
+
+  return sharedUtil.Ternary(exist, nil, errs.ErrUserNotFound)
+}
+
 func (b *blockService) Block(ctx context.Context, targetUserId types.Id) status.Object {
   ctx, span := b.tracer.Start(ctx, "BlockService.Block")
   defer span.End()
@@ -76,15 +89,21 @@ func (b *blockService) Block(ctx context.Context, targetUserId types.Id) status.
   }
 
   if userId.Eq(targetUserId) {
-    spanUtil.RecordError(errors.ErrBlockItself, span)
-    return status.ErrBadRequest(errors.ErrBlockItself)
+    spanUtil.RecordError(errs.ErrBlockItself, span)
+    return status.ErrBadRequest(errs.ErrBlockItself)
+  }
+
+  // Validate user id
+  if err := b.isUserExists(ctx, targetUserId); err != nil {
+    spanUtil.RecordError(err, span)
+    return status.ErrExternal(err)
   }
 
   block := entity.NewBlock(userId, targetUserId)
   err = b.repo.Create(ctx, &block)
   if err != nil {
     spanUtil.RecordError(err, span)
-    return status.FromRepositoryOverride(err, types.NewPair[status.Code, error](status.CREATED, nil))
+    return status.FromRepository2(err, status.Null, status.SomeSuccess())
   }
 
   return status.Created()
@@ -94,42 +113,48 @@ func (b *blockService) Unblock(ctx context.Context, targetUserId types.Id) statu
   ctx, span := b.tracer.Start(ctx, "BlockService.Unblock")
   defer span.End()
 
-  // Check trying to block itself
   userId, err := b.getUserClaims(ctx)
   if err != nil {
     spanUtil.RecordError(err, span)
     return status.ErrUnAuthorized(err)
   }
 
-  if userId.Eq(targetUserId) {
-    spanUtil.RecordError(errors.ErrBlockItself, span)
-    return status.ErrBadRequest(errors.ErrBlockItself)
-  }
-
   block := entity.NewBlock(userId, targetUserId)
   err = b.repo.Delete(ctx, &block)
   if err != nil {
     spanUtil.RecordError(err, span)
-    return status.FromRepositoryOverride(err, types.NewPair[status.Code, error](status.DELETED, nil))
+    return status.FromRepositoryOverrideObject(err, status.Deleted())
+
   }
 
   return status.Deleted()
 }
 
-func (b *blockService) GetUsers(ctx context.Context, pageDTO sharedDto.PagedElementDTO) (sharedDto.PagedElementResult[dto.BlockResponseDTO], status.Object) {
-  ctx, span := b.tracer.Start(ctx, "BlockService.GetUsers")
+func (b *blockService) IsBlocked(ctx context.Context, userId types.Id, targetUserId types.Id) (bool, status.Object) {
+  ctx, span := b.tracer.Start(ctx, "BlockService.IsBlocked")
   defer span.End()
 
-  userId, err := b.getUserClaims(ctx)
+  if err := b.isUserExists(ctx, targetUserId); err != nil {
+    spanUtil.RecordError(err, span)
+    return false, status.ErrBadRequest(err)
+  }
+
+  blocked, err := b.repo.IsBlocked(ctx, userId, targetUserId)
   if err != nil {
     spanUtil.RecordError(err, span)
-    return sharedDto.NewPagedElementResult2[dto.BlockResponseDTO](nil, &pageDTO, 0), status.ErrUnAuthorized(err)
+    return false, status.FromRepository(err, status.NullCode)
   }
+  return blocked, status.Success()
+}
+
+func (b *blockService) GetUsers(ctx context.Context, userId types.Id, pageDTO sharedDto.PagedElementDTO) (sharedDto.PagedElementResult[dto.BlockResponseDTO], status.Object) {
+  ctx, span := b.tracer.Start(ctx, "BlockService.GetUsers")
+  defer span.End()
 
   result, err := b.repo.GetBlocked(ctx, userId, pageDTO.ToQueryParam())
   if err != nil {
     spanUtil.RecordError(err, span)
-    return sharedDto.NewPagedElementResult2[dto.BlockResponseDTO](nil, &pageDTO, result.Total), status.FromRepository(err, status.NullCode)
+    return sharedDto.NewPagedElementResult2[dto.BlockResponseDTO](nil, &pageDTO, result.Total), status.FromRepositoryOverrideObject(err, status.Success())
   }
 
   resp := sharedUtil.CastSliceP(result.Data, mapper.ToBlockResponseDTO)
@@ -139,11 +164,7 @@ func (b *blockService) GetUsers(ctx context.Context, pageDTO sharedDto.PagedElem
 func (b *blockService) GetUsersCount(ctx context.Context, userId types.Id) (dto.BlockCountResponseDTO, status.Object) {
   ctx, span := b.tracer.Start(ctx, "BlockService.GetUsersCount")
   defer span.End()
-
-  if err := b.checkPermission(ctx, userId, constant.RELATION_PERMISSIONS[constant.RELATION_GET_BLOCK_ARB]); err != nil {
-    spanUtil.RecordError(err, span)
-    return dto.BlockCountResponseDTO{}, status.ErrUnAuthorized(err)
-  }
+  var err error
 
   counts, err := b.repo.GetCounts(ctx, userId)
   if err != nil {
@@ -167,7 +188,7 @@ func (b *blockService) ClearUsers(ctx context.Context, userId types.Id) status.O
   err := b.repo.DeleteByUserId(ctx, true, userId)
   if err != nil {
     spanUtil.RecordError(err, span)
-    return status.FromRepository(err, status.NullCode)
+    return status.FromRepositoryOverrideObject(err, status.Deleted())
   }
 
   return status.Deleted()

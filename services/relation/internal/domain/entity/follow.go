@@ -13,6 +13,14 @@ func NewFollow(userId, targetUserId types.Id) Follow {
   }
 }
 
+func NewFollows(userId types.Id, targetUserIds ...types.Id) []Follow {
+  var follows []Follow
+  for _, targetUserId := range targetUserIds {
+    follows = append(follows, NewFollow(userId, targetUserId))
+  }
+  return follows
+}
+
 type Follow struct {
   FollowerId types.Id
   FolloweeId types.Id

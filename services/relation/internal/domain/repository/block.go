@@ -13,6 +13,7 @@ type IBlock interface {
   Create(ctx context.Context, block *entity.Block) error
   GetBlocked(ctx context.Context, userId types.Id, parameter repo.QueryParameter) (repo.PaginatedResult[entity.Block], error)
   GetCounts(ctx context.Context, userIds ...types.Id) ([]entity.BlockCount, error)
+  // IsBlocked check if targetId is blocked by blockerId
   IsBlocked(ctx context.Context, blockerId, targetId types.Id) (bool, error)
   DeleteByUserId(ctx context.Context, deleteBlocker bool, userId types.Id) error
 }

@@ -3,6 +3,64 @@ services:
     environment:
       - OTLP_GRPC_COLLECTOR_ADDRESS=jaeger:4317
     ports:
+      - "8085:8080"
+    networks:
+      - nr_network
+  nexa-authn:
+    environment:
+      - OTLP_GRPC_COLLECTOR_ADDRESS=jaeger:4317
+      - AUTHZ_SERVICE_ADDR=nexa-authz:8080
+      - TOKEN_SERVICE_ADDR=nexa-token:8080
+      - FILE_STORAGE_SERVICE_ADDR=nexa-storage:8080
+      - MAILER_SERVICE_ADDR=nexa-mailer:8080
+    ports:
+      - "8086:8080"
+    networks:
+      - nr_network
+  nexa-authn-seed:
+    depends_on:
+      nexa-authz:
+        condition: service_healthy
+    environment:
+      - AUTHZ_SERVICE_ADDR=nexa-authz:8080
+    networks:
+      - nr_network
+  nexa-token:
+    environment:
+      - OTLP_GRPC_COLLECTOR_ADDRESS=jaeger:4317
+    ports:
       - "8082:8080"
+    networks:
+      - nr_network
+  nexa-storage-seed:
+    depends_on:
+      nexa-authz:
+        condition: service_healthy
+    environment:
+      - AUTHZ_SERVICE_ADDR=nexa-authz:8080
+    networks:
+      - nr_network
+  nexa-storage:
+    environment:
+      - OTLP_GRPC_COLLECTOR_ADDRESS=jaeger:4317
+    ports:
+      - "8083:8080"
+    networks:
+      - nr_network
+  nexa-mailer-seed:
+    depends_on:
+      nexa-authz:
+        condition: service_healthy
+    environment:
+      - AUTHZ_SERVICE_ADDR=nexa-authz:8080
+    networks:
+      - nr_network
+  nexa-mailer:
+    env_file:
+      - ../mailer/dev.smtp.env
+    environment:
+      - OTLP_GRPC_COLLECTOR_ADDRESS=jaeger:4317
+    ports:
+      - "8084:8080"
     networks:
       - nr_network

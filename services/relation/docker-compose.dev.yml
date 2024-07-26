@@ -1,5 +1,9 @@
 include:
   - ../authorization/docker-compose.yml
+  - ../authentication/docker-compose.yml
+  - ../token/docker-compose.yml
+  - ../file_storage/docker-compose.yml
+  - ../mailer/docker-compose.yml
 
 services:
   relation-db:
@@ -8,6 +12,8 @@ services:
       test: [ "CMD-SHELL", "pg_isready -U nexa -d nexa-relation" ]
       interval: 5s
       retries: 10
+    ports:
+      - "5432:5432"
     environment:
       - POSTGRES_DB=nexa-relation
       - POSTGRES_USER=nexa
@@ -44,7 +50,7 @@ services:
       - 9411:9411
     networks:
       - nr_network
-  token_generator:
+  relation-token_generator:
     build:
       context: ../../token_generator/
       dockerfile: Dockerfile
@@ -58,7 +64,7 @@ services:
     depends_on:
       nexa-relation-migrate:
         condition: service_completed_successfully
-      token_generator:
+      relation-token_generator:
         condition: service_completed_successfully
       nexa-authz:
         condition: service_healthy

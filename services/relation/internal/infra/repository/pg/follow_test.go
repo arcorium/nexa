@@ -2,12 +2,15 @@ package pg
 
 import (
   "context"
+  "database/sql"
   "fmt"
   sharedConf "github.com/arcorium/nexa/shared/config"
   "github.com/arcorium/nexa/shared/database"
   "github.com/arcorium/nexa/shared/optional"
   "github.com/arcorium/nexa/shared/types"
   "github.com/arcorium/nexa/shared/util"
+  "github.com/arcorium/nexa/shared/util/repo"
+  "github.com/stretchr/testify/require"
   "github.com/stretchr/testify/suite"
   "github.com/testcontainers/testcontainers-go"
   "github.com/testcontainers/testcontainers-go/modules/postgres"
@@ -134,7 +137,26 @@ func (b *followTestSuite) Test_followRepository_Create() {
     args    args
     wantErr bool
   }{
-    // TODO: Add test cases.
+    {
+      name: "User not yet followed the user",
+      args: args{
+        ctx: context.Background(),
+        follow: &entity.Follow{
+          FollowerId: b.followSeed[0].FollowerId,
+          FolloweeId: types.MustCreateId(),
+          CreatedAt:  time.Now().UTC(),
+        },
+      },
+      wantErr: false,
+    },
+    {
+      name: "User already followed the user",
+      args: args{
+        ctx:    context.Background(),
+        follow: &b.followSeed[0],
+      },
+      wantErr: true,
+    },
   }
   for _, tt := range tests {
     b.Run(tt.name, func() {
@@ -148,9 +170,16 @@ func (b *followTestSuite) Test_followRepository_Create() {
       }
       t := b.T()
 
-      if err := f.Create(tt.args.ctx, tt.args.follow); (err != nil) != tt.wantErr {
-        t.Errorf("Create() error = %v, wantErr %v", err, tt.wantErr)
+      err = f.Create(tt.args.ctx, tt.args.follow)
+      if res := (err != nil); res {
+        if res != tt.wantErr {
+          t.Errorf("Create() error = %v, wantErr %v", err, tt.wantErr)
+        }
+        return
       }
+
+      err = f.Delete(tt.args.ctx, *tt.args.follow)
+      b.Require().NoError(err)
     })
   }
 }
@@ -158,14 +187,35 @@ func (b *followTestSuite) Test_followRepository_Create() {
 func (b *followTestSuite) Test_followRepository_Delete() {
   type args struct {
     ctx    context.Context
-    follow *entity.Follow
+    follow []entity.Follow
   }
   tests := []struct {
     name    string
     args    args
     wantErr bool
   }{
-    // TODO: Add test cases.
+    {
+      name: "User already followed the user",
+      args: args{
+        ctx:    context.Background(),
+        follow: b.followSeed[:1],
+      },
+      wantErr: false,
+    },
+    {
+      name: "User not yet follows the user",
+      args: args{
+        ctx: context.Background(),
+        follow: []entity.Follow{
+          {
+            FollowerId: b.followSeed[0].FollowerId,
+            FolloweeId: types.MustCreateId(),
+            CreatedAt:  time.Now().UTC(),
+          },
+        },
+      },
+      wantErr: true,
+    },
   }
   for _, tt := range tests {
     b.Run(tt.name, func() {
@@ -179,9 +229,17 @@ func (b *followTestSuite) Test_followRepository_Delete() {
       }
       t := b.T()
 
-      if err := f.Delete(tt.args.ctx, tt.args.follow); (err != nil) != tt.wantErr {
-        t.Errorf("Delete() error = %v, wantErr %v", err, tt.wantErr)
+      err = f.Delete(tt.args.ctx, tt.args.follow...)
+      if res := err != nil; res {
+        if res != tt.wantErr {
+          t.Errorf("Delete() error = %v, wantErr %v", err, tt.wantErr)
+        }
+        return
       }
+
+      err = f.Delete(tt.args.ctx, tt.args.follow...)
+      require.Error(t, err)
+      require.ErrorIs(t, err, sql.ErrNoRows)
     })
   }
 }
@@ -197,7 +255,33 @@ func (b *followTestSuite) Test_followRepository_DeleteByUserId() {
     args    args
     wantErr bool
   }{
-    // TODO: Add test cases.
+    {
+      name: "Valid user without deleting followers",
+      args: args{
+        ctx:            context.Background(),
+        deleteFollower: false,
+        userId:         b.followSeed[0].FollowerId,
+      },
+      wantErr: false,
+    },
+    {
+      name: "Valid user",
+      args: args{
+        ctx:            context.Background(),
+        deleteFollower: true,
+        userId:         b.followSeed[0].FollowerId,
+      },
+      wantErr: false,
+    },
+    {
+      name: "Invalid user",
+      args: args{
+        ctx:            context.Background(),
+        deleteFollower: true,
+        userId:         types.MustCreateId(),
+      },
+      wantErr: true,
+    },
   }
   for _, tt := range tests {
     b.Run(tt.name, func() {
@@ -211,8 +295,20 @@ func (b *followTestSuite) Test_followRepository_DeleteByUserId() {
       }
       t := b.T()
 
-      if err := f.DeleteByUserId(tt.args.ctx, tt.args.deleteFollower, tt.args.userId); (err != nil) != tt.wantErr {
-        t.Errorf("DeleteByUserId() error = %v, wantErr %v", err, tt.wantErr)
+      err = f.DeleteByUserId(tt.args.ctx, tt.args.deleteFollower, tt.args.userId)
+      if res := err != nil; res {
+        if res != tt.wantErr {
+          t.Errorf("DeleteByUserId() error = %v, wantErr %v", err, tt.wantErr)
+        }
+        return
+      }
+
+      counts, err := f.GetCounts(tt.args.ctx, tt.args.userId)
+      b.Require().NoError(err)
+      b.Require().Len(counts, 1)
+      b.Require().Equal(counts[0].TotalFollowings, uint64(0))
+      if tt.args.deleteFollower {
+        b.Require().Equal(counts[0].TotalFollowers, uint64(0))
       }
     })
   }
@@ -367,11 +463,12 @@ func (b *followTestSuite) Test_followRepository_GetFollowers() {
   type args struct {
     ctx    context.Context
     userId types.Id
+    param  repo.QueryParameter
   }
   tests := []struct {
     name    string
     args    args
-    want    []types.Id
+    want    repo.PaginatedResult[entity.Follow]
     wantErr bool
   }{
     {
@@ -379,13 +476,66 @@ func (b *followTestSuite) Test_followRepository_GetFollowers() {
       args: args{
         ctx:    context.Background(),
         userId: b.followSeed[5].FolloweeId,
+        param: repo.QueryParameter{
+          Offset: 0,
+          Limit:  0,
+        },
       },
-      want: []types.Id{
-        b.followSeed[9].FollowerId,
-        b.followSeed[8].FollowerId,
-        b.followSeed[7].FollowerId,
-        b.followSeed[6].FollowerId,
-        b.followSeed[5].FollowerId,
+      want: repo.PaginatedResult[entity.Follow]{
+        Data: []entity.Follow{
+          {
+            FollowerId: b.followSeed[9].FollowerId,
+            FolloweeId: b.followSeed[5].FolloweeId,
+          },
+          {
+            FollowerId: b.followSeed[8].FollowerId,
+            FolloweeId: b.followSeed[5].FolloweeId,
+          },
+          {
+            FollowerId: b.followSeed[7].FollowerId,
+            FolloweeId: b.followSeed[5].FolloweeId,
+          },
+          {
+            FollowerId: b.followSeed[6].FollowerId,
+            FolloweeId: b.followSeed[5].FolloweeId,
+          },
+          {
+            FollowerId: b.followSeed[5].FollowerId,
+            FolloweeId: b.followSeed[5].FolloweeId,
+          },
+        },
+        Total:   5,
+        Element: 5,
+      },
+      wantErr: false,
+    },
+    {
+      name: "Get user with multiple followers with limit and offset",
+      args: args{
+        ctx:    context.Background(),
+        userId: b.followSeed[5].FolloweeId,
+        param: repo.QueryParameter{
+          Offset: 1,
+          Limit:  3,
+        },
+      },
+      want: repo.PaginatedResult[entity.Follow]{
+        Data: []entity.Follow{
+          {
+            FollowerId: b.followSeed[8].FollowerId,
+            FolloweeId: b.followSeed[5].FolloweeId,
+          },
+          {
+            FollowerId: b.followSeed[7].FollowerId,
+            FolloweeId: b.followSeed[5].FolloweeId,
+          },
+          {
+            FollowerId: b.followSeed[6].FollowerId,
+            FolloweeId: b.followSeed[5].FolloweeId,
+          },
+        },
+        Total:   5,
+        Element: 3,
       },
       wantErr: false,
     },
@@ -395,8 +545,15 @@ func (b *followTestSuite) Test_followRepository_GetFollowers() {
         ctx:    context.Background(),
         userId: b.followSeed[0].FolloweeId,
       },
-      want: []types.Id{
-        b.followSeed[0].FollowerId,
+      want: repo.PaginatedResult[entity.Follow]{
+        Data: []entity.Follow{
+          {
+            FollowerId: b.followSeed[0].FollowerId,
+            FolloweeId: b.followSeed[0].FolloweeId,
+          },
+        },
+        Total:   1,
+        Element: 1,
       },
       wantErr: false,
     },
@@ -406,7 +563,11 @@ func (b *followTestSuite) Test_followRepository_GetFollowers() {
         ctx:    context.Background(),
         userId: types.MustCreateId(),
       },
-      want:    nil,
+      want: repo.PaginatedResult[entity.Follow]{
+        Data:    nil,
+        Total:   0,
+        Element: 0,
+      },
       wantErr: true,
     },
   }
@@ -422,11 +583,15 @@ func (b *followTestSuite) Test_followRepository_GetFollowers() {
       }
       t := b.T()
 
-      got, err := f.GetFollowers(tt.args.ctx, tt.args.userId)
+      got, err := f.GetFollowers(tt.args.ctx, tt.args.userId, tt.args.param)
       if (err != nil) != tt.wantErr {
         t.Errorf("GetFollowers() error = %v, wantErr %v", err, tt.wantErr)
         return
       }
+
+      ignoreFollowFields(got.Data...)
+      ignoreFollowFields(tt.want.Data...)
+
       if !reflect.DeepEqual(got, tt.want) {
         t.Errorf("GetFollowers() got = %v, want %v", got, tt.want)
       }
@@ -438,11 +603,12 @@ func (b *followTestSuite) Test_followRepository_GetFollowings() {
   type args struct {
     ctx    context.Context
     userId types.Id
+    param  repo.QueryParameter
   }
   tests := []struct {
     name    string
     args    args
-    want    []types.Id
+    want    repo.PaginatedResult[entity.Follow]
     wantErr bool
   }{
     {
@@ -450,13 +616,66 @@ func (b *followTestSuite) Test_followRepository_GetFollowings() {
       args: args{
         ctx:    context.Background(),
         userId: b.followSeed[0].FollowerId,
+        param: repo.QueryParameter{
+          Offset: 0,
+          Limit:  0,
+        },
       },
-      want: []types.Id{
-        b.followSeed[4].FolloweeId,
-        b.followSeed[3].FolloweeId,
-        b.followSeed[2].FolloweeId,
-        b.followSeed[1].FolloweeId,
-        b.followSeed[0].FolloweeId,
+      want: repo.PaginatedResult[entity.Follow]{
+        Data: []entity.Follow{
+          {
+            FollowerId: b.followSeed[0].FollowerId,
+            FolloweeId: b.followSeed[4].FolloweeId,
+          },
+          {
+            FollowerId: b.followSeed[0].FollowerId,
+            FolloweeId: b.followSeed[3].FolloweeId,
+          },
+          {
+            FollowerId: b.followSeed[0].FollowerId,
+            FolloweeId: b.followSeed[2].FolloweeId,
+          },
+          {
+            FollowerId: b.followSeed[0].FollowerId,
+            FolloweeId: b.followSeed[1].FolloweeId,
+          },
+          {
+            FollowerId: b.followSeed[0].FollowerId,
+            FolloweeId: b.followSeed[0].FolloweeId,
+          },
+        },
+        Total:   5,
+        Element: 5,
+      },
+      wantErr: false,
+    },
+    {
+      name: "Get user with multiple following with limit and offset",
+      args: args{
+        ctx:    context.Background(),
+        userId: b.followSeed[0].FollowerId,
+        param: repo.QueryParameter{
+          Offset: 1,
+          Limit:  3,
+        },
+      },
+      want: repo.PaginatedResult[entity.Follow]{
+        Data: []entity.Follow{
+          {
+            FollowerId: b.followSeed[0].FollowerId,
+            FolloweeId: b.followSeed[3].FolloweeId,
+          },
+          {
+            FollowerId: b.followSeed[0].FollowerId,
+            FolloweeId: b.followSeed[2].FolloweeId,
+          },
+          {
+            FollowerId: b.followSeed[0].FollowerId,
+            FolloweeId: b.followSeed[1].FolloweeId,
+          },
+        },
+        Total:   5,
+        Element: 3,
       },
       wantErr: false,
     },
@@ -466,8 +685,15 @@ func (b *followTestSuite) Test_followRepository_GetFollowings() {
         ctx:    context.Background(),
         userId: b.followSeed[5].FollowerId,
       },
-      want: []types.Id{
-        b.followSeed[5].FolloweeId,
+      want: repo.PaginatedResult[entity.Follow]{
+        Data: []entity.Follow{
+          {
+            FollowerId: b.followSeed[5].FollowerId,
+            FolloweeId: b.followSeed[5].FolloweeId,
+          },
+        },
+        Total:   1,
+        Element: 1,
       },
       wantErr: false,
     },
@@ -477,7 +703,11 @@ func (b *followTestSuite) Test_followRepository_GetFollowings() {
         ctx:    context.Background(),
         userId: types.MustCreateId(),
       },
-      want:    nil,
+      want: repo.PaginatedResult[entity.Follow]{
+        Data:    nil,
+        Total:   0,
+        Element: 0,
+      },
       wantErr: true,
     },
   }
@@ -493,11 +723,15 @@ func (b *followTestSuite) Test_followRepository_GetFollowings() {
       }
       t := b.T()
 
-      got, err := f.GetFollowings(tt.args.ctx, tt.args.userId)
+      got, err := f.GetFollowings(tt.args.ctx, tt.args.userId, tt.args.param)
       if (err != nil) != tt.wantErr {
         t.Errorf("GetFollowings() error = %v, wantErr %v", err, tt.wantErr)
         return
       }
+
+      ignoreFollowFields(got.Data...)
+      ignoreFollowFields(tt.want.Data...)
+
       if !reflect.DeepEqual(got, tt.want) {
         t.Errorf("GetFollowings() got = %v, want %v", got, tt.want)
       }

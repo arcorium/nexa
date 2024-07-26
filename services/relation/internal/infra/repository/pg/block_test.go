@@ -8,6 +8,8 @@ import (
   "github.com/arcorium/nexa/shared/optional"
   "github.com/arcorium/nexa/shared/types"
   "github.com/arcorium/nexa/shared/util"
+  "github.com/arcorium/nexa/shared/util/repo"
+  "github.com/stretchr/testify/require"
   "github.com/stretchr/testify/suite"
   "github.com/testcontainers/testcontainers-go"
   "github.com/testcontainers/testcontainers-go/modules/postgres"
@@ -124,18 +126,36 @@ func (b *blockTestSuite) TearDownSuite() {
   b.Require().NoError(err)
 }
 
-func (b *blockTestSuite) Test_blockRepository_DeleteByUserId() {
+func (b *blockTestSuite) Test_blockRepository_Create() {
   type args struct {
-    ctx           context.Context
-    deleteBlocker bool
-    userId        types.Id
+    ctx   context.Context
+    block *entity.Block
   }
   tests := []struct {
     name    string
     args    args
     wantErr bool
   }{
-    // TODO: Add test cases.
+    {
+      name: "User not yet block the user",
+      args: args{
+        ctx: context.Background(),
+        block: &entity.Block{
+          BlockerId: b.blockSeed[0].BlockerId,
+          BlockedId: types.MustCreateId(),
+          CreatedAt: time.Now().UTC(),
+        },
+      },
+      wantErr: false,
+    },
+    {
+      name: "User already block the user",
+      args: args{
+        ctx:   context.Background(),
+        block: &b.blockSeed[0],
+      },
+      wantErr: true,
+    },
   }
   for _, tt := range tests {
     b.Run(tt.name, func() {
@@ -149,9 +169,132 @@ func (b *blockTestSuite) Test_blockRepository_DeleteByUserId() {
       }
       t := b.T()
 
-      if err := f.DeleteByUserId(tt.args.ctx, tt.args.deleteBlocker, tt.args.userId); (err != nil) != tt.wantErr {
-        t.Errorf("DeleteByUserId() error = %v, wantErr %v", err, tt.wantErr)
+      err = f.Create(tt.args.ctx, tt.args.block)
+      if res := err != nil; res {
+        if res != tt.wantErr {
+          t.Errorf("Create() error = %v, wantErr %v", err, tt.wantErr)
+        }
+        return
       }
+
+      blocked, err := f.GetCounts(tt.args.ctx, tt.args.block.BlockerId)
+      require.NoError(t, err)
+      require.Len(t, blocked, 1)
+      require.GreaterOrEqual(t, blocked[0].TotalBlocked, uint64(1))
+
+    })
+  }
+}
+
+func (b *blockTestSuite) Test_blockRepository_Delete() {
+  type fields struct {
+    db     bun.IDB
+    tracer trace.Tracer
+  }
+  type args struct {
+    ctx   context.Context
+    block *entity.Block
+  }
+  tests := []struct {
+    name    string
+    fields  fields
+    args    args
+    wantErr bool
+  }{
+    {
+      name: "User already block the user",
+      args: args{
+        ctx:   context.Background(),
+        block: &b.blockSeed[0],
+      },
+      wantErr: false,
+    },
+    {
+      name: "User not yet block the user",
+      args: args{
+        ctx: context.Background(),
+        block: &entity.Block{
+          BlockerId: b.blockSeed[0].BlockerId,
+          BlockedId: types.MustCreateId(),
+          CreatedAt: time.Now().UTC(),
+        },
+      },
+      wantErr: true,
+    },
+  }
+  for _, tt := range tests {
+    b.Run(tt.name, func() {
+      tx, err := b.db.BeginTx(tt.args.ctx, nil)
+      b.Require().NoError(err)
+      defer tx.Rollback()
+
+      f := &blockRepository{
+        db:     tx,
+        tracer: b.tracer,
+      }
+      t := b.T()
+
+      if err := f.Delete(tt.args.ctx, tt.args.block); (err != nil) != tt.wantErr {
+        t.Errorf("Delete() error = %v, wantErr %v", err, tt.wantErr)
+      }
+    })
+  }
+}
+
+func (b *blockTestSuite) Test_blockRepository_DeleteByUserId() {
+  type args struct {
+    ctx           context.Context
+    deleteBlocker bool
+    userId        types.Id
+  }
+  tests := []struct {
+    name    string
+    args    args
+    wantErr bool
+  }{
+    {
+      name: "User has blocked user list",
+      args: args{
+        ctx:           context.Background(),
+        deleteBlocker: true,
+        userId:        b.blockSeed[0].BlockedId,
+      },
+      wantErr: false,
+    },
+    {
+      name: "User has no blocked user list",
+      args: args{
+        ctx:           context.Background(),
+        deleteBlocker: true,
+        userId:        types.MustCreateId(),
+      },
+      wantErr: true,
+    },
+  }
+  for _, tt := range tests {
+    b.Run(tt.name, func() {
+      tx, err := b.db.BeginTx(tt.args.ctx, nil)
+      b.Require().NoError(err)
+      defer tx.Rollback()
+
+      f := &blockRepository{
+        db:     tx,
+        tracer: b.tracer,
+      }
+      t := b.T()
+
+      err = f.DeleteByUserId(tt.args.ctx, tt.args.deleteBlocker, tt.args.userId)
+      if res := err != nil; res {
+        if res != tt.wantErr {
+          t.Errorf("DeleteByUserId() error = %v, wantErr %v", err, tt.wantErr)
+        }
+        return
+      }
+
+      counts, err := f.GetCounts(tt.args.ctx, tt.args.userId)
+      require.NoError(t, err)
+      require.Len(t, counts, 1)
+      require.Equal(t, counts[0].TotalBlocked, uint64(0))
     })
   }
 }
@@ -191,46 +334,112 @@ func (b *blockTestSuite) Test_blockRepository_GetBlocked() {
   type args struct {
     ctx    context.Context
     userId types.Id
+    param  repo.QueryParameter
   }
   tests := []struct {
     name    string
     args    args
-    want    []types.Id
+    want    repo.PaginatedResult[entity.Block]
     wantErr bool
   }{
-    //{
-    //  name: "User has single blocked user list",
-    //  args: args{
-    //    ctx:    context.Background(),
-    //    userId: b.followSeed[5].BlockerId,
-    //  },
-    //  want: []types.Id{
-    //    b.followSeed[6].BlockedId,
-    //  },
-    //  wantErr: false,
-    //},
-    //{
-    //  name: "User has multiple blocked user list",
-    //  args: args{
-    //    ctx:    context.Background(),
-    //    userId: b.followSeed[0].BlockerId,
-    //  },
-    //  want: []types.Id{
-    //    b.followSeed[0].BlockedId,
-    //    b.followSeed[1].BlockedId,
-    //    b.followSeed[2].BlockedId,
-    //    b.followSeed[3].BlockedId,
-    //    b.followSeed[4].BlockedId,
-    //  },
-    //  wantErr: false,
-    //},
+    {
+      name: "User has single blocked user list",
+      args: args{
+        ctx:    context.Background(),
+        userId: b.blockSeed[5].BlockerId,
+        param: repo.QueryParameter{
+          Offset: 0,
+          Limit:  0,
+        },
+      },
+      want: repo.PaginatedResult[entity.Block]{
+        Data: []entity.Block{
+          {
+            BlockerId: b.blockSeed[5].BlockerId,
+            BlockedId: b.blockSeed[6].BlockedId,
+            CreatedAt: b.blockSeed[5].CreatedAt,
+          },
+        },
+        Total:   1,
+        Element: 1,
+      },
+      wantErr: false,
+    },
+    {
+      name: "User has multiple blocked user list",
+      args: args{
+        ctx:    context.Background(),
+        userId: b.blockSeed[0].BlockerId,
+      },
+      want: repo.PaginatedResult[entity.Block]{
+        Data: []entity.Block{
+          {
+            BlockerId: b.blockSeed[0].BlockerId,
+            BlockedId: b.blockSeed[4].BlockedId,
+          },
+          {
+            BlockerId: b.blockSeed[0].BlockerId,
+            BlockedId: b.blockSeed[3].BlockedId,
+          },
+          {
+            BlockerId: b.blockSeed[0].BlockerId,
+            BlockedId: b.blockSeed[2].BlockedId,
+          },
+          {
+            BlockerId: b.blockSeed[0].BlockerId,
+            BlockedId: b.blockSeed[1].BlockedId,
+          },
+          {
+            BlockerId: b.blockSeed[0].BlockerId,
+            BlockedId: b.blockSeed[0].BlockedId,
+          },
+        },
+        Total:   5,
+        Element: 5,
+      },
+      wantErr: false,
+    },
+    {
+      name: "User has multiple blocked user list with limit and offset",
+      args: args{
+        ctx:    context.Background(),
+        userId: b.blockSeed[0].BlockerId,
+        param: repo.QueryParameter{
+          Offset: 1,
+          Limit:  3,
+        },
+      },
+      want: repo.PaginatedResult[entity.Block]{
+        Data: []entity.Block{
+          {
+            BlockerId: b.blockSeed[0].BlockerId,
+            BlockedId: b.blockSeed[3].BlockedId,
+          },
+          {
+            BlockerId: b.blockSeed[0].BlockerId,
+            BlockedId: b.blockSeed[2].BlockedId,
+          },
+          {
+            BlockerId: b.blockSeed[0].BlockerId,
+            BlockedId: b.blockSeed[1].BlockedId,
+          },
+        },
+        Total:   5,
+        Element: 3,
+      },
+      wantErr: false,
+    },
     {
       name: "User has no blocked user list",
       args: args{
         ctx:    context.Background(),
         userId: types.MustCreateId(),
       },
-      want:    nil,
+      want: repo.PaginatedResult[entity.Block]{
+        Data:    nil,
+        Total:   0,
+        Element: 0,
+      },
       wantErr: true,
     },
   }
@@ -246,11 +455,15 @@ func (b *blockTestSuite) Test_blockRepository_GetBlocked() {
       }
       t := b.T()
 
-      got, err := f.GetBlocked(tt.args.ctx, tt.args.userId)
+      got, err := f.GetBlocked(tt.args.ctx, tt.args.userId, tt.args.param)
       if (err != nil) != tt.wantErr {
         t.Errorf("GetBlocked() error = %v, wantErr %v", err, tt.wantErr)
         return
       }
+
+      ignoreBlockFields(got.Data...)
+      ignoreBlockFields(tt.want.Data...)
+
       if !reflect.DeepEqual(got, tt.want) {
         t.Errorf("GetBlocked() got = %v, want %v", got, tt.want)
       }
@@ -434,68 +647,6 @@ func (b *blockTestSuite) Test_blockRepository_IsBlocked() {
       }
       if got != tt.want {
         t.Errorf("IsBlocked() got = %v, want %v", got, tt.want)
-      }
-    })
-  }
-}
-
-func (b *blockTestSuite) Test_blockRepository_deleteBlock() {
-  type args struct {
-    ctx   context.Context
-    block *model.Block
-  }
-  tests := []struct {
-    name    string
-    args    args
-    wantErr bool
-  }{
-    // TODO: Add test cases.
-  }
-  for _, tt := range tests {
-    b.Run(tt.name, func() {
-      tx, err := b.db.BeginTx(tt.args.ctx, nil)
-      b.Require().NoError(err)
-      defer tx.Rollback()
-
-      f := &blockRepository{
-        db:     tx,
-        tracer: b.tracer,
-      }
-      t := b.T()
-
-      if err := f.deleteBlock(tt.args.ctx, tt.args.block); (err != nil) != tt.wantErr {
-        t.Errorf("deleteBlock() error = %v, wantErr %v", err, tt.wantErr)
-      }
-    })
-  }
-}
-
-func (b *blockTestSuite) Test_blockRepository_insertBlock() {
-  type args struct {
-    ctx   context.Context
-    block *model.Block
-  }
-  tests := []struct {
-    name    string
-    args    args
-    wantErr bool
-  }{
-    // TODO: Add test cases.
-  }
-  for _, tt := range tests {
-    b.Run(tt.name, func() {
-      tx, err := b.db.BeginTx(tt.args.ctx, nil)
-      b.Require().NoError(err)
-      defer tx.Rollback()
-
-      f := &blockRepository{
-        db:     tx,
-        tracer: b.tracer,
-      }
-      t := b.T()
-
-      if err := f.insertBlock(tt.args.ctx, tt.args.block); (err != nil) != tt.wantErr {
-        t.Errorf("insertBlock() error = %v, wantErr %v", err, tt.wantErr)
       }
     })
   }

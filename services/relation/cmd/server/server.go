@@ -7,6 +7,7 @@ import (
   "github.com/arcorium/nexa/shared/database"
   "github.com/arcorium/nexa/shared/grpc/interceptor"
   "github.com/arcorium/nexa/shared/grpc/interceptor/authz"
+  "github.com/arcorium/nexa/shared/grpc/interceptor/forward"
   "github.com/arcorium/nexa/shared/logger"
   "github.com/arcorium/nexa/shared/types"
   sharedUtil "github.com/arcorium/nexa/shared/util"
@@ -28,6 +29,7 @@ import (
   semconv "go.opentelemetry.io/otel/semconv/v1.25.0"
   "go.opentelemetry.io/otel/trace"
   "google.golang.org/grpc"
+  "google.golang.org/grpc/credentials/insecure"
   "google.golang.org/grpc/health"
   "google.golang.org/grpc/health/grpc_health_v1"
   "google.golang.org/grpc/reflection"
@@ -40,6 +42,7 @@ import (
   "nexa/services/relation/internal/api/grpc/handler"
   inter "nexa/services/relation/internal/api/grpc/interceptor"
   "nexa/services/relation/internal/app/service"
+  "nexa/services/relation/internal/infra/external"
   "nexa/services/relation/internal/infra/repository/model"
   "nexa/services/relation/internal/infra/repository/pg"
   "os"
@@ -63,6 +66,7 @@ type Server struct {
   serverConfig *config.Server
 
   db        *bun.DB
+  userConn  *grpc.ClientConn
   publicKey *rsa.PublicKey
 
   grpcServer     *grpc.Server
@@ -155,6 +159,15 @@ func (s *Server) grpcServerSetup() error {
     )
   }
 
+  additionalMd := make(map[string]string)
+  // To identify when the request is forwarded from another service
+  additionalMd["forwarder"] = constant.SERVICE_NAME
+  additionalMd["forwarder-v"] = constant.SERVICE_VERSION
+  forwardConfig := forward.NewConfig(true,
+    forward.WithIncludeKeys("authorization"), // Only forward this key when it is present
+    forward.WithAdditionalData(additionalMd),
+  )
+
   s.grpcServer = grpc.NewServer(
     grpc.StatsHandler(otelgrpc.NewServerHandler()), // tracing
     grpc.ChainUnaryInterceptor(
@@ -162,12 +175,14 @@ func (s *Server) grpcServerSetup() error {
       logging.UnaryServerInterceptor(zapLogger), // logging
       authz.UserUnaryServerInterceptor(&authorizationConfig, inter.AuthSelector, skipServices...),
       metrics.UnaryServerInterceptor(promProv.WithExemplarFromContext(exemplarFromCtx)),
+      forward.UnaryServerInterceptor(&forwardConfig),
     ),
     grpc.ChainStreamInterceptor(
       recovery.StreamServerInterceptor(),
       logging.StreamServerInterceptor(zapLogger), // logging
       authz.UserStreamServerInterceptor(&authorizationConfig, inter.AuthSelector, skipServices...),
       metrics.StreamServerInterceptor(promProv.WithExemplarFromContext(exemplarFromCtx)),
+      forward.StreamServerInterceptor(&forwardConfig),
     ),
   )
 
@@ -240,13 +255,24 @@ func (s *Server) setup() error {
     return err
   }
 
+  // External
+  {
+    creds := grpc.WithTransportCredentials(insecure.NewCredentials())
+    conn, err := grpc.NewClient(s.serverConfig.Service.User, creds)
+    if err != nil {
+      return err
+    }
+    s.userConn = conn
+  }
+  userClient := external.NewUserClient(s.userConn, &s.serverConfig.CircuitBreaker)
+
   // Repository
   followRepo := pg.NewFollow(s.db)
   blockRepo := pg.NewBlock(s.db)
 
   // Service
-  followSvc := service.NewFollow(followRepo)
-  blockSvc := service.NewBlock(blockRepo)
+  followSvc := service.NewFollow(followRepo, userClient)
+  blockSvc := service.NewBlock(blockRepo, userClient)
 
   // GRPC Handler
   followHandler := handler.NewFollow(followSvc)
@@ -275,6 +301,11 @@ func (s *Server) shutdown() {
     logger.Warn(err.Error())
   }
 
+  // External
+  if err := s.userConn.Close(); err != nil {
+    logger.Warnf(err.Error())
+  }
+
   // Database
   if err := s.db.Close(); err != nil {
     logger.Warn(err.Error())
@@ -298,7 +329,7 @@ func (s *Server) Run() error {
 
     err = s.grpcServer.Serve(listener)
     logger.Info("Server Stopping ")
-    if err != nil {
+    if err != nil && !errors.Is(err, http.ErrServerClosed) {
       logger.Warnf("Server failed to serve: %s", err)
     }
   }()
@@ -310,7 +341,7 @@ func (s *Server) Run() error {
 
     err = s.metricServer.ListenAndServe()
     logger.Info("Metrics Server Stopping")
-    if err != nil {
+    if err != nil && !errors.Is(err, http.ErrServerClosed) {
       logger.Warnf("Metrics server failed to serve: %s", err)
     }
   }()

@@ -75,9 +75,10 @@ services:
       - PG_USERNAME=nexa
       - PG_PASSWORD=nexa
       - PG_DB_NAME=nexa-relation
-      - PG_PARAMETER=application_name=nexa-authn
+      - PG_PARAMETER=application_name=nexa-relation
       - PG_IS_SECURE=false
 #      - OTLP_GRPC_COLLECTOR_ADDRESS=
+#      - USER_SERVICE_ADDRESS=
 
 networks:
   nr_network:
