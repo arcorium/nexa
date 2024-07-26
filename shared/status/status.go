@@ -2,6 +2,7 @@ package status
 
 import (
   "errors"
+  "github.com/arcorium/nexa/shared/optional"
   spanUtil "github.com/arcorium/nexa/shared/util/span"
   "go.opentelemetry.io/otel/codes"
   "go.opentelemetry.io/otel/trace"
@@ -33,6 +34,8 @@ func NewWithMessage(code Code, msg string) Object {
     Error: errors.New(msg),
   }
 }
+
+var Null = optional.Null[Object]()
 
 type Object struct {
   Codes Code

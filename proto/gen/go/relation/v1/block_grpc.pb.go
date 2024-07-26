@@ -23,6 +23,7 @@ const _ = grpc.SupportPackageIsVersion7
 const (
 	BlockService_Block_FullMethodName         = "/nexa.relation.v1.BlockService/Block"
 	BlockService_Unblock_FullMethodName       = "/nexa.relation.v1.BlockService/Unblock"
+	BlockService_IsBlocked_FullMethodName     = "/nexa.relation.v1.BlockService/IsBlocked"
 	BlockService_GetBlocked_FullMethodName    = "/nexa.relation.v1.BlockService/GetBlocked"
 	BlockService_GetUsersCount_FullMethodName = "/nexa.relation.v1.BlockService/GetUsersCount"
 	BlockService_ClearUsers_FullMethodName    = "/nexa.relation.v1.BlockService/ClearUsers"
@@ -35,6 +36,7 @@ type BlockServiceClient interface {
 	// Get user total follower and followee
 	Block(ctx context.Context, in *BlockUserRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	Unblock(ctx context.Context, in *UnblockUserRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	IsBlocked(ctx context.Context, in *IsUserBlockedRequest, opts ...grpc.CallOption) (*IsUserBlockedResponse, error)
 	GetBlocked(ctx context.Context, in *common.PagedElementInput, opts ...grpc.CallOption) (*GetBlockedResponse, error)
 	// Get user total blocked
 	GetUsersCount(ctx context.Context, in *GetUsersBlockCountRequest, opts ...grpc.CallOption) (*GetUsersBlockCountResponse, error)
@@ -62,6 +64,15 @@ func (c *blockServiceClient) Block(ctx context.Context, in *BlockUserRequest, op
 func (c *blockServiceClient) Unblock(ctx context.Context, in *UnblockUserRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, BlockService_Unblock_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *blockServiceClient) IsBlocked(ctx context.Context, in *IsUserBlockedRequest, opts ...grpc.CallOption) (*IsUserBlockedResponse, error) {
+	out := new(IsUserBlockedResponse)
+	err := c.cc.Invoke(ctx, BlockService_IsBlocked_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -102,6 +113,7 @@ type BlockServiceServer interface {
 	// Get user total follower and followee
 	Block(context.Context, *BlockUserRequest) (*emptypb.Empty, error)
 	Unblock(context.Context, *UnblockUserRequest) (*emptypb.Empty, error)
+	IsBlocked(context.Context, *IsUserBlockedRequest) (*IsUserBlockedResponse, error)
 	GetBlocked(context.Context, *common.PagedElementInput) (*GetBlockedResponse, error)
 	// Get user total blocked
 	GetUsersCount(context.Context, *GetUsersBlockCountRequest) (*GetUsersBlockCountResponse, error)
@@ -119,6 +131,9 @@ func (UnimplementedBlockServiceServer) Block(context.Context, *BlockUserRequest)
 }
 func (UnimplementedBlockServiceServer) Unblock(context.Context, *UnblockUserRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Unblock not implemented")
+}
+func (UnimplementedBlockServiceServer) IsBlocked(context.Context, *IsUserBlockedRequest) (*IsUserBlockedResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method IsBlocked not implemented")
 }
 func (UnimplementedBlockServiceServer) GetBlocked(context.Context, *common.PagedElementInput) (*GetBlockedResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetBlocked not implemented")
@@ -174,6 +189,24 @@ func _BlockService_Unblock_Handler(srv interface{}, ctx context.Context, dec fun
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(BlockServiceServer).Unblock(ctx, req.(*UnblockUserRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _BlockService_IsBlocked_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(IsUserBlockedRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BlockServiceServer).IsBlocked(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BlockService_IsBlocked_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BlockServiceServer).IsBlocked(ctx, req.(*IsUserBlockedRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -246,6 +279,10 @@ var BlockService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Unblock",
 			Handler:    _BlockService_Unblock_Handler,
+		},
+		{
+			MethodName: "IsBlocked",
+			Handler:    _BlockService_IsBlocked_Handler,
 		},
 		{
 			MethodName: "GetBlocked",

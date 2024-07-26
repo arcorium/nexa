@@ -2,15 +2,32 @@ package repo
 
 import (
   "database/sql"
+  "errors"
   "github.com/arcorium/nexa/shared/types"
   spanUtil "github.com/arcorium/nexa/shared/util/span"
+  "github.com/uptrace/bun/driver/pgdriver"
   "go.opentelemetry.io/otel/trace"
 )
+
+func checkPgDriverViolation(err error) error {
+  pg, ok := err.(pgdriver.Error)
+  if !ok {
+    return err
+  }
+  switch pg.Field('C') {
+  case "23000", "23502", "23503", "23505", "23514", "23P01":
+    return errors.Join(ErrAlreadyExists, err)
+  case "23001": // Null on not null fields
+    return err
+  default:
+    return err
+  }
+}
 
 // CheckResult check the result if the rows affected is 0 it will return sql.ErrNoRows
 func CheckResult(result sql.Result, err error) error {
   if err != nil {
-    return err
+    return checkPgDriverViolation(err)
   }
 
   count, err := result.RowsAffected()
@@ -27,29 +44,17 @@ func CheckResult(result sql.Result, err error) error {
 
 // CheckResultWithSpan works like CheckResult, but it will record error for span
 func CheckResultWithSpan(result sql.Result, err error, span trace.Span) error {
-  if err != nil {
-    spanUtil.RecordError(err, span)
-    return err
+  resultErr := CheckResult(result, err)
+  if resultErr != nil {
+    spanUtil.RecordError(resultErr, span)
   }
-
-  count, err := result.RowsAffected()
-  if err != nil {
-    spanUtil.RecordError(err, span)
-    return err
-  }
-
-  if count == 0 {
-    spanUtil.RecordError(sql.ErrNoRows, span)
-    return sql.ErrNoRows
-  }
-
-  return nil
+  return resultErr
 }
 
 // CheckSliceResult check the slice (from scanning ORMs) and err will become sql.ErrNoRows if the slice size is 0
 func CheckSliceResult[T any](slice []T, err error) types.Result[[]T] {
   if err != nil {
-    return types.None[[]T](err)
+    return types.None[[]T](checkPgDriverViolation(err))
   }
 
   if len(slice) <= 0 {
@@ -61,22 +66,16 @@ func CheckSliceResult[T any](slice []T, err error) types.Result[[]T] {
 
 // CheckSliceResultWithSpan works like CheckSliceResult, but it will record error for span
 func CheckSliceResultWithSpan[T any](slice []T, err error, span trace.Span) types.Result[[]T] {
-  if err != nil {
-    spanUtil.RecordError(err, span)
-    return types.None[[]T](err)
+  result := CheckSliceResult(slice, err)
+  if result.IsError() {
+    spanUtil.RecordError(result.Err, span)
   }
-
-  if len(slice) <= 0 {
-    spanUtil.RecordError(sql.ErrNoRows, span)
-    return types.None[[]T](sql.ErrNoRows)
-  }
-
-  return types.Some(slice, nil)
+  return result
 }
 
 func CheckPaginationResult[T any](slice []T, count int, err error) types.Result[[]T] {
   if err != nil {
-    return types.None[[]T](err)
+    return types.None[[]T](checkPgDriverViolation(err))
   }
 
   if count == 0 || len(slice) == 0 {
@@ -87,15 +86,9 @@ func CheckPaginationResult[T any](slice []T, count int, err error) types.Result[
 }
 
 func CheckPaginationResultWithSpan[T any](slice []T, count int, err error, span trace.Span) types.Result[[]T] {
-  if err != nil {
-    spanUtil.RecordError(err, span)
-    return types.None[[]T](err)
+  result := CheckPaginationResult(slice, count, err)
+  if result.IsError() {
+    spanUtil.RecordError(result.Err, span)
   }
-
-  if count == 0 || len(slice) == 0 {
-    spanUtil.RecordError(sql.ErrNoRows, span)
-    return types.None[[]T](sql.ErrNoRows)
-  }
-
-  return types.Some(slice, nil)
+  return result
 }

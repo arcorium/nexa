@@ -10,6 +10,7 @@ service BlockService {
   // Get user total follower and followee
   rpc Block(BlockUserRequest) returns (google.protobuf.Empty);
   rpc Unblock(UnblockUserRequest) returns (google.protobuf.Empty);
+  rpc IsBlocked(IsUserBlockedRequest) returns(IsUserBlockedResponse);
   rpc GetBlocked(common.PagedElementInput) returns (GetBlockedResponse);
   // Get user total blocked
   rpc GetUsersCount(GetUsersBlockCountRequest) returns (GetUsersBlockCountResponse);
@@ -23,6 +24,14 @@ message BlockUserRequest {
 
 message UnblockUserRequest {
   string target_user_id = 1;
+}
+
+message IsUserBlockedRequest {
+  string target_user_id = 1;
+}
+
+message IsUserBlockedResponse{
+  bool is_blocked = 1;
 }
 
 message GetBlockedResponse {
@@ -44,5 +53,5 @@ message GetUsersBlockCountResponse {
 }
 
 message ClearUsersBlockRequest {
-  string user_id = 1;
+  optional string user_id = 1;
 }

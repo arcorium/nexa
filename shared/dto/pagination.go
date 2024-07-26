@@ -18,7 +18,11 @@ func (p *PagedElementDTO) ToQueryParam() repo.QueryParameter {
 }
 
 func (p *PagedElementDTO) Offset() uint64 {
-  return (p.Page - 1) * p.Element
+  page := p.Page - 1
+  if p.Page == 0 {
+    page = 0
+  }
+  return page * p.Element
 }
 
 func NewPagedElementResult[T any](data []T, currentPage, totalElements, totalPages uint64) PagedElementResult[T] {
@@ -33,7 +37,21 @@ func NewPagedElementResult[T any](data []T, currentPage, totalElements, totalPag
 }
 
 func NewPagedElementResult2[T any](data []T, input *PagedElementDTO, totalElements uint64) PagedElementResult[T] {
-  return NewPagedElementResult(data, input.Page, totalElements, uint64(math.Ceil(float64(totalElements)/float64(input.Element))))
+  divider := input.Element
+  if input.Element == 0 {
+    divider = uint64(len(data))
+  }
+  currentPage := input.Page
+  if input.Page == 0 {
+    currentPage = 1
+  }
+  var totalPages uint64
+  if totalElements == 0 {
+    totalPages = 0
+  } else {
+    totalPages = uint64(math.Ceil(float64(totalElements) / float64(divider)))
+  }
+  return NewPagedElementResult(data, currentPage, totalElements, totalPages)
 }
 
 type PagedElementResult[T any] struct {

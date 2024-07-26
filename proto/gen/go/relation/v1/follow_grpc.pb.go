@@ -20,13 +20,13 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	FollowService_Follow_FullMethodName          = "/nexa.relation.v1.FollowService/Follow"
-	FollowService_Unfollow_FullMethodName        = "/nexa.relation.v1.FollowService/Unfollow"
-	FollowService_GetFollowers_FullMethodName    = "/nexa.relation.v1.FollowService/GetFollowers"
-	FollowService_GetFollowees_FullMethodName    = "/nexa.relation.v1.FollowService/GetFollowees"
-	FollowService_GetFollowStatus_FullMethodName = "/nexa.relation.v1.FollowService/GetFollowStatus"
-	FollowService_GetUsersCount_FullMethodName   = "/nexa.relation.v1.FollowService/GetUsersCount"
-	FollowService_ClearUsers_FullMethodName      = "/nexa.relation.v1.FollowService/ClearUsers"
+	FollowService_Follow_FullMethodName        = "/nexa.relation.v1.FollowService/Follow"
+	FollowService_Unfollow_FullMethodName      = "/nexa.relation.v1.FollowService/Unfollow"
+	FollowService_GetFollowers_FullMethodName  = "/nexa.relation.v1.FollowService/GetFollowers"
+	FollowService_GetFollowees_FullMethodName  = "/nexa.relation.v1.FollowService/GetFollowees"
+	FollowService_GetRelation_FullMethodName   = "/nexa.relation.v1.FollowService/GetRelation"
+	FollowService_GetUsersCount_FullMethodName = "/nexa.relation.v1.FollowService/GetUsersCount"
+	FollowService_ClearUsers_FullMethodName    = "/nexa.relation.v1.FollowService/ClearUsers"
 )
 
 // FollowServiceClient is the client API for FollowService service.
@@ -37,7 +37,7 @@ type FollowServiceClient interface {
 	Unfollow(ctx context.Context, in *UnfollowRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	GetFollowers(ctx context.Context, in *GetUserFollowersRequest, opts ...grpc.CallOption) (*GetUserFollowersResponse, error)
 	GetFollowees(ctx context.Context, in *GetUserFolloweesRequest, opts ...grpc.CallOption) (*GetUserFolloweesResponse, error)
-	GetFollowStatus(ctx context.Context, in *GetFollowStatusRequest, opts ...grpc.CallOption) (*GetFollowStatusResponse, error)
+	GetRelation(ctx context.Context, in *GetRelationRequest, opts ...grpc.CallOption) (*GetRelationResponse, error)
 	// Get user total follower and followee
 	GetUsersCount(ctx context.Context, in *GetUsersFollowCountRequest, opts ...grpc.CallOption) (*GetUsersFollowCountResponse, error)
 	// Clear user related data on this service
@@ -88,9 +88,9 @@ func (c *followServiceClient) GetFollowees(ctx context.Context, in *GetUserFollo
 	return out, nil
 }
 
-func (c *followServiceClient) GetFollowStatus(ctx context.Context, in *GetFollowStatusRequest, opts ...grpc.CallOption) (*GetFollowStatusResponse, error) {
-	out := new(GetFollowStatusResponse)
-	err := c.cc.Invoke(ctx, FollowService_GetFollowStatus_FullMethodName, in, out, opts...)
+func (c *followServiceClient) GetRelation(ctx context.Context, in *GetRelationRequest, opts ...grpc.CallOption) (*GetRelationResponse, error) {
+	out := new(GetRelationResponse)
+	err := c.cc.Invoke(ctx, FollowService_GetRelation_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -123,7 +123,7 @@ type FollowServiceServer interface {
 	Unfollow(context.Context, *UnfollowRequest) (*emptypb.Empty, error)
 	GetFollowers(context.Context, *GetUserFollowersRequest) (*GetUserFollowersResponse, error)
 	GetFollowees(context.Context, *GetUserFolloweesRequest) (*GetUserFolloweesResponse, error)
-	GetFollowStatus(context.Context, *GetFollowStatusRequest) (*GetFollowStatusResponse, error)
+	GetRelation(context.Context, *GetRelationRequest) (*GetRelationResponse, error)
 	// Get user total follower and followee
 	GetUsersCount(context.Context, *GetUsersFollowCountRequest) (*GetUsersFollowCountResponse, error)
 	// Clear user related data on this service
@@ -147,8 +147,8 @@ func (UnimplementedFollowServiceServer) GetFollowers(context.Context, *GetUserFo
 func (UnimplementedFollowServiceServer) GetFollowees(context.Context, *GetUserFolloweesRequest) (*GetUserFolloweesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetFollowees not implemented")
 }
-func (UnimplementedFollowServiceServer) GetFollowStatus(context.Context, *GetFollowStatusRequest) (*GetFollowStatusResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetFollowStatus not implemented")
+func (UnimplementedFollowServiceServer) GetRelation(context.Context, *GetRelationRequest) (*GetRelationResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetRelation not implemented")
 }
 func (UnimplementedFollowServiceServer) GetUsersCount(context.Context, *GetUsersFollowCountRequest) (*GetUsersFollowCountResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUsersCount not implemented")
@@ -241,20 +241,20 @@ func _FollowService_GetFollowees_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
-func _FollowService_GetFollowStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetFollowStatusRequest)
+func _FollowService_GetRelation_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetRelationRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(FollowServiceServer).GetFollowStatus(ctx, in)
+		return srv.(FollowServiceServer).GetRelation(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: FollowService_GetFollowStatus_FullMethodName,
+		FullMethod: FollowService_GetRelation_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(FollowServiceServer).GetFollowStatus(ctx, req.(*GetFollowStatusRequest))
+		return srv.(FollowServiceServer).GetRelation(ctx, req.(*GetRelationRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -319,8 +319,8 @@ var FollowService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _FollowService_GetFollowees_Handler,
 		},
 		{
-			MethodName: "GetFollowStatus",
-			Handler:    _FollowService_GetFollowStatus_Handler,
+			MethodName: "GetRelation",
+			Handler:    _FollowService_GetRelation_Handler,
 		},
 		{
 			MethodName: "GetUsersCount",

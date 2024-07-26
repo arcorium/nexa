@@ -11,14 +11,14 @@ service FollowService {
   rpc Unfollow(UnfollowRequest) returns (google.protobuf.Empty);
   rpc GetFollowers(GetUserFollowersRequest) returns (GetUserFollowersResponse);
   rpc GetFollowees(GetUserFolloweesRequest) returns (GetUserFolloweesResponse);
-  rpc GetFollowStatus(GetFollowStatusRequest) returns (GetFollowStatusResponse);
+  rpc GetRelation(GetRelationRequest) returns (GetRelationResponse);
   // Get user total follower and followee
   rpc GetUsersCount(GetUsersFollowCountRequest) returns (GetUsersFollowCountResponse);
   // Clear user related data on this service
   rpc ClearUsers(ClearUsersRequest) returns (google.protobuf.Empty);
 }
 
-enum FollowStatus {
+enum Relation {
   FOLLOWER = 0;
   MUTUAL = 1; // Both user is following
   NONE = 2;
@@ -53,13 +53,13 @@ message GetUserFolloweesResponse {
   common.PagedElementOutput details = 2;
 }
 
-message GetFollowStatusRequest {
+message GetRelationRequest {
   optional string user_id = 1;
   repeated string opponent_user_ids = 2;
 }
 
-message GetFollowStatusResponse {
-  repeated FollowStatus status = 1;
+message GetRelationResponse {
+  repeated Relation status = 1;
 }
 
 message GetUsersFollowCountRequest {
@@ -76,5 +76,5 @@ message GetUsersFollowCountResponse {
 }
 
 message ClearUsersRequest {
-  string user_id = 1;
+  optional string user_id = 1;
 }
