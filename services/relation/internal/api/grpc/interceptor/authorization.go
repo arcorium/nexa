@@ -23,6 +23,8 @@ func PermissionCheck(claims *sharedJwt.UserClaims, meta interceptors.CallMeta) b
     return authUtil.ContainsPermission(claims.Roles, constant.RELATION_PERMISSIONS[constant.RELATION_CREATE_BLOCK])
   case relationv1.BlockService_GetBlocked_FullMethodName:
     fallthrough
+  case relationv1.BlockService_IsBlocked_FullMethodName:
+    fallthrough
   case relationv1.BlockService_GetUsersCount_FullMethodName:
     return authUtil.ContainsPermission(claims.Roles, constant.RELATION_PERMISSIONS[constant.RELATION_GET_BLOCK])
   case relationv1.BlockService_ClearUsers_FullMethodName:

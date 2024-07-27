@@ -22,7 +22,7 @@ RUN go test ./...
 # Runner
 FROM alpine:latest AS runner
 
-COPY --from=builder /app/build/* /app/pubkey.pem /app/privkey.pem /app/
+COPY --from=builder /app/build/* /app/pubkey.pem /app/
 
 WORKDIR /app
 

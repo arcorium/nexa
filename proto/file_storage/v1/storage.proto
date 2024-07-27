@@ -18,8 +18,8 @@ message File {
   string name = 2;
   uint64 size = 3;
   string path = 4;
-  google.protobuf.Timestamp created_at = 5;
-  google.protobuf.Timestamp last_modified = 6;
+  optional google.protobuf.Timestamp last_modified = 5;
+  google.protobuf.Timestamp created_at = 6;
 }
 
 message FindFileRequest {
@@ -31,20 +31,12 @@ message FindFileResponse {
   bytes chunk = 2;
 }
 
-message GetFileUrlRequest {
-  repeated string file_ids = 1;
-}
-
-message GetFileUrlResponse {
-  repeated string urls = 1;
-}
-
 message FindFileMetadataRequest {
   repeated string file_ids = 1;
 }
 
 message FindFileMetadataResponse {
-  repeated File files = 1;
+  map<string, File> files = 1;
 }
 
 message StoreFileRequest {

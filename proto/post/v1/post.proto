@@ -29,33 +29,29 @@ enum Visibility {
   ONLY_ME = 2;
 }
 
-message UserTag {
-  string user_id = 1;
-  string user_name = 2;
-}
+//message UserTag {
+//  string user_id = 1;
+//  string user_name = 2;
+//}
 
 message Post {
   string id = 1;
-  Post parent_post = 2;
+  optional Post parent_post = 2;
   string creator_id = 3;
   string content = 4;
   Visibility visibility = 5;
 
-  uint64 total_likes = 6;
-  uint64 total_comments = 7;
-  uint64 total_shares = 8;
-
-  google.protobuf.Timestamp last_edited = 9;
-  google.protobuf.Timestamp created_at = 10;
-  repeated UserTag users = 11;
-  repeated string media_urls = 12;
+  optional google.protobuf.Timestamp last_edited = 6;
+  google.protobuf.Timestamp created_at = 7;
+  repeated string tagged_user_ids = 8;
+  repeated string media_urls = 9;
 }
 
 message EditedPost {
   message Post {
     string content = 1;
     google.protobuf.Timestamp created_at = 2;
-    repeated UserTag users = 8;
+    repeated string tagged_user_ids = 8;
     repeated string media_urls = 9;
   }
 
