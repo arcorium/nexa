@@ -26,7 +26,7 @@ services:
       - PG_IS_SECURE=false
     networks:
       - np_network
-  token_generator:
+  post-token_generator:
     build:
       context: ../../token_generator/
       dockerfile: Dockerfile
@@ -40,7 +40,7 @@ services:
     depends_on:
       nexa-post-migrate:
         condition: service_completed_successfully
-      token_generator:
+      post-token_generator:
         condition: service_completed_successfully
 #      nexa-authz:
 #        condition: service_healthy
@@ -78,11 +78,8 @@ services:
       - PG_PARAMETER=application_name=nexa-post
       - PG_IS_SECURE=false
 #      - OTLP_GRPC_COLLECTOR_ADDRESS=
-#      - COMMENT_SERVICE_ADDRESS=
-#      - FOLLOW_SERVICE_ADDRESS=
-#      - MEDIA_STORAGE_SERVICE_ADDRESS=
-#      - REACTION_SERVICE_ADDRESS=
-#      - USER_SERVICE_ADDRESS=
+#      - RELATION_SERVICE_ADDRESS=
+#      - FILE_STORAGE_SERVICE_ADDRESS=
 
 networks:
   np_network:

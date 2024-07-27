@@ -17,7 +17,7 @@ func AuthSelector(_ context.Context, meta interceptors.CallMeta) bool {
 func PermissionCheck(claims *sharedJwt.UserClaims, meta interceptors.CallMeta) bool {
   switch meta.FullMethod() {
   case postv1.PostService_Find_FullMethodName:
-    fallthrough
+    return authUtil.ContainsPermission(claims.Roles, constant.POST_PERMISSIONS[constant.POST_GET_ARB])
   case postv1.PostService_FindEdited_FullMethodName:
     fallthrough
   case postv1.PostService_FindById_FullMethodName:

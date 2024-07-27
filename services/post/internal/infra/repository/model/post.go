@@ -8,7 +8,7 @@ import (
   "github.com/arcorium/nexa/shared/variadic"
   "github.com/uptrace/bun"
   "nexa/services/post/internal/domain/entity"
-  "nexa/services/post/util/errors"
+  "nexa/services/post/util/errs"
   "time"
 )
 
@@ -38,8 +38,6 @@ func FromPostDomain(ent *entity.Post, opts ...PostMapOption) Post {
     CreatedAt: ent.CreatedAt,
   }
 
-  post.Versions = append(post.Versions, version)
-
   userTags := sharedUtil.CastSlice(ent.Tags, func(tag entity.TaggedUser) UserTag {
     return UserTag{
       VersionId: version.Id,
@@ -57,6 +55,8 @@ func FromPostDomain(ent *entity.Post, opts ...PostMapOption) Post {
   version.Medias = medias
   version.UserTags = userTags
 
+  post.Versions = append(post.Versions, version)
+
   variadic.New(opts...).
     DoAll(repo.MapOptionFunc(ent, &post))
 
@@ -73,13 +73,14 @@ type Post struct {
 
   CreatedAt time.Time `bun:",notnull,nullzero"`
 
-  Versions   []PostVersion `bun:"rel:has-many,join:id=post_id"`
-  TotalShare uint64        `bun:",scanonly"`
+  Versions []PostVersion `bun:"rel:has-many,join:id=post_id"`
+  Parent   *Post         `bun:"rel:belongs-to,join:parent_id=id,on_delete:CASCADE"`
+  //TotalShare uint64        `bun:",scanonly"`
 }
 
 func (p *Post) ToDomain() (entity.Post, error) {
   if len(p.Versions) == 0 {
-    return entity.Post{}, errors.ErrPostWithNoVersion
+    return entity.Post{}, errs.ErrPostWithNoVersion
   }
   vers := &p.Versions[0]
 
@@ -112,13 +113,23 @@ func (p *Post) ToDomain() (entity.Post, error) {
     return entity.Post{}, err
   }
 
+  // Parent
+  var parent *entity.Post
+  if p.Parent != nil {
+    p, err := p.Parent.ToDomain()
+    if err != nil {
+      return entity.Post{}, err
+    }
+    parent = &p
+  }
+
   return entity.Post{
     Id:         postId,
-    ParentPost: nil,
+    ParentPost: parent,
     CreatorId:  creatorId,
     Content:    vers.Content,
     Visibility: visibility,
-    Shares:     p.TotalShare,
+    //Shares:     p.TotalShare,
     LastEdited: vers.CreatedAt,
     CreatedAt:  p.CreatedAt,
     Tags:       child.Tags,

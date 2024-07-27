@@ -9,12 +9,14 @@ import (
   "github.com/sony/gobreaker"
   "go.opentelemetry.io/otel/trace"
   "google.golang.org/grpc"
+  "google.golang.org/grpc/codes"
+  "google.golang.org/grpc/status"
   "nexa/services/post/config"
   "nexa/services/post/internal/domain/external"
   "nexa/services/post/util"
 )
 
-func NewMediaStorage(conn grpc.ClientConnInterface, conf *config.CircuitBreaker) external.IMediaStore {
+func NewMediaStorage(conn grpc.ClientConnInterface, conf *config.CircuitBreaker) external.IMediaStoreClient {
   breaker := gobreaker.NewCircuitBreaker(gobreaker.Settings{
     Name:         "nexa-media-storage",
     MaxRequests:  conf.MaxRequest,
@@ -41,19 +43,32 @@ func (m *mediaStorageClient) GetUrls(ctx context.Context, fileIds ...types.Id) (
   ctx, span := m.tracer.Start(ctx, "MediaStorage.GetUrls")
   defer span.End()
 
-  req := storagev1.GetFileUrlRequest{
-    FileIds: sharedUtil.CastSlice(fileIds, sharedUtil.ToString[types.Id]),
+  ids := sharedUtil.CastSlice(fileIds, sharedUtil.ToString[types.Id])
+  req := storagev1.FindFileMetadataRequest{
+    FileIds: ids,
   }
 
   res, err := m.cb.Execute(func() (interface{}, error) {
-    return m.client.GetUrls(ctx, &req)
+    return m.client.FindMetadata(ctx, &req)
   })
 
   if err != nil {
+    s, _ := status.FromError(err)
+    if s.Code() == codes.NotFound {
+      return make([]string, len(fileIds)), nil
+    }
     err = util.CastBreakerError(err)
     spanUtil.RecordError(err, span)
-    return nil, err
+    return nil, err // Allow deleted file
   }
 
-  return res.([]string), nil
+  result := make([]string, len(fileIds))
+  for i, id := range ids {
+    val, ok := res.(*storagev1.FindFileMetadataResponse).Files[id]
+    if !ok {
+      continue
+    }
+    result[i] = val.Path
+  }
+  return result, nil
 }

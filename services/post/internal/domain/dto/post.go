@@ -14,10 +14,10 @@ type PostResponseDTO struct {
   Content    string
   Visibility entity.Visibility
 
-  TotalLikes    uint64
-  TotalDislikes uint64
-  TotalComments uint64
-  TotalShares   uint64
+  //TotalLikes    uint64
+  //TotalDislikes uint64
+  //TotalComments uint64
+  //TotalShares uint64
 
   LastEdited time.Time
   CreatedAt  time.Time
@@ -42,11 +42,11 @@ type EditedPostResponseDTO struct {
 }
 
 type CreatePostDTO struct {
-  SharedPostId types.NullableId
-  Content      types.NullableString
-  Visibility   entity.Visibility
-  MediaIds     []types.Id
-  UserIds      []types.Id
+  SharedPostId  types.NullableId
+  Content       types.NullableString
+  Visibility    entity.Visibility
+  MediaIds      []types.Id
+  TaggedUserIds []types.Id
 }
 
 func (c *CreatePostDTO) ToDomain(creatorId types.Id) entity.Post {
@@ -63,7 +63,7 @@ func (c *CreatePostDTO) ToDomain(creatorId types.Id) entity.Post {
     Content:    c.Content.ValueOr(""),
     Visibility: c.Visibility,
     CreatedAt:  time.Now(),
-    Tags: sharedUtil.CastSlice(c.UserIds, func(id types.Id) entity.TaggedUser {
+    Tags: sharedUtil.CastSlice(c.TaggedUserIds, func(id types.Id) entity.TaggedUser {
       return entity.TaggedUser{
         Id: id,
       }
@@ -76,33 +76,51 @@ func (c *CreatePostDTO) ToDomain(creatorId types.Id) entity.Post {
   }
 }
 
+type EditPostFlag uint8
+
+const (
+  EditPostCopyNone  EditPostFlag = 0
+  EditPostCopyTag   EditPostFlag = 1 << 0
+  EditPostCopyMedia EditPostFlag = 1 << 1
+)
+
 type EditPostDTO struct {
   PostId   types.Id
   Content  string
-  MediaIds []types.Id
-  UserIds  []types.Id
+  MediaIds types.Nullable[[]types.Id]
+  UserIds  types.Nullable[[]types.Id]
 }
 
 func (e *EditPostDTO) ToDomain(creatorId types.Id) entity.Post {
   return entity.Post{
-    Id:         e.PostId,
-    CreatorId:  creatorId,
-    Content:    e.Content,
-    LastEdited: time.Now(),
-    Tags: sharedUtil.CastSlice(e.UserIds, func(id types.Id) entity.TaggedUser {
+    Id:        e.PostId,
+    CreatorId: creatorId,
+    Content:   e.Content,
+    Tags: sharedUtil.CastSlice(e.UserIds.ValueOr([]types.Id{}), func(id types.Id) entity.TaggedUser {
       return entity.TaggedUser{
         Id: id,
       }
     }),
-    Medias: sharedUtil.CastSlice(e.MediaIds, func(id types.Id) entity.Media {
+    Medias: sharedUtil.CastSlice(e.MediaIds.ValueOr([]types.Id{}), func(id types.Id) entity.Media {
       return entity.Media{
         Id: id,
       }
     }),
+    CreatedAt: time.Now(),
   }
 }
 
+func (e *EditPostDTO) Flag() EditPostFlag {
+  result := EditPostCopyNone
+  if !e.MediaIds.HasValue() {
+    result |= EditPostCopyMedia
+  }
+  if !e.UserIds.HasValue() {
+    result |= EditPostCopyTag
+  }
+  return result
+}
+
 type TaggedUserDTO struct {
-  UserId   types.Id
-  Username string
+  UserId types.Id
 }

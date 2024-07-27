@@ -7,6 +7,7 @@ import (
   "github.com/arcorium/nexa/shared/database"
   "github.com/arcorium/nexa/shared/grpc/interceptor"
   "github.com/arcorium/nexa/shared/grpc/interceptor/authz"
+  "github.com/arcorium/nexa/shared/grpc/interceptor/forward"
   "github.com/arcorium/nexa/shared/logger"
   "github.com/arcorium/nexa/shared/types"
   sharedUtil "github.com/arcorium/nexa/shared/util"
@@ -158,6 +159,15 @@ func (s *Server) grpcServerSetup() error {
     )
   }
 
+  additionalMd := make(map[string]string)
+  // To identify when the request is forwarded from another service
+  additionalMd["forwarder"] = constant.SERVICE_NAME
+  additionalMd["forwarder-v"] = constant.SERVICE_VERSION
+  forwardConfig := forward.NewConfig(true,
+    forward.WithIncludeKeys("authorization"), // Only forward this key when it is present
+    forward.WithAdditionalData(additionalMd),
+  )
+
   s.grpcServer = grpc.NewServer(
     grpc.StatsHandler(otelgrpc.NewServerHandler()), // tracing
     grpc.ChainUnaryInterceptor(
@@ -165,12 +175,14 @@ func (s *Server) grpcServerSetup() error {
       logging.UnaryServerInterceptor(zapLogger), // logging
       authz.UserUnaryServerInterceptor(&authorizationConfig, inter.AuthSelector, skipServices...),
       metrics.UnaryServerInterceptor(promProv.WithExemplarFromContext(exemplarFromCtx)),
+      forward.UnaryServerInterceptor(&forwardConfig),
     ),
     grpc.ChainStreamInterceptor(
       recovery.StreamServerInterceptor(),
       logging.StreamServerInterceptor(zapLogger), // logging
       authz.UserStreamServerInterceptor(&authorizationConfig, inter.AuthSelector, skipServices...),
       metrics.StreamServerInterceptor(promProv.WithExemplarFromContext(exemplarFromCtx)),
+      forward.StreamServerInterceptor(&forwardConfig),
     ),
   )
 
@@ -255,7 +267,7 @@ func (s *Server) setup() error {
   unit := pg2.NewPostUOW(s.db)
 
   // Service
-  postService := service.NewPost(unit)
+  postService := service.NewPost(unit, s.externalClients.MediaStorage, s.externalClients.Relation)
 
   // GRPC Handler
   postHandler := handler.NewPost(postService)
@@ -307,7 +319,7 @@ func (s *Server) Run() error {
 
     err = s.grpcServer.Serve(listener)
     logger.Info("Server Stopping ")
-    if err != nil {
+    if err != nil && !errors.Is(err, http.ErrServerClosed) {
       logger.Warnf("Server failed to serve: %s", err)
     }
   }()
@@ -319,7 +331,7 @@ func (s *Server) Run() error {
 
     err = s.metricServer.ListenAndServe()
     logger.Info("Metrics Server Stopping")
-    if err != nil {
+    if err != nil && !errors.Is(err, http.ErrServerClosed) {
       logger.Warnf("Metrics server failed to serve: %s", err)
     }
   }()

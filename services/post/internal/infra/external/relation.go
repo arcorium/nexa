@@ -13,47 +13,65 @@ import (
   "nexa/services/post/util"
 )
 
-func NewFollow(conn grpc.ClientConnInterface, conf *config.CircuitBreaker) external.IRelationClient {
+func NewRelationClient(conn grpc.ClientConnInterface, conf *config.CircuitBreaker) external.IRelationClient {
   breaker := gobreaker.NewCircuitBreaker(gobreaker.Settings{
-    Name:         "nexa-follow",
+    Name:         "nexa-relation",
     MaxRequests:  conf.MaxRequest,
     Interval:     conf.ResetInterval,
     Timeout:      conf.OpenStateTimeout,
     IsSuccessful: util.IsGrpcConnectivityError,
   })
 
-  return &followClient{
-    client: relationv1.NewFollowServiceClient(conn),
-    tracer: util.GetTracer(),
-    cb:     breaker,
+  return &relationClient{
+    followClient: relationv1.NewFollowServiceClient(conn),
+    blockClient:  relationv1.NewBlockServiceClient(conn),
+    tracer:       util.GetTracer(),
+    cb:           breaker,
   }
 }
 
-type followClient struct {
-  client relationv1.FollowServiceClient
-  tracer trace.Tracer
+type relationClient struct {
+  followClient relationv1.FollowServiceClient
+  blockClient  relationv1.BlockServiceClient
+  tracer       trace.Tracer
 
   cb *gobreaker.CircuitBreaker
 }
 
-func (f *followClient) IsFollower(ctx context.Context, followerId types.Id, followedId types.Id) (bool, error) {
-  ctx, span := f.tracer.Start(ctx, "FollowClient.IsFollower")
+func (f *relationClient) IsFollower(ctx context.Context, followerId types.Id, followedId types.Id) (bool, error) {
+  ctx, span := f.tracer.Start(ctx, "RelationClient.IsFollower")
   defer span.End()
 
-  req := relationv1.GetFollowStatusRequest{
-    UserId:         followerId.String(),
-    OpponentUserId: []string{followedId.String()},
+  req := &relationv1.GetRelationRequest{
+    //UserId:         , // Use authorization forwarded
+    OpponentUserIds: []string{followedId.String()},
   }
   res, err := f.cb.Execute(func() (interface{}, error) {
-    return f.client.GetFollowStatus(ctx, &req)
+    return f.followClient.GetRelation(ctx, req)
   })
-
   if err != nil {
     err = util.CastBreakerError(err)
     spanUtil.RecordError(err, span)
     return false, err
   }
 
-  statuses := res.(*relationv1.GetFollowStatusResponse).Status
-  return statuses[0] == relationv1.FollowStatus_FOLLOWER || statuses[0] == relationv1.FollowStatus_MUTUAL, nil
+  statuses := res.(*relationv1.GetRelationResponse).Status
+  return statuses[0] == relationv1.Relation_FOLLOWER || statuses[0] == relationv1.Relation_MUTUAL, nil
+}
+
+func (f *relationClient) IsBlocked(ctx context.Context, blockerId types.Id) (bool, error) {
+  ctx, span := f.tracer.Start(ctx, "RelationClient.IsBlocked")
+  defer span.End()
+
+  req := &relationv1.IsUserBlockedRequest{TargetUserId: blockerId.String()}
+  blocked, err := f.cb.Execute(func() (interface{}, error) {
+    return f.blockClient.IsBlocked(ctx, req)
+  })
+  if err != nil {
+    err = util.CastBreakerError(err)
+    spanUtil.RecordError(err, span)
+    return false, err
+  }
+
+  return blocked.(*relationv1.IsUserBlockedResponse).IsBlocked, nil
 }

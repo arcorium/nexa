@@ -5,6 +5,6 @@ import (
   "github.com/arcorium/nexa/shared/types"
 )
 
-type IMediaStore interface {
+type IMediaStoreClient interface {
   GetUrls(ctx context.Context, fileIds ...types.Id) ([]string, error)
 }

@@ -8,8 +8,7 @@ import (
 
 func ToTaggedUserDTO(user *entity.TaggedUser) dto.TaggedUserDTO {
   return dto.TaggedUserDTO{
-    UserId:   user.Id,
-    Username: user.Name,
+    UserId: user.Id,
   }
 }
 
@@ -25,19 +24,16 @@ func ToPostResponseDTO(post *entity.Post) dto.PostResponseDTO {
   }
 
   return dto.PostResponseDTO{
-    Id:            post.Id,
-    ParentPost:    parent,
-    CreatorId:     post.CreatorId,
-    Content:       post.Content,
-    Visibility:    post.Visibility,
-    TotalLikes:    post.Likes,
-    TotalDislikes: post.Dislikes,
-    TotalComments: post.Comments,
-    TotalShares:   post.Shares,
-    LastEdited:    post.LastEdited,
-    CreatedAt:     post.CreatedAt,
-    Tags:          sharedUtil.CastSliceP(post.Tags, ToTaggedUserDTO),
-    MediaUrls:     sharedUtil.CastSliceP(post.Medias, ToMediaDTO),
+    Id:         post.Id,
+    ParentPost: parent,
+    CreatorId:  post.CreatorId,
+    Content:    post.Content,
+    Visibility: post.Visibility,
+    //TotalShares: post.Shares,
+    LastEdited: post.LastEdited,
+    CreatedAt:  post.CreatedAt,
+    Tags:       sharedUtil.CastSliceP(post.Tags, ToTaggedUserDTO),
+    MediaUrls:  sharedUtil.CastSliceP(post.Medias, ToMediaDTO),
   }
 }
 
@@ -54,8 +50,8 @@ func ToEditedPostResponseDTO(post *entity.Post) dto.EditedPostResponseDTO {
     childPost := dto.ChildPostResponseDTO{
       Content:   edited.Content,
       CreatedAt: edited.CreatedAt,
-      Tags:      sharedUtil.CastSliceP(post.Tags, ToTaggedUserDTO),
-      MediaUrls: sharedUtil.CastSliceP(post.Medias, ToMediaDTO),
+      Tags:      sharedUtil.CastSliceP(edited.Tags, ToTaggedUserDTO),
+      MediaUrls: sharedUtil.CastSliceP(edited.Medias, ToMediaDTO),
     }
 
     children = append(children, childPost)

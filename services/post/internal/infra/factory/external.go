@@ -9,11 +9,8 @@ import (
 )
 
 type External struct {
-  Comment      external.ICommentClient
-  Follow       external.IFollowClient
-  MediaStorage external.IMediaStore
-  Reaction     external.IReactionClient
-  User         external.IUserClient
+  Relation     external.IRelationClient
+  MediaStorage external.IMediaStoreClient
 
   connections []*grpc.ClientConn
 }
@@ -26,24 +23,16 @@ func (e *External) Close() {
   }
 }
 
-func NewExternalWithConn(commentConn, followConn, mediaConn, reactionConn, userConn *grpc.ClientConn, breaker *config.CircuitBreaker) *External {
+func NewExternalWithConn(relationConn, mediaConn *grpc.ClientConn, breaker *config.CircuitBreaker) *External {
   return &External{
-    Comment:      NewComment(commentConn, breaker),
-    Follow:       NewFollow(followConn, breaker),
+    Relation:     NewRelationClient(relationConn, breaker),
     MediaStorage: NewMediaStorage(mediaConn, breaker),
-    Reaction:     NewReaction(reactionConn, breaker),
-    User:         NewUser(userConn, breaker),
-    connections:  []*grpc.ClientConn{commentConn, followConn, mediaConn, reactionConn, userConn},
+    connections:  []*grpc.ClientConn{relationConn, mediaConn},
   }
 }
 
-func NewExternalWithConfig(conf *config.Service, breaker *config.CircuitBreaker, options ...grpc.DialOption) (*External, error) {
-  commentConn, err := grpc.NewClient(conf.Comment, options...)
-  if err != nil {
-    return nil, err
-  }
-
-  followConn, err := grpc.NewClient(conf.Follow, options...)
+func NewExternalWithConfig(conf *config.Service, breakerConf *config.CircuitBreaker, options ...grpc.DialOption) (*External, error) {
+  relationConn, err := grpc.NewClient(conf.Relation, options...)
   if err != nil {
     return nil, err
   }
@@ -53,15 +42,5 @@ func NewExternalWithConfig(conf *config.Service, breaker *config.CircuitBreaker,
     return nil, err
   }
 
-  reactionConn, err := grpc.NewClient(conf.Reaction, options...)
-  if err != nil {
-    return nil, err
-  }
-
-  userConn, err := grpc.NewClient(conf.User, options...)
-  if err != nil {
-    return nil, err
-  }
-
-  return NewExternalWithConn(commentConn, followConn, mediaConn, reactionConn, userConn, breaker), nil
+  return NewExternalWithConn(relationConn, mediaConn, breakerConf), nil
 }

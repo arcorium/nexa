@@ -10,7 +10,7 @@ import (
 )
 
 type PostVersion struct {
-  bun.BaseModel `bun:"table:posts"`
+  bun.BaseModel `bun:"table:post_versions"`
 
   Id      string `bun:",type:uuid,pk"`
   PostId  string `bun:",type:uuid"`

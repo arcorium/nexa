@@ -2,13 +2,15 @@ package model
 
 import (
   "github.com/arcorium/nexa/shared/types"
+  "github.com/uptrace/bun"
   "nexa/services/post/internal/domain/entity"
 )
 
 type Media struct {
-  Id        uint64 `bun:",autoincrement,pk"`
-  VersionId string `bun:",type:uuid,notnull,nullzero"`
-  FileId    string `bun:",type:uuid,notnull,nullzero"`
+  bun.BaseModel `bun:"table:medias"`
+  Id            uint64 `bun:",autoincrement,pk"`
+  VersionId     string `bun:",type:uuid,notnull,nullzero"`
+  FileId        string `bun:",type:uuid,notnull,nullzero"`
 
   PostVersion *PostVersion `bun:"rel:belongs-to,join:version_id=id,on_delete:CASCADE"`
 }

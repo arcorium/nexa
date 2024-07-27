@@ -3,8 +3,8 @@ module nexa/services/post
 go 1.22.4
 
 require (
-	github.com/arcorium/nexa/proto/gen/go v1.0.4
-	github.com/arcorium/nexa/shared v0.1.6
+	github.com/arcorium/nexa/proto/gen/go v1.0.5-0.20240727204246-ad7dff50575e
+	github.com/arcorium/nexa/shared v0.1.7-0.20240727204246-ad7dff50575e
 	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.0.1
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.1.0
@@ -44,7 +44,7 @@ require (
 	github.com/prometheus/common v0.48.0 // indirect
 	github.com/prometheus/procfs v0.12.0 // indirect
 	github.com/tmthrgd/go-hex v0.0.0-20190904060850-447a3041c3bc // indirect
-	github.com/uptrace/bun/dialect/pgdialect v1.1.17 // indirect
+	github.com/uptrace/bun/dialect/pgdialect v1.2.1 // indirect
 	github.com/uptrace/bun/driver/pgdriver v1.1.17 // indirect
 	github.com/uptrace/bun/extra/bundebug v1.1.17 // indirect
 	github.com/uptrace/opentelemetry-go-extra/otelsql v0.2.4 // indirect
@@ -58,7 +58,7 @@ require (
 	golang.org/x/crypto v0.24.0 // indirect
 	golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1 // indirect
 	golang.org/x/net v0.26.0 // indirect
-	golang.org/x/sys v0.21.0 // indirect
+	golang.org/x/sys v0.22.0 // indirect
 	golang.org/x/text v0.16.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240701130421-f6361c86f094 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240701130421-f6361c86f094 // indirect

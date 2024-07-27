@@ -1,9 +1,10 @@
 include:
-  - ../comment/docker-compose.yml
   - ../relation/docker-compose.yml
   - ../file_storage/docker-compose.yml
-  - ../reaction/docker-compose.yml
+  - ../authorization/docker-compose.yml
   - ../authentication/docker-compose.yml
+  - ../token/docker-compose.yml
+  - ../mailer/docker-compose.yml
 
 services:
   post-db:
@@ -16,6 +17,8 @@ services:
       - POSTGRES_DB=nexa-post
       - POSTGRES_USER=nexa
       - POSTGRES_PASSWORD=nexa
+    ports:
+      - "5432:5432"
     networks:
       - np_network
   nexa-post-migrate:
@@ -48,7 +51,7 @@ services:
       - 9411:9411
     networks:
       - np_network
-  token_generator:
+  post-token_generator:
     build:
       context: ../../token_generator/
       dockerfile: Dockerfile
@@ -62,17 +65,17 @@ services:
     depends_on:
       nexa-post-migrate:
         condition: service_completed_successfully
-      token_generator:
+      post-token_generator:
         condition: service_completed_successfully
-#      nexa-authz:
-#        condition: service_healthy
+      nexa-authz:
+        condition: service_healthy
     environment:
       - PG_ADDRESS=post-db
       - PG_USERNAME=nexa
       - PG_PASSWORD=nexa
       - PG_DB_NAME=nexa-post
       - PG_IS_SECURE=false
-#      - AUTHZ_SERVICE_ADDR=nexa-authz:8080
+      - AUTHZ_SERVICE_ADDR=nexa-authz:8080
     networks:
       - np_network
     volumes:

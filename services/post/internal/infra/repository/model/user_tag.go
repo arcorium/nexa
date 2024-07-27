@@ -2,13 +2,15 @@ package model
 
 import (
   "github.com/arcorium/nexa/shared/types"
+  "github.com/uptrace/bun"
   "nexa/services/post/internal/domain/entity"
 )
 
 type UserTag struct {
-  Id        uint64 `bun:",autoincrement,pk"`
-  VersionId string `bun:"type:uuid,notnull,nullzero"`
-  UserId    string `bun:"type:uuid,notnull,nullzero"`
+  bun.BaseModel `bun:"table:user_tags"`
+  Id            uint64 `bun:",autoincrement,pk"`
+  VersionId     string `bun:"type:uuid,notnull,nullzero"`
+  UserId        string `bun:"type:uuid,notnull,nullzero"`
 
   PostVersion *PostVersion `bun:"rel:belongs-to,join:version_id=id,on_delete:CASCADE"`
 }

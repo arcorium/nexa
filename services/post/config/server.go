@@ -19,9 +19,6 @@ type CircuitBreaker struct {
 }
 
 type Service struct {
-  Comment      string `env:"COMMENT_SERVICE_ADDRESS"`
-  Follow       string `env:"FOLLOW_SERVICE_ADDRESS"`
-  MediaStorage string `env:"MEDIA_STORAGE_SERVICE_ADDRESS"`
-  Reaction     string `env:"REACTION_SERVICE_ADDRESS"`
-  User         string `env:"USER_SERVICE_ADDRESS"`
+  Relation     string `env:"RELATION_SERVICE_ADDRESS,notEmpty"`
+  MediaStorage string `env:"FILE_STORAGE_SERVICE_ADDRESS,notEmpty"`
 }

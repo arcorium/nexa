@@ -21,7 +21,15 @@ func (v Visibility) Underlying() uint8 {
 }
 
 func (v Visibility) Valid() bool {
-  return v.Underlying() >= VisibilityUnknown.Underlying()
+  return v.Underlying() < VisibilityUnknown.Underlying()
+}
+
+func (v Visibility) Gte(visibility Visibility) bool {
+  return v.Underlying() >= visibility.Underlying()
+}
+
+func (v Visibility) Lt(visibility Visibility) bool {
+  return v.Underlying() < visibility.Underlying()
 }
 
 // Use hierarchy, OnlyMe visibility will also able to get other visibility posts
@@ -39,10 +47,10 @@ type Post struct {
   Content    string
   Visibility Visibility
 
-  Likes    uint64
-  Dislikes uint64
-  Comments uint64
-  Shares   uint64
+  //Likes    uint64
+  //Dislikes uint64
+  //Comments uint64
+  //Shares uint64
 
   LastEdited time.Time
   CreatedAt  time.Time

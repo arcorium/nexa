@@ -10,6 +10,7 @@ import (
   "google.golang.org/protobuf/types/known/timestamppb"
   "nexa/services/post/internal/domain/dto"
   "nexa/services/post/internal/domain/entity"
+  "time"
 )
 
 func toProtoVisibility(visibility entity.Visibility) postv1.Visibility {
@@ -22,6 +23,19 @@ func toProtoVisibility(visibility entity.Visibility) postv1.Visibility {
     return postv1.Visibility_ONLY_ME
   default:
     return postv1.Visibility(entity.VisibilityUnknown)
+  }
+}
+
+func ToPagedElementDTO(input *common.PagedElementInput) sharedDto.PagedElementDTO {
+  if input == nil {
+    return sharedDto.PagedElementDTO{
+      Element: 0,
+      Page:    0,
+    }
+  }
+  return sharedDto.PagedElementDTO{
+    Element: input.Element,
+    Page:    input.Page,
   }
 }
 
@@ -56,12 +70,12 @@ func ToCreatePostDTO(request *postv1.CreatePostRequest) (dto.CreatePostDTO, erro
   }
 
   mediaIds, ierr := sharedUtil.CastSliceErrs(request.MediaIds, types.IdFromString)
-  if !ierr.IsNil() {
+  if !ierr.IsNil() && !ierr.IsEmptySlice() {
     fieldErrors = append(fieldErrors, sharedErr.NewFieldError("media_ids", ierr))
   }
 
   userIds, ierr := sharedUtil.CastSliceErrs(request.UserIds, types.IdFromString)
-  if !ierr.IsNil() {
+  if !ierr.IsNil() && !ierr.IsEmptySlice() {
     fieldErrors = append(fieldErrors, sharedErr.NewFieldError("user_ids", ierr))
   }
 
@@ -70,11 +84,11 @@ func ToCreatePostDTO(request *postv1.CreatePostRequest) (dto.CreatePostDTO, erro
   }
 
   return dto.CreatePostDTO{
-    SharedPostId: types.NewNullable(sharedPostId),
-    Content:      types.NewNullable(request.Content),
-    Visibility:   visibility,
-    MediaIds:     mediaIds,
-    UserIds:      userIds,
+    SharedPostId:  types.NewNullable(sharedPostId),
+    Content:       types.NewNullable(request.Content),
+    Visibility:    visibility,
+    MediaIds:      mediaIds,
+    TaggedUserIds: userIds,
   }, nil
 }
 
@@ -86,14 +100,25 @@ func ToEditPostDTO(request *postv1.EditPostRequest) (dto.EditPostDTO, error) {
     fieldErrors = append(fieldErrors, sharedErr.NewFieldError("post_id", err))
   }
 
-  mediaIds, ierr := sharedUtil.CastSliceErrs(request.MediaIds, types.IdFromString)
-  if !ierr.IsNil() {
-    fieldErrors = append(fieldErrors, sharedErr.NewFieldError("media_ids", ierr))
+  var mediaIdsP *[]types.Id
+  if !request.CloneLastMedia {
+    mediaIds, ierr := sharedUtil.CastSliceErrs(request.MediaIds, types.IdFromString)
+    if !ierr.IsNil() && !ierr.IsEmptySlice() {
+      fieldErrors = append(fieldErrors, sharedErr.NewFieldError("media_ids", ierr))
+    } else {
+      mediaIdsP = &mediaIds
+    }
   }
 
-  userIds, ierr := sharedUtil.CastSliceErrs(request.UserIds, types.IdFromString)
-  if !ierr.IsNil() {
-    fieldErrors = append(fieldErrors, sharedErr.NewFieldError("user_ids", ierr))
+  var userIdsP *[]types.Id
+  if !request.CloneLastTaggedUser {
+    userIds, ierr := sharedUtil.CastSliceErrs(request.TaggedUserIds, types.IdFromString)
+    if !ierr.IsNil() && !ierr.IsEmptySlice() {
+      fieldErrors = append(fieldErrors, sharedErr.NewFieldError("tagged_user_ids", ierr))
+    } else {
+
+      userIdsP = &userIds
+    }
   }
 
   if len(fieldErrors) > 0 {
@@ -103,22 +128,19 @@ func ToEditPostDTO(request *postv1.EditPostRequest) (dto.EditPostDTO, error) {
   return dto.EditPostDTO{
     PostId:   postId,
     Content:  request.Content,
-    MediaIds: mediaIds,
-    UserIds:  userIds,
+    MediaIds: types.NewNullable(mediaIdsP),
+    UserIds:  types.NewNullable(userIdsP),
   }, nil
-}
-
-func toProtoTagUser(userDTO *dto.TaggedUserDTO) *postv1.UserTag {
-  return &postv1.UserTag{
-    UserId:   userDTO.UserId.String(),
-    UserName: userDTO.Username,
-  }
 }
 
 func ToProtoPost(respDTO *dto.PostResponseDTO) *postv1.Post {
   var parentPost *postv1.Post
   if respDTO.ParentPost != nil {
     parentPost = ToProtoPost(respDTO.ParentPost)
+  }
+  var lastEdited *timestamppb.Timestamp
+  if respDTO.LastEdited.Round(time.Second*2) != respDTO.CreatedAt.Round(time.Second*2) {
+    lastEdited = timestamppb.New(respDTO.LastEdited)
   }
 
   return &postv1.Post{
@@ -127,20 +149,22 @@ func ToProtoPost(respDTO *dto.PostResponseDTO) *postv1.Post {
     CreatorId:  respDTO.CreatorId.String(),
     Content:    respDTO.Content,
     Visibility: toProtoVisibility(respDTO.Visibility),
-    LastEdited: timestamppb.New(respDTO.LastEdited),
+    LastEdited: lastEdited,
     CreatedAt:  timestamppb.New(respDTO.CreatedAt),
-    Users:      sharedUtil.CastSliceP(respDTO.Tags, toProtoTagUser),
-    MediaUrls:  respDTO.MediaUrls,
+    TaggedUserIds: sharedUtil.CastSliceP(respDTO.Tags, func(tag *dto.TaggedUserDTO) string {
+      return tag.UserId.String()
+    }),
+    MediaUrls: respDTO.MediaUrls,
   }
 }
 
 func ToProtoEditedPost(responseDTO *dto.EditedPostResponseDTO) *postv1.EditedPost {
   posts := sharedUtil.CastSliceP(responseDTO.EditedPosts, func(from *dto.ChildPostResponseDTO) *postv1.EditedPost_Post {
     return &postv1.EditedPost_Post{
-      Content:   from.Content,
-      CreatedAt: timestamppb.New(from.CreatedAt),
-      Users:     sharedUtil.CastSliceP(from.Tags, toProtoTagUser),
-      MediaUrls: from.MediaUrls,
+      Content:       from.Content,
+      CreatedAt:     timestamppb.New(from.CreatedAt),
+      TaggedUserIds: sharedUtil.CastSliceP(from.Tags, func(tag *dto.TaggedUserDTO) string { return tag.UserId.String() }),
+      MediaUrls:     from.MediaUrls,
     }
   })
 

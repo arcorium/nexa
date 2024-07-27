@@ -8,9 +8,10 @@ import (
 
 var models = []any{
   types.Nil[Post](),
-  types.Nil[Media],
-  types.Nil[UserTag](),
+  types.Nil[BookmarkPost](),
   types.Nil[PostVersion](),
+  types.Nil[Media](),
+  types.Nil[UserTag](),
 }
 
 func RegisterBunModels(db *bun.DB) {

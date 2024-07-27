@@ -6,6 +6,7 @@ import (
   postv1 "github.com/arcorium/nexa/proto/gen/go/post/v1"
   sharedDto "github.com/arcorium/nexa/shared/dto"
   sharedErr "github.com/arcorium/nexa/shared/errors"
+  "github.com/arcorium/nexa/shared/jwt"
   "github.com/arcorium/nexa/shared/types"
   sharedUtil "github.com/arcorium/nexa/shared/util"
   spanUtil "github.com/arcorium/nexa/shared/util/span"
@@ -99,12 +100,11 @@ func (p *PostHandler) FindUsers(ctx context.Context, request *postv1.FindUserPos
   ctx, span := p.tracer.Start(ctx, "PostHandler.FindUsers")
   defer span.End()
 
-  pageDto := sharedDto.PagedElementDTO{
-    Element: request.Details.Element,
-    Page:    request.Details.Page,
-  }
+  pageDto := mapper.ToPagedElementDTO(request.Details)
 
-  userId, err := types.IdFromString(request.UserId)
+  claims := types.Must(jwt.GetUserClaimsFromCtx(ctx))
+  id := types.NewNullable(request.UserId)
+  userId, err := types.IdFromString(id.ValueOr(claims.UserId))
   if err != nil {
     spanUtil.RecordError(err, span)
     return nil, sharedErr.NewFieldError("user_id", err).ToGrpcError()
@@ -191,17 +191,16 @@ func (p *PostHandler) GetBookmarked(ctx context.Context, request *postv1.GetBook
   ctx, span := p.tracer.Start(ctx, "PostHandler.GetBookmarked")
   defer span.End()
 
-  userId, err := types.IdFromString(request.UserId)
+  // Get user id from claims
+  claims := types.Must(jwt.GetUserClaimsFromCtx(ctx))
+  userId, err := types.IdFromString(claims.UserId)
   if err != nil {
     spanUtil.RecordError(err, span)
     return nil, sharedErr.NewFieldError("user_id", err).ToGrpcError()
   }
 
-  pageDTO := sharedDto.PagedElementDTO{
-    Element: request.Details.Element,
-    Page:    request.Details.Page,
-  }
-
+  pageDTO := mapper.ToPagedElementDTO(request.Details)
+  // NOTE: Pass user id on the method to allow other users to get other user's bookmarked posts for future features (probably)
   result, stat := p.svc.GetBookmarked(ctx, userId, &pageDTO)
   if stat.IsError() {
     spanUtil.RecordError(stat.Error, span)
