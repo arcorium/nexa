@@ -111,8 +111,10 @@ message UpdatePostVisibilityRequest {
 message EditPostRequest {
   string post_id = 1;
   string content = 2;
+  bool clone_last_media= 3; // When this field is true, media_ids will be ignored
   repeated string media_ids = 4;
-  repeated string user_ids = 5;
+  bool clone_last_tagged_user= 5; // When this field is true, tagged_user_ids will be ignored
+  repeated string tagged_user_ids = 6;
 }
 
 //message EditPostResponse {

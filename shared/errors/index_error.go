@@ -25,7 +25,7 @@ func (i IndicesError) IsNil() bool {
 // IsEmptySlice check if the error is due to empty slice. Always check if it has error, otherwise
 // it will panic due to indexing nil slice
 func (i IndicesError) IsEmptySlice() bool {
-  return errors.Is(i.Errs[0], ErrEmptySlice)
+  return i.Errs[0].Index == -1 || errors.Is(i.Errs[0].Err, ErrEmptySlice)
 }
 
 func (i IndicesError) ToGRPCError(fieldName string) error {
