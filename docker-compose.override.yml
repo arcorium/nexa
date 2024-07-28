@@ -42,6 +42,14 @@ services:
       - "8082:8080"
     networks:
       - nexa_networks
+  nexa-storage-seed:
+    depends_on:
+      nexa-authz:
+        condition: service_healthy
+    environment:
+      - AUTHZ_SERVICE_ADDR=nexa-authz:8080
+    networks:
+      - nexa_networks
   nexa-storage:
 #    depends_on:
 #      jaeger:
@@ -66,13 +74,103 @@ services:
 #    depends_on:
 #      jaeger:
 #        condition: service_healthy
+    depends_on:
+      nexa-storage:
+        condition: service_healthy
     env_file:
       - $SMTP_PATH
     environment:
       - NEXA_MAILER_RELEASE=$NEXA_RELEASE
+      - FILE_STORAGE_SERVICE_ADDRESS=nexa-storage:8080
       - OTLP_GRPC_COLLECTOR_ADDRESS=jaeger:4317
     ports:
       - "8084:8080"
+    networks:
+      - nexa_networks
+  nexa-relation-seed:
+    depends_on:
+      nexa-authz:
+        condition: service_healthy
+    environment:
+      - AUTHZ_SERVICE_ADDR=nexa-authz:8080
+    networks:
+      - nexa_networks
+  nexa-relation:
+    depends_on:
+      nexa-authn:
+        condition: service_healthy
+    environment:
+      - NEXA_RELATION_RELEASE=$NEXA_RELEASE
+      - OTLP_GRPC_COLLECTOR_ADDRESS=jaeger:4317
+      - USER_SERVICE_ADDRESS=nexa-authn:8080
+    ports:
+      - "8085:8080"
+    networks:
+      - nexa_networks
+  nexa-reaction-seed:
+    depends_on:
+      nexa-authz:
+        condition: service_healthy
+    environment:
+      - AUTHZ_SERVICE_ADDR=nexa-authz:8080
+    networks:
+      - nexa_networks
+  nexa-reaction:
+    depends_on:
+      nexa-post:
+        condition: service_healthy
+      nexa-comment:
+        condition: service_healthy
+    environment:
+      - NEXA_REACTION_RELEASE=$NEXA_RELEASE
+      - OTLP_GRPC_COLLECTOR_ADDRESS=jaeger:4317
+      - POST_SERVICE_ADDRESS=nexa-post:8080
+      - COMMENT_SERVICE_ADDRESS=nexa-comment:8080
+    ports:
+      - "8086:8080"
+    networks:
+      - nexa_networks
+  nexa-post-seed:
+    depends_on:
+      nexa-authz:
+        condition: service_healthy
+    environment:
+      - AUTHZ_SERVICE_ADDR=nexa-authz:8080
+    networks:
+      - nexa_networks
+  nexa-post:
+    depends_on:
+      nexa-relation:
+        condition: service_healthy
+      nexa-storage:
+        condition: service_healthy
+    environment:
+      - NEXA_POST_RELEASE=$NEXA_RELEASE
+      - OTLP_GRPC_COLLECTOR_ADDRESS=jaeger:4317
+      - RELATION_SERVICE_ADDRESS=nexa-relation:8080
+      - FILE_STORAGE_SERVICE_ADDRESS=nexa-storage:8080
+    ports:
+      - "8087:8080"
+    networks:
+      - nexa_networks
+  nexa-comment-seed:
+    depends_on:
+      nexa-authz:
+        condition: service_healthy
+    environment:
+      - AUTHZ_SERVICE_ADDR=nexa-authz:8080
+    networks:
+      - nexa_networks
+  nexa-comment:
+    depends_on:
+      nexa-post:
+        condition: service_healthy
+    environment:
+      - NEXA_COMMENT_RELEASE=$NEXA_RELEASE
+      - OTLP_GRPC_COLLECTOR_ADDRESS=jaeger:4317
+      - POST_SERVICE_ADDRESS=nexa-post:8080
+    ports:
+      - "8088:8080"
     networks:
       - nexa_networks
   nexa-token:
@@ -83,6 +181,6 @@ services:
       - NEXA_TOKEN_RELEASE=$NEXA_RELEASE
       - OTLP_GRPC_COLLECTOR_ADDRESS=jaeger:4317
     ports:
-      - "8085:8080"
+      - "8089:8080"
     networks:
       - nexa_networks

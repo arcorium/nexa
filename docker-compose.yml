@@ -1,8 +1,12 @@
 include:
   - services/authorization/docker-compose.yml
   - services/authentication/docker-compose.yml
+  - services/comment/docker-compose.yml
   - services/file_storage/docker-compose.yml
   - services/mailer/docker-compose.yml
+  - services/post/docker-compose.yml
+  - services/reaction/docker-compose.yml
+  - services/relation/docker-compose.yml
   - services/token/docker-compose.yml
 
 services:
@@ -28,7 +32,6 @@ services:
       - 9411:9411
     networks:
       - nexa_networks
-
   prometheus:
     image: prom/prometheus
     volumes:
