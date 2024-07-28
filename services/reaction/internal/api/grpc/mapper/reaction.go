@@ -30,6 +30,16 @@ func toProtoReactionType(reactType entity.ReactionType) reactionv1.ReactionType 
   return reactionv1.ReactionType(reactType.Underlying())
 }
 
+func ToPagedElementDTO(input *common.PagedElementInput) sharedDto.PagedElementDTO {
+  if input == nil {
+    return sharedDto.PagedElementDTO{}
+  }
+  return sharedDto.PagedElementDTO{
+    Element: input.Element,
+    Page:    input.Page,
+  }
+}
+
 func ToCommonPagedOutput[T any](result *sharedDto.PagedElementResult[T]) *common.PagedElementOutput {
   return &common.PagedElementOutput{
     Element:       result.Element,
@@ -41,7 +51,6 @@ func ToCommonPagedOutput[T any](result *sharedDto.PagedElementResult[T]) *common
 
 func ToProtoReaction(ent *dto.ReactionResponseDTO) *reactionv1.Reaction {
   return &reactionv1.Reaction{
-    // TODO: Add username
     UserId:       ent.UserId.String(),
     ReactionType: toProtoReactionType(ent.ReactionType),
     CreatedAt:    timestamppb.New(ent.CreatedAt),

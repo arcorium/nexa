@@ -16,21 +16,28 @@ import (
   "nexa/services/reaction/constant"
   "nexa/services/reaction/internal/domain/dto"
   "nexa/services/reaction/internal/domain/entity"
+  "nexa/services/reaction/internal/domain/external"
   "nexa/services/reaction/internal/domain/mapper"
   "nexa/services/reaction/internal/domain/repository"
   "nexa/services/reaction/internal/domain/service"
   "nexa/services/reaction/util"
+  "nexa/services/reaction/util/errs"
 )
 
-func NewReaction(reaction repository.IReaction) service.IReaction {
+func NewReaction(reaction repository.IReaction, postClient external.IPostClient, commentClient external.ICommentClient) service.IReaction {
   return &reactionService{
-    repo:   reaction,
-    tracer: util.GetTracer(),
+    repo:          reaction,
+    postClient:    postClient,
+    commentClient: commentClient,
+    tracer:        util.GetTracer(),
   }
 }
 
 type reactionService struct {
-  repo   repository.IReaction
+  repo          repository.IReaction
+  postClient    external.IPostClient
+  commentClient external.ICommentClient
+
   tracer trace.Tracer
 }
 
@@ -65,6 +72,20 @@ func (r *reactionService) checkPermission(ctx context.Context, targetId types.Id
   return nil
 }
 
+func (r *reactionService) isExists(ctx context.Context, itemType entity.ItemType, itemId types.Id) error {
+  var exists bool
+  var err error
+  if itemType == entity.ItemPost {
+    exists, err = r.postClient.Validate(ctx, itemId)
+  } else if itemType == entity.ItemComment {
+    exists, err = r.commentClient.Validate(ctx, itemId)
+  }
+  if err != nil {
+    return err
+  }
+  return sharedUtil.Ternary(exists, nil, errs.ErrItemNotFound)
+}
+
 func (r *reactionService) Like(ctx context.Context, itemType entity.ItemType, itemId types.Id) status.Object {
   ctx, span := r.tracer.Start(ctx, "ReactionService.Like")
   defer span.End()
@@ -73,6 +94,12 @@ func (r *reactionService) Like(ctx context.Context, itemType entity.ItemType, it
   if err != nil {
     spanUtil.RecordError(err, span)
     return status.ErrUnAuthorized(err)
+  }
+
+  // Validate item
+  if err := r.isExists(ctx, itemType, itemId); err != nil {
+    spanUtil.RecordError(err, span)
+    return status.ErrExternal(err)
   }
 
   domain := entity.NewLikeReaction(userId, itemType, itemId)
@@ -95,6 +122,12 @@ func (r *reactionService) Dislike(ctx context.Context, itemType entity.ItemType,
     return status.ErrUnAuthorized(err)
   }
 
+  // Validate item
+  if err := r.isExists(ctx, itemType, itemId); err != nil {
+    spanUtil.RecordError(err, span)
+    return status.ErrExternal(err)
+  }
+
   domain := entity.NewDislikeReaction(userId, itemType, itemId)
   err = r.repo.Delsert(ctx, &domain)
   if err != nil {
@@ -108,6 +141,12 @@ func (r *reactionService) Dislike(ctx context.Context, itemType entity.ItemType,
 func (r *reactionService) GetItemsReactions(ctx context.Context, itemType entity.ItemType, itemId types.Id, pageDTO sharedDto.PagedElementDTO) (sharedDto.PagedElementResult[dto.ReactionResponseDTO], status.Object) {
   ctx, span := r.tracer.Start(ctx, "ReactionService.GetItemsReactions")
   defer span.End()
+
+  // Validate item
+  if err := r.isExists(ctx, itemType, itemId); err != nil {
+    spanUtil.RecordError(err, span)
+    return sharedDto.NewPagedElementResult2[dto.ReactionResponseDTO](nil, &pageDTO, 0), status.ErrExternal(err)
+  }
 
   result, err := r.repo.FindByItemId(ctx, itemType, itemId, pageDTO.ToQueryParam())
   if err != nil {
@@ -136,17 +175,8 @@ func (r *reactionService) GetCounts(ctx context.Context, itemType entity.ItemTyp
 func (r *reactionService) Delete(ctx context.Context, itemType entity.ItemType, itemIds ...types.Id) status.Object {
   ctx, span := r.tracer.Start(ctx, "ReactionService.Delete")
   defer span.End()
-  // NOTE: Is it necessary to allow authorized user to delete other user reactions?
 
-  userId, err := r.getUserClaims(ctx)
-  if err != nil {
-    spanUtil.RecordError(err, span)
-    return status.ErrUnAuthorized(err)
-  }
-
-  err = r.repo.DeleteByUserId(ctx, userId,
-    optional.Some[entity.Item](entity.Item{First: itemType, Second: itemIds}),
-  )
+  err := r.repo.DeleteByItemId(ctx, itemType, itemIds...)
   if err != nil {
     spanUtil.RecordError(err, span)
     return status.FromRepository(err, status.NullCode)
@@ -154,8 +184,8 @@ func (r *reactionService) Delete(ctx context.Context, itemType entity.ItemType, 
   return status.Deleted()
 }
 
-func (r *reactionService) ClearUserLikes(ctx context.Context, userId types.Id) status.Object {
-  ctx, span := r.tracer.Start(ctx, "ReactionService.ClearUserLikes")
+func (r *reactionService) ClearUsers(ctx context.Context, userId types.Id) status.Object {
+  ctx, span := r.tracer.Start(ctx, "ReactionService.ClearUsers")
   defer span.End()
 
   // Check if user id the same

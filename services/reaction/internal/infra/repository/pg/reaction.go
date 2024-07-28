@@ -13,7 +13,7 @@ import (
   "nexa/services/reaction/internal/domain/repository"
   "nexa/services/reaction/internal/infra/repository/model"
   "nexa/services/reaction/util"
-  "nexa/services/reaction/util/errors"
+  "nexa/services/reaction/util/errs"
 )
 
 func NewReaction(db bun.IDB) repository.IReaction {
@@ -44,13 +44,15 @@ func (r *reactionRepository) delete(ctx context.Context, reaction *model.Reactio
   return repo.CheckResultWithSpan(res, err, span)
 }
 
-func (r *reactionRepository) insert(ctx context.Context, reaction *model.Reaction) error {
-  ctx, span := r.tracer.Start(ctx, "ReactionRepository.insert")
+func (r *reactionRepository) upsert(ctx context.Context, reaction *model.Reaction) error {
+  ctx, span := r.tracer.Start(ctx, "ReactionRepository.upsert")
   defer span.End()
 
   res, err := r.db.NewInsert().
     Model(reaction).
     Returning("NULL").
+    On("CONFLICT (user_id, item_id, item_type) DO UPDATE").
+    Set("reaction = EXCLUDED.reaction").
     Exec(ctx)
 
   return repo.CheckResultWithSpan(res, err, span)
@@ -64,16 +66,19 @@ func (r *reactionRepository) Delsert(ctx context.Context, reaction *entity.React
   exists, err := r.db.NewSelect().
     Model(&dbModel).
     WherePK().
+    Where("reaction = ?", dbModel.Reaction).
     Exists(ctx)
 
   if err != nil {
     spanUtil.RecordError(err, span)
   }
 
+  // If reaction is same then delete
   if exists {
     return r.delete(ctx, &dbModel)
   }
-  return r.insert(ctx, &dbModel)
+  // If reaction is different then upsert
+  return r.upsert(ctx, &dbModel)
 }
 
 func (r *reactionRepository) FindByItemId(ctx context.Context, itemType entity.ItemType, itemId types.Id, parameter repo.QueryParameter) (repo.PaginatedResult[entity.Reaction], error) {
@@ -160,7 +165,7 @@ func (r *reactionRepository) GetCounts(ctx context.Context, itemType entity.Item
 
   // Result length should be the same with the ids (because it is expected in same order)
   if len(dbModels) != len(ids) {
-    err = errors.ErrResultWithDifferentLength
+    err = errs.ErrResultWithDifferentLength
     spanUtil.RecordError(err, span)
     return nil, err
   }
@@ -181,7 +186,7 @@ func (r *reactionRepository) DeleteByItemId(ctx context.Context, itemType entity
   defer span.End()
 
   ids := sharedUtil.CastSlice(itemIds, sharedUtil.ToString[types.Id])
-  res, err := r.db.NewSelect().
+  res, err := r.db.NewDelete().
     Model(types.Nil[model.Reaction]()).
     Where("item_type = ? AND item_id IN (?)", itemType.Underlying(), bun.In(ids)).
     Exec(ctx)
@@ -193,12 +198,12 @@ func (r *reactionRepository) DeleteByUserId(ctx context.Context, userId types.Id
   ctx, span := r.tracer.Start(ctx, "ReactionRepository.DeleteByUserId")
   defer span.End()
 
-  query := r.db.NewSelect().
+  query := r.db.NewDelete().
     Model(types.Nil[model.Reaction]())
 
   if items.HasValue() {
     ids := sharedUtil.CastSlice(items.Value().Second, sharedUtil.ToString[types.Id])
-    query = query.Where("user_id = ? AND item_type = ? AND item_id IN (?)", items.Value().First.Underlying(), bun.In(ids))
+    query = query.Where("user_id = ? AND item_type = ? AND item_id IN (?)", userId.String(), items.Value().First.Underlying(), bun.In(ids))
   } else {
     query = query.Where("user_id = ?", userId.String())
   }

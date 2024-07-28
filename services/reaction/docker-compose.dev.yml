@@ -1,5 +1,12 @@
 include:
+  - ../comment/docker-compose.yml
+  - ../post/docker-compose.yml
+  - ../relation/docker-compose.yml
+  - ../file_storage/docker-compose.yml
   - ../authorization/docker-compose.yml
+  - ../authentication/docker-compose.yml
+  - ../token/docker-compose.yml
+  - ../mailer/docker-compose.yml
 
 services:
   reaction-db:
@@ -12,8 +19,10 @@ services:
       - POSTGRES_DB=nexa-reaction
       - POSTGRES_USER=nexa
       - POSTGRES_PASSWORD=nexa
+    ports:
+      - "5432:5432"
     networks:
-      - nr_network
+      - nrea_network
   nexa-reaction-migrate:
     build:
       dockerfile: ./docker/migrate.Dockerfile
@@ -28,7 +37,7 @@ services:
       - PG_DB_NAME=nexa-reaction
       - PG_IS_SECURE=false
     networks:
-      - nr_network
+      - nrea_network
   jaeger:
     image: jaegertracing/all-in-one:1.58
     ports:
@@ -43,8 +52,8 @@ services:
       - 14269:14269
       - 9411:9411
     networks:
-      - nr_network
-  token_generator:
+      - nrea_network
+  reaction-token_generator:
     build:
       context: ../../token_generator/
       dockerfile: Dockerfile
@@ -58,24 +67,24 @@ services:
     depends_on:
       nexa-reaction-migrate:
         condition: service_completed_successfully
-      token_generator:
+      reaction-token_generator:
         condition: service_completed_successfully
-#      nexa-authz:
-#        condition: service_healthy
+      nexa-authz:
+        condition: service_healthy
     environment:
       - PG_ADDRESS=reaction-db
       - PG_USERNAME=nexa
       - PG_PASSWORD=nexa
       - PG_DB_NAME=nexa-reaction
       - PG_IS_SECURE=false
-#      - AUTHZ_SERVICE_ADDR=nexa-authz:8080
+      - AUTHZ_SERVICE_ADDR=nexa-authz:8080
     networks:
-      - nr_network
+      - nrea_network
     volumes:
       - reaction-token_output:/output
 
 networks:
-  nr_network:
+  nrea_network:
     driver: bridge
 
 volumes:

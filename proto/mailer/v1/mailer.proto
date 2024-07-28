@@ -34,13 +34,6 @@ enum BodyType {
   BODY_TYPE_PLAIN = 1;
 };
 
-// TODO: Rework it, the client should upload it by their-self and use only the id here
-// And this service should remove the file from file storage service after sending the email
-message FileAttachment {
-  string filename = 1;
-  bytes data = 2;
-}
-
 message SendMailRequest {
   repeated string recipients = 1;
   optional string sender = 2;
@@ -48,7 +41,7 @@ message SendMailRequest {
   BodyType body_type = 4;
   string body = 5;
   repeated string tag_ids = 6;
-  repeated FileAttachment attachments = 7;
+  repeated string attachment_file_ids = 7;
 }
 
 message SendMailResponse {
@@ -62,7 +55,7 @@ message SendMailToUserRequest {
   BodyType body_type = 4;
   string body = 5;
   repeated string tag_ids = 6;
-  repeated FileAttachment attachments = 7;
+  repeated string attachment_file_ids = 7;
 }
 
 message SendMailToUserResponse {

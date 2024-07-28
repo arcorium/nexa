@@ -3,7 +3,6 @@ package handler
 import (
   "context"
   reactionv1 "github.com/arcorium/nexa/proto/gen/go/reaction/v1"
-  sharedDto "github.com/arcorium/nexa/shared/dto"
   sharedErr "github.com/arcorium/nexa/shared/errors"
   "github.com/arcorium/nexa/shared/types"
   sharedUtil "github.com/arcorium/nexa/shared/util"
@@ -89,11 +88,7 @@ func (r *ReactionHandler) GetItems(ctx context.Context, request *reactionv1.GetI
     return nil, sharedErr.NewFieldError("id", err).ToGrpcError()
   }
 
-  pageDTO := sharedDto.PagedElementDTO{
-    Element: request.Details.Element,
-    Page:    request.Details.Page,
-  }
-
+  pageDTO := mapper.ToPagedElementDTO(request.Details)
   result, stat := r.svc.GetItemsReactions(ctx, itemType, itemId, pageDTO)
   if stat.IsError() {
     spanUtil.RecordError(stat.Error, span)
@@ -156,7 +151,7 @@ func (r *ReactionHandler) DeleteItems(ctx context.Context, request *reactionv1.D
 }
 
 func (r *ReactionHandler) ClearUsers(ctx context.Context, request *reactionv1.ClearUsersReactionsRequest) (*emptypb.Empty, error) {
-  ctx, span := r.tracer.Start(ctx, "ReactionHandler.ClearUserLikes")
+  ctx, span := r.tracer.Start(ctx, "ReactionHandler.ClearUsers")
   defer span.End()
 
   userId, err := types.IdFromString(request.UserId)
@@ -165,6 +160,6 @@ func (r *ReactionHandler) ClearUsers(ctx context.Context, request *reactionv1.Cl
     return nil, sharedErr.NewFieldError("id", err).ToGrpcError()
   }
 
-  stat := r.svc.ClearUserLikes(ctx, userId)
+  stat := r.svc.ClearUsers(ctx, userId)
   return nil, stat.ToGRPCErrorWithSpan(span)
 }

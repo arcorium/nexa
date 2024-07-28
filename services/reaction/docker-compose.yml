@@ -10,7 +10,7 @@ services:
       - POSTGRES_USER=nexa
       - POSTGRES_PASSWORD=nexa
     networks:
-      - nr_network
+      - nrea_network
   nexa-reaction-migrate:
     build:
       dockerfile: ./docker/migrate.Dockerfile
@@ -25,8 +25,8 @@ services:
       - PG_DB_NAME=nexa-reaction
       - PG_IS_SECURE=false
     networks:
-      - nr_network
-  token_generator:
+      - nrea_network
+  reaction-token_generator:
     build:
       context: ../../token_generator/
       dockerfile: Dockerfile
@@ -40,7 +40,7 @@ services:
     depends_on:
       nexa-reaction-migrate:
         condition: service_completed_successfully
-      token_generator:
+      reaction-token_generator:
         condition: service_completed_successfully
 #      nexa-authz:
 #        condition: service_healthy
@@ -52,7 +52,7 @@ services:
       - PG_IS_SECURE=false
 #      - AUTHZ_SERVICE_ADDR=nexa-authz:8080
     networks:
-      - nr_network
+      - nrea_network
     volumes:
       - reaction-token_output:/output
   nexa-reaction:
@@ -69,7 +69,7 @@ services:
       nexa-reaction-seed:
         condition: service_completed_successfully
     networks:
-      - nr_network
+      - nrea_network
     environment:
       - PG_ADDRESS=reaction-db
       - PG_USERNAME=nexa
@@ -78,9 +78,11 @@ services:
       - PG_PARAMETER=application_name=nexa-reaction
       - PG_IS_SECURE=false
 #      - OTLP_GRPC_COLLECTOR_ADDRESS=
+#      - POST_SERVICE_ADDRESS=
+#      - COMMENT_SERVICE_ADDRESS=
 
 networks:
-  nr_network:
+  nrea_network:
     driver: bridge
 
 volumes:

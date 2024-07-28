@@ -15,5 +15,5 @@ type IReaction interface {
   GetItemsReactions(ctx context.Context, itemType entity.ItemType, itemId types.Id, pageDTO sharedDto.PagedElementDTO) (sharedDto.PagedElementResult[dto.ReactionResponseDTO], status.Object)
   GetCounts(ctx context.Context, itemType entity.ItemType, itemIds ...types.Id) ([]dto.CountResponseDTO, status.Object)
   Delete(ctx context.Context, itemType entity.ItemType, itemIds ...types.Id) status.Object
-  ClearUserLikes(ctx context.Context, userId types.Id) status.Object
+  ClearUsers(ctx context.Context, userId types.Id) status.Object
 }

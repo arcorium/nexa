@@ -222,7 +222,7 @@ func (f *likeTestSuite) Test_reactionRepository_Delsert() {
     wantErr bool
   }{
     {
-      name: "Should insert",
+      name: "Should upsert",
       args: args{
         ctx:          context.Background(),
         reaction:     generateReactionP(),
@@ -630,8 +630,8 @@ func (f *likeTestSuite) Test_reactionRepository_insert() {
       }
       t := f.T()
 
-      if err := r.insert(tt.args.ctx, tt.args.reaction); (err != nil) != tt.wantErr {
-        t.Errorf("insert() error = %v, wantErr %v", err, tt.wantErr)
+      if err := r.upsert(tt.args.ctx, tt.args.reaction); (err != nil) != tt.wantErr {
+        t.Errorf("upsert() error = %v, wantErr %v", err, tt.wantErr)
       }
     })
   }
