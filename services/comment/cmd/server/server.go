@@ -7,6 +7,7 @@ import (
   "github.com/arcorium/nexa/shared/database"
   "github.com/arcorium/nexa/shared/grpc/interceptor"
   "github.com/arcorium/nexa/shared/grpc/interceptor/authz"
+  "github.com/arcorium/nexa/shared/grpc/interceptor/forward"
   "github.com/arcorium/nexa/shared/logger"
   "github.com/arcorium/nexa/shared/types"
   sharedUtil "github.com/arcorium/nexa/shared/util"
@@ -64,9 +65,9 @@ type Server struct {
   dbConfig     *config.Database
   serverConfig *config.Server
 
-  db           *bun.DB
-  publicKey    *rsa.PublicKey
-  reactionConn *grpc.ClientConn
+  db        *bun.DB
+  publicKey *rsa.PublicKey
+  postConn  *grpc.ClientConn
 
   grpcServer     *grpc.Server
   metricServer   *http.Server
@@ -158,6 +159,15 @@ func (s *Server) grpcServerSetup() error {
     )
   }
 
+  additionalMd := make(map[string]string)
+  // To identify when the request is forwarded from another service
+  additionalMd["forwarder"] = constant.SERVICE_NAME
+  additionalMd["forwarder-v"] = constant.SERVICE_VERSION
+  forwardConfig := forward.NewConfig(true,
+    forward.WithIncludeKeys("authorization"), // Only forward this key when it is present
+    forward.WithAdditionalData(additionalMd),
+  )
+
   s.grpcServer = grpc.NewServer(
     grpc.StatsHandler(otelgrpc.NewServerHandler()), // tracing
     grpc.ChainUnaryInterceptor(
@@ -165,12 +175,14 @@ func (s *Server) grpcServerSetup() error {
       logging.UnaryServerInterceptor(zapLogger), // logging
       authz.UserUnaryServerInterceptor(&authorizationConfig, inter.AuthSelector, skipServices...),
       metrics.UnaryServerInterceptor(promProv.WithExemplarFromContext(exemplarFromCtx)),
+      forward.UnaryServerInterceptor(&forwardConfig),
     ),
     grpc.ChainStreamInterceptor(
       recovery.StreamServerInterceptor(),
       logging.StreamServerInterceptor(zapLogger), // logging
       authz.UserStreamServerInterceptor(&authorizationConfig, inter.AuthSelector, skipServices...),
       metrics.StreamServerInterceptor(promProv.WithExemplarFromContext(exemplarFromCtx)),
+      forward.StreamServerInterceptor(&forwardConfig),
     ),
   )
 
@@ -245,18 +257,18 @@ func (s *Server) setup() error {
 
   // External clients
   creds := grpc.WithTransportCredentials(insecure.NewCredentials())
-  reactionConn, err := grpc.NewClient(s.serverConfig.Service.Reaction, creds)
+  postConn, err := grpc.NewClient(s.serverConfig.Service.Post, creds)
   if err != nil {
     return err
   }
-  s.reactionConn = reactionConn
-  reactionClient := external.NewReaction(reactionConn, &s.serverConfig.CircuitBreaker)
+  s.postConn = postConn
+  postClient := external.NewPostClient(postConn, &s.serverConfig.CircuitBreaker)
 
   // Repository
   unit := pg2.NewCommentUOW(s.db)
 
   // Service
-  commentService := service.NewComment(unit, reactionClient)
+  commentService := service.NewComment(unit, postClient)
 
   // GRPC Handler
   commentHandler := handler.NewComment(commentService)
@@ -283,7 +295,7 @@ func (s *Server) shutdown() {
   }
 
   // External
-  if err := s.reactionConn.Close(); err != nil {
+  if err := s.postConn.Close(); err != nil {
     logger.Warn(err.Error())
   }
 
@@ -310,7 +322,7 @@ func (s *Server) Run() error {
 
     err = s.grpcServer.Serve(listener)
     logger.Info("Server Stopping ")
-    if err != nil {
+    if err != nil && !errors.Is(err, http.ErrServerClosed) {
       logger.Warnf("Server failed to serve: %s", err)
     }
   }()
@@ -322,7 +334,7 @@ func (s *Server) Run() error {
 
     err = s.metricServer.ListenAndServe()
     logger.Info("Metrics Server Stopping")
-    if err != nil {
+    if err != nil && !errors.Is(err, http.ErrServerClosed) {
       logger.Warnf("Metrics server failed to serve: %s", err)
     }
   }()

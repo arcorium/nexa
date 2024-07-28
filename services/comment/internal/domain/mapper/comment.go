@@ -6,21 +6,21 @@ import (
   "nexa/services/comment/internal/domain/entity"
 )
 
-func ToCommentResponse(comment *entity.Comment, responseDTO *dto.ReactionCountDTO) dto.CommentResponseDTO {
+func ToCommentResponse(comment *entity.Comment) dto.CommentResponseDTO {
   return dto.CommentResponseDTO{
-    Id:            comment.Id,
-    PostId:        comment.PostId,
-    UserId:        comment.UserId,
-    Content:       comment.Content,
-    LastEdited:    types.NewNullableTime(comment.UpdatedAt),
-    CreatedAt:     comment.CreatedAt,
-    TotalLikes:    responseDTO.TotalLikes,
-    TotalDislikes: responseDTO.TotalDislikes,
+    Id:         comment.Id,
+    PostId:     comment.PostId,
+    UserId:     comment.UserId,
+    Content:    comment.Content,
+    LastEdited: types.NewNullableTime(comment.UpdatedAt),
+    CreatedAt:  comment.CreatedAt,
+    //TotalLikes:    responseDTO.TotalLikes,
+    //TotalDislikes: responseDTO.TotalDislikes,
     //Replies:       nil,
   }
 }
 
-func ToCommentsResponse(comments []entity.Comment, reactions []dto.ReactionCountDTO) []dto.CommentResponseDTO {
+func ToCommentsResponse(comments []entity.Comment) []dto.CommentResponseDTO {
   type Wrapper struct {
     Index int
   }
@@ -30,22 +30,28 @@ func ToCommentsResponse(comments []entity.Comment, reactions []dto.ReactionCount
 
   for i := 0; i < len(comments); i++ {
     val := &comments[i]
-    react := &reactions[i]
+    //react := &reactions[i]
 
     // Base comment
     if !val.IsReply() {
-      result = append(result, ToCommentResponse(val, react))
+      result = append(result, ToCommentResponse(val))
       ids[val.Id] = []Wrapper{{i}}
     } else {
       // Replies
       parentIndices := ids[val.Parent.Id]
+      // It could be nil if the parent doesn't exists (for reply only)
+      if parentIndices == nil {
+        result = append(result, ToCommentResponse(val))
+        ids[val.Id] = []Wrapper{{i}} // Could become parent
+        continue
+      }
       var parent = &result[parentIndices[0].Index]
       for j := 1; j < len(parentIndices); j++ {
         parent = &parent.Replies[parentIndices[j].Index]
       }
 
       // Set as child
-      parent.Replies = append(parent.Replies, ToCommentResponse(val, react))
+      parent.Replies = append(parent.Replies, ToCommentResponse(val))
       insertedIndex := len(parent.Replies) - 1
 
       // Add to indexes

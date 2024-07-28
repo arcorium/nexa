@@ -8,9 +8,9 @@ import (
   "github.com/sony/gobreaker"
   "go.opentelemetry.io/otel/trace"
   "google.golang.org/grpc"
-  "nexa/services/reaction/config"
-  "nexa/services/reaction/internal/domain/external"
-  "nexa/services/reaction/util"
+  "nexa/services/comment/config"
+  "nexa/services/comment/internal/domain/external"
+  "nexa/services/comment/util"
 )
 
 func NewPostClient(conn grpc.ClientConnInterface, conf *config.CircuitBreaker) external.IPostClient {

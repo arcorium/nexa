@@ -44,7 +44,7 @@ func (c *CommentHandler) Create(ctx context.Context, request *commentv1.CreateCo
 
   id, stat := c.svc.Create(ctx, &createDTO)
   if stat.IsError() {
-    spanUtil.RecordError(err, span)
+    spanUtil.RecordError(stat.Error, span)
     return nil, stat.ToGRPCError()
   }
 
@@ -81,6 +81,28 @@ func (c *CommentHandler) Delete(ctx context.Context, request *commentv1.DeleteCo
 
   stat := c.svc.Delete(ctx, id)
   return nil, stat.ToGRPCErrorWithSpan(span)
+}
+
+func (c *CommentHandler) FindById(ctx context.Context, request *commentv1.FindCommentByIdRequest) (*commentv1.FindCommentByIdResponse, error) {
+  ctx, span := c.tracer.Start(ctx, "CommentHandler.FindById")
+  defer span.End()
+
+  findDTO, err := mapper.ToFindCommentByIdDTO(request)
+  if err != nil {
+    spanUtil.RecordError(err, span)
+    return nil, err
+  }
+
+  comment, stat := c.svc.FindById(ctx, &findDTO)
+  if stat.IsError() {
+    spanUtil.RecordError(stat.Error, span)
+    return nil, stat.ToGRPCError()
+  }
+
+  resp := &commentv1.FindCommentByIdResponse{
+    Comment: mapper.ToProtoComments(&comment),
+  }
+  return resp, nil
 }
 
 func (c *CommentHandler) GetPosts(ctx context.Context, request *commentv1.GetPostCommentsRequest) (*commentv1.GetPostCommentsResponse, error) {
@@ -154,6 +176,28 @@ func (c *CommentHandler) GetCounts(ctx context.Context, request *commentv1.GetCo
   return &commentv1.GetCountsResponse{Total: counts}, nil
 }
 
+func (c *CommentHandler) IsExist(ctx context.Context, request *commentv1.IsCommentExistRequest) (*commentv1.IsCommentExistResponse, error) {
+  ctx, span := c.tracer.Start(ctx, "CommentHandler.IsExist")
+  defer span.End()
+
+  ids, ierr := sharedUtil.CastSliceErrs(request.CommentIds, types.IdFromString)
+  if !ierr.IsNil() {
+    spanUtil.RecordError(ierr, span)
+    return nil, ierr.ToGRPCError("comment_ids")
+  }
+
+  exists, stat := c.svc.IsExists(ctx, ids...)
+  if stat.IsError() {
+    spanUtil.RecordError(stat.Error, span)
+    return nil, stat.ToGRPCError()
+  }
+
+  resp := &commentv1.IsCommentExistResponse{
+    IsExists: exists,
+  }
+  return resp, nil
+}
+
 func (c *CommentHandler) ClearPosts(ctx context.Context, request *commentv1.ClearPostsCommentsRequest) (*emptypb.Empty, error) {
   ctx, span := c.tracer.Start(ctx, "CommentHandler.ClearPosts")
   defer span.End()
@@ -175,7 +219,7 @@ func (c *CommentHandler) ClearUsers(ctx context.Context, request *commentv1.Clea
   userId, err := types.IdFromString(request.UserId)
   if err != nil {
     spanUtil.RecordError(err, span)
-    return nil, sharedErr.NewFieldError("comment_id", err).ToGrpcError()
+    return nil, sharedErr.NewFieldError("user_id", err).ToGrpcError()
   }
 
   stat := c.svc.ClearUsers(ctx, userId)

@@ -3,8 +3,8 @@ module nexa/services/comment
 go 1.22.4
 
 require (
-	github.com/arcorium/nexa/proto/gen/go v1.0.4
-	github.com/arcorium/nexa/shared v0.1.6
+	github.com/arcorium/nexa/proto/gen/go v1.0.5-0.20240727204246-ad7dff50575e
+	github.com/arcorium/nexa/shared v0.1.7-0.20240727204246-ad7dff50575e
 	github.com/brianvoe/gofakeit/v7 v7.0.4
 	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.0.1
@@ -86,7 +86,7 @@ require (
 	github.com/tklauser/go-sysconf v0.3.12 // indirect
 	github.com/tklauser/numcpus v0.6.1 // indirect
 	github.com/tmthrgd/go-hex v0.0.0-20190904060850-447a3041c3bc // indirect
-	github.com/uptrace/bun/dialect/pgdialect v1.1.17 // indirect
+	github.com/uptrace/bun/dialect/pgdialect v1.2.1 // indirect
 	github.com/uptrace/bun/driver/pgdriver v1.1.17 // indirect
 	github.com/uptrace/bun/extra/bundebug v1.1.17 // indirect
 	github.com/uptrace/opentelemetry-go-extra/otelsql v0.2.4 // indirect

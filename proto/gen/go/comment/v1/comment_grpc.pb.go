@@ -24,6 +24,7 @@ const (
 	CommentService_Edit_FullMethodName       = "/nexa.comment.v1.CommentService/Edit"
 	CommentService_Delete_FullMethodName     = "/nexa.comment.v1.CommentService/Delete"
 	CommentService_IsExist_FullMethodName    = "/nexa.comment.v1.CommentService/IsExist"
+	CommentService_FindById_FullMethodName   = "/nexa.comment.v1.CommentService/FindById"
 	CommentService_GetPosts_FullMethodName   = "/nexa.comment.v1.CommentService/GetPosts"
 	CommentService_GetReplies_FullMethodName = "/nexa.comment.v1.CommentService/GetReplies"
 	CommentService_GetCounts_FullMethodName  = "/nexa.comment.v1.CommentService/GetCounts"
@@ -39,6 +40,7 @@ type CommentServiceClient interface {
 	Edit(ctx context.Context, in *EditCommentRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	Delete(ctx context.Context, in *DeleteCommentRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	IsExist(ctx context.Context, in *IsCommentExistRequest, opts ...grpc.CallOption) (*IsCommentExistResponse, error)
+	FindById(ctx context.Context, in *FindCommentByIdRequest, opts ...grpc.CallOption) (*FindCommentByIdResponse, error)
 	GetPosts(ctx context.Context, in *GetPostCommentsRequest, opts ...grpc.CallOption) (*GetPostCommentsResponse, error)
 	GetReplies(ctx context.Context, in *GetCommentRepliesRequest, opts ...grpc.CallOption) (*GetCommentRepliesResponse, error)
 	GetCounts(ctx context.Context, in *GetCountsRequest, opts ...grpc.CallOption) (*GetCountsResponse, error)
@@ -86,6 +88,15 @@ func (c *commentServiceClient) Delete(ctx context.Context, in *DeleteCommentRequ
 func (c *commentServiceClient) IsExist(ctx context.Context, in *IsCommentExistRequest, opts ...grpc.CallOption) (*IsCommentExistResponse, error) {
 	out := new(IsCommentExistResponse)
 	err := c.cc.Invoke(ctx, CommentService_IsExist_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *commentServiceClient) FindById(ctx context.Context, in *FindCommentByIdRequest, opts ...grpc.CallOption) (*FindCommentByIdResponse, error) {
+	out := new(FindCommentByIdResponse)
+	err := c.cc.Invoke(ctx, CommentService_FindById_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -145,6 +156,7 @@ type CommentServiceServer interface {
 	Edit(context.Context, *EditCommentRequest) (*emptypb.Empty, error)
 	Delete(context.Context, *DeleteCommentRequest) (*emptypb.Empty, error)
 	IsExist(context.Context, *IsCommentExistRequest) (*IsCommentExistResponse, error)
+	FindById(context.Context, *FindCommentByIdRequest) (*FindCommentByIdResponse, error)
 	GetPosts(context.Context, *GetPostCommentsRequest) (*GetPostCommentsResponse, error)
 	GetReplies(context.Context, *GetCommentRepliesRequest) (*GetCommentRepliesResponse, error)
 	GetCounts(context.Context, *GetCountsRequest) (*GetCountsResponse, error)
@@ -170,6 +182,9 @@ func (UnimplementedCommentServiceServer) Delete(context.Context, *DeleteCommentR
 }
 func (UnimplementedCommentServiceServer) IsExist(context.Context, *IsCommentExistRequest) (*IsCommentExistResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method IsExist not implemented")
+}
+func (UnimplementedCommentServiceServer) FindById(context.Context, *FindCommentByIdRequest) (*FindCommentByIdResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FindById not implemented")
 }
 func (UnimplementedCommentServiceServer) GetPosts(context.Context, *GetPostCommentsRequest) (*GetPostCommentsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetPosts not implemented")
@@ -267,6 +282,24 @@ func _CommentService_IsExist_Handler(srv interface{}, ctx context.Context, dec f
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(CommentServiceServer).IsExist(ctx, req.(*IsCommentExistRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CommentService_FindById_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FindCommentByIdRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CommentServiceServer).FindById(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CommentService_FindById_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CommentServiceServer).FindById(ctx, req.(*FindCommentByIdRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -383,6 +416,10 @@ var CommentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "IsExist",
 			Handler:    _CommentService_IsExist_Handler,
+		},
+		{
+			MethodName: "FindById",
+			Handler:    _CommentService_FindById_Handler,
 		},
 		{
 			MethodName: "GetPosts",

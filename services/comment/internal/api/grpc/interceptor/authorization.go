@@ -11,7 +11,7 @@ import (
 )
 
 func AuthSelector(_ context.Context, meta interceptors.CallMeta) bool {
-  return true // All endpoints should be authorized
+  return meta.FullMethod() != commentv1.CommentService_IsExist_FullMethodName
 }
 
 func PermissionCheck(claims *sharedJwt.UserClaims, meta interceptors.CallMeta) bool {

@@ -19,5 +19,5 @@ type CircuitBreaker struct {
 }
 
 type Service struct {
-  Reaction string `env:"REACTION_SERVICE_ADDRESS,notEmpty"`
+  Post string `env:"POST_SERVICE_ADDRESS,notEmpty"`
 }

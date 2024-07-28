@@ -433,7 +433,7 @@ func (p *postRepository) DeleteUsers(ctx context.Context, userId types.Id, postI
       Returning("id")
   } else {
     query = query.
-      Where("creator_id = ? AND id in (?)", userId.String(), bun.In(ids))
+      Where("creator_id = ? AND id IN (?)", userId.String(), bun.In(ids))
   }
 
   res, err := query.Exec(ctx)

@@ -12,8 +12,14 @@ import (
   "nexa/services/comment/internal/domain/repository"
   "nexa/services/comment/internal/infra/repository/model"
   "nexa/services/comment/util"
-  "nexa/services/comment/util/errors"
+  "nexa/services/comment/util/errs"
+  "time"
 )
+
+type replyCount struct {
+  ParentId   string `bun:","`
+  TotalReply uint64 `bun:","`
+}
 
 func NewComment(db bun.IDB) repository.IComment {
   return &commentRepository{
@@ -36,11 +42,6 @@ func (c *commentRepository) GetReplies(ctx context.Context, showReply bool, comm
   defer span.End()
 
   var dbModels []model.Comment
-  // Get children
-  subQuery2 := c.db.NewSelect().
-    Model(types.Nil[model.Comment]()).
-    Join("JOIN result r ON comment.parent_id = r.id").
-    OrderExpr("comment.created_at DESC")
 
   // Get parent
   subQuery := c.db.NewSelect().
@@ -51,11 +52,16 @@ func (c *commentRepository) GetReplies(ctx context.Context, showReply bool, comm
     Offset(int(parameter.Offset))
 
   if showReply {
+    // Get children
+    subQuery2 := c.db.NewSelect().
+      Model(types.Nil[model.Comment]()).
+      Join("JOIN result r ON comment.parent_id = r.id").
+      OrderExpr("comment.created_at DESC")
+
     subQuery = subQuery.
       UnionAll(subQuery2)
   }
 
-  // TODO: Get reply count for each reply
   err := c.db.NewSelect().
     WithRecursive("result", subQuery).
     Table("result").
@@ -108,7 +114,7 @@ func (c *commentRepository) GetReplyCounts(ctx context.Context, commentIds ...ty
 
   if len(dbModels) != len(commentIds) {
     // TODO: It should be internal error
-    err = errors.ErrResultWithDifferentLength
+    err = errs.ErrResultWithDifferentLength
     spanUtil.RecordError(err, span)
     return nil, err
   }
@@ -142,7 +148,7 @@ func (c *commentRepository) GetPostCounts(ctx context.Context, postIds ...types.
 
   if len(dbModels) != len(postIds) {
     // TODO: It should be internal error
-    err = errors.ErrResultWithDifferentLength
+    err = errs.ErrResultWithDifferentLength
     spanUtil.RecordError(err, span)
     return nil, err
   }
@@ -151,19 +157,54 @@ func (c *commentRepository) GetPostCounts(ctx context.Context, postIds ...types.
   return counts, nil
 }
 
+func (c *commentRepository) FindById(ctx context.Context, showReply bool, commentId types.Id) ([]entity.Comment, error) {
+  ctx, span := c.tracer.Start(ctx, "CommentRepository.FindById")
+  defer span.End()
+
+  var dbModels []model.Comment
+  // Get parent
+  subQuery := c.db.NewSelect().
+    Model(types.Nil[model.Comment]()).
+    Where("id = ?", commentId.String()).
+    OrderExpr("created_at DESC")
+
+  if showReply {
+    // Get children
+    subQuery2 := c.db.NewSelect().
+      Model(types.Nil[model.Comment]()).
+      Join("JOIN result r ON comment.parent_id = r.id").
+      OrderExpr("comment.created_at DESC")
+
+    subQuery = subQuery.
+      UnionAll(subQuery2)
+  }
+
+  err := c.db.NewSelect().
+    WithRecursive("result", subQuery).
+    Table("result").
+    ColumnExpr("result.*").
+    Scan(ctx, &dbModels)
+
+  result := repo.CheckSliceResult(dbModels, err)
+  if result.Err != nil {
+    spanUtil.RecordError(result.Err, span)
+    return nil, result.Err
+  }
+
+  comments, ierr := sharedUtil.CastSliceErrsP(dbModels, repo.ToDomainErr[*model.Comment, entity.Comment])
+  if !ierr.IsNil() {
+    spanUtil.RecordError(ierr, span)
+    return nil, ierr
+  }
+
+  return comments, nil
+}
+
 func (c *commentRepository) FindByPostId(ctx context.Context, showReply bool, postId types.Id, parameter repo.QueryParameter) (repo.PaginatedResult[entity.Comment], error) {
   ctx, span := c.tracer.Start(ctx, "CommentRepository.FindByPostId")
   defer span.End()
 
   var dbModels []model.Comment
-  // Get children
-  subQuery2 := c.db.NewSelect().
-    Model(types.Nil[model.Comment]()).
-    //Relation("User").
-    Join("JOIN result r ON comment.parent_id = r.id").
-    Where("comment.post_id = ?", postId.String()).
-    OrderExpr("comment.created_at DESC")
-
   // Get parent
   subQuery := c.db.NewSelect().
     Model(types.Nil[model.Comment]()).
@@ -174,17 +215,34 @@ func (c *commentRepository) FindByPostId(ctx context.Context, showReply bool, po
     Offset(int(parameter.Offset))
 
   if showReply {
+    // Get children
+    subQuery2 := c.db.NewSelect().
+      Model(types.Nil[model.Comment]()).
+      Join("JOIN result r ON comment.parent_id = r.id").
+      Where("comment.post_id = ?", postId.String()).
+      OrderExpr("comment.created_at DESC")
+
     subQuery = subQuery.
       UnionAll(subQuery2)
   }
 
-  // TODO: Get count of reply
   err := c.db.NewSelect().
     WithRecursive("result", subQuery).
     Table("result").
     ColumnExpr("result.*").
     Scan(ctx, &dbModels)
 
+  // Get total reply count
+  var dbModels2 []replyCount
+  err = c.db.NewSelect().
+    Model(types.Nil[model.Comment]()).
+    ColumnExpr("parent_id").
+    ColumnExpr("COUNT(*) as total_reply").
+    Where("post_id = ? AND parent_id IS NOT NULL", postId.String()).
+    Group("parent_id").
+    Scan(ctx, &dbModels2)
+
+  // Get all comments count
   count, err := c.db.NewSelect().
     Model(types.Nil[model.Comment]()).
     Where("post_id = ? AND parent_id IS NULL", postId.String()). // Only take main comment
@@ -218,14 +276,15 @@ func (c *commentRepository) Create(ctx context.Context, comment *entity.Comment)
   return repo.CheckResultWithSpan(res, err, span)
 }
 
-func (c *commentRepository) UpdateContent(ctx context.Context, commentId types.Id, content string) error {
+func (c *commentRepository) UpdateContent(ctx context.Context, userId types.Id, commentId types.Id, content string) error {
   ctx, span := c.tracer.Start(ctx, "CommentRepository.UpdateContent")
   defer span.End()
 
   res, err := c.db.NewUpdate().
     Model(types.Nil[model.Comment]()).
-    Where("id = ?", commentId.String()).
+    Where("id = ? AND user_id = ?", commentId.String(), userId.String()).
     Set("content = ?", content).
+    Set("updated_at = ?", time.Now()).
     Exec(ctx)
 
   return repo.CheckResultWithSpan(res, err, span)
@@ -287,7 +346,6 @@ func (c *commentRepository) DeleteByPostIds(ctx context.Context, postIds ...type
   defer span.End()
 
   ids := sharedUtil.CastSlice(postIds, sharedUtil.ToString[types.Id])
-
   var output []idInput
   res, err := c.db.NewDelete().
     Model(types.Nil[model.Comment]()).
@@ -308,4 +366,17 @@ func (c *commentRepository) DeleteByPostIds(ctx context.Context, postIds ...type
     return nil, ierr
   }
   return resp, nil
+}
+
+func (c *commentRepository) Count(ctx context.Context, commentIds ...types.Id) (uint64, error) {
+  ctx, span := c.tracer.Start(ctx, "CommentRepository.Count")
+  defer span.End()
+
+  ids := sharedUtil.CastSlice(commentIds, sharedUtil.ToString[types.Id])
+  count, err := c.db.NewSelect().
+    Model(types.Nil[model.Comment]()).
+    Where("id IN (?)", bun.In(ids)).
+    Count(ctx)
+
+  return uint64(count), err
 }

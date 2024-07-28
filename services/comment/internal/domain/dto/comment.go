@@ -14,8 +14,8 @@ type CommentResponseDTO struct {
   LastEdited types.NullableTime
   CreatedAt  time.Time
 
-  TotalLikes    uint64
-  TotalDislikes uint64
+  //TotalLikes    uint64
+  //TotalDislikes uint64
 
   Replies []CommentResponseDTO
 }
@@ -59,6 +59,11 @@ type DeleteCommentDTO struct {
 
 type GetPostsCommentsDTO struct {
   PostId    types.Id
+  ShowReply bool
+}
+
+type FindCommentByIdDTO struct {
+  CommentId types.Id
   ShowReply bool
 }
 

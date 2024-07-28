@@ -1,10 +1,25 @@
 package mapper
 
 import (
+  "github.com/arcorium/nexa/proto/gen/go/common"
   relationv1 "github.com/arcorium/nexa/proto/gen/go/relation/v1"
+  sharedDto "github.com/arcorium/nexa/shared/dto"
   "nexa/services/relation/internal/domain/dto"
   "nexa/services/relation/internal/domain/entity"
 )
+
+func ToPagedElementDTO(input *common.PagedElementInput) sharedDto.PagedElementDTO {
+  if input == nil {
+    return sharedDto.PagedElementDTO{
+      Element: 0,
+      Page:    0,
+    }
+  }
+  return sharedDto.PagedElementDTO{
+    Element: input.Element,
+    Page:    input.Page,
+  }
+}
 
 func ToProtoFollowStatus(status entity.FollowStatus) relationv1.Relation {
   switch status {

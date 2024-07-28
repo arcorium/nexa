@@ -21,13 +21,15 @@ import (
   "nexa/services/comment/internal/domain/mapper"
   "nexa/services/comment/internal/domain/service"
   "nexa/services/comment/util"
+  "nexa/services/comment/util/errs"
 )
 
-func NewComment(unit sharedUOW.IUnitOfWork[uow.CommentStorage], reactClient external.IReactionClient) service.IComment {
+func NewComment(unit sharedUOW.IUnitOfWork[uow.CommentStorage], postClient external.IPostClient, /*reactClient external.IReactionClient*/) service.IComment {
   return &commentService{
-    unit:        unit,
-    tracer:      util.GetTracer(),
-    reactClient: reactClient,
+    unit:   unit,
+    tracer: util.GetTracer(),
+    //reactClient: reactClient,
+    postClient: postClient,
   }
 }
 
@@ -35,7 +37,8 @@ type commentService struct {
   unit   sharedUOW.IUnitOfWork[uow.CommentStorage]
   tracer trace.Tracer
 
-  reactClient external.IReactionClient
+  //reactClient external.IReactionClient
+  postClient external.IPostClient
 }
 
 func (c *commentService) getUserClaims(ctx context.Context) (types.Id, error) {
@@ -69,6 +72,14 @@ func (c *commentService) checkPermission(ctx context.Context, targetId types.Id,
   return nil
 }
 
+func (c *commentService) checkAvailability(ctx context.Context, postId types.Id) error {
+  exists, err := c.postClient.Validate(ctx, postId)
+  if err != nil {
+    return err
+  }
+  return sharedUtil.Ternary(exists, nil, errs.ErrPostNotFound)
+}
+
 func (c *commentService) Create(ctx context.Context, commentDTO *dto.CreateCommentDTO) (types.Id, status.Object) {
   ctx, span := c.tracer.Start(ctx, "CommentService.Create")
   defer span.End()
@@ -77,6 +88,12 @@ func (c *commentService) Create(ctx context.Context, commentDTO *dto.CreateComme
   if err != nil {
     spanUtil.RecordError(err, span)
     return types.NullId(), status.ErrUnAuthorized(err)
+  }
+
+  // Validate post
+  if err := c.checkAvailability(ctx, commentDTO.PostId); err != nil {
+    spanUtil.RecordError(err, span)
+    return types.NullId(), status.ErrExternal(err)
   }
 
   comment, err := commentDTO.ToDomain(userId)
@@ -89,7 +106,7 @@ func (c *commentService) Create(ctx context.Context, commentDTO *dto.CreateComme
   err = repos.Comment().Create(ctx, &comment)
   if err != nil {
     spanUtil.RecordError(err, span)
-    return types.NullId(), status.FromRepository(err, optional.Some(status.INTERNAL_SERVER_ERROR))
+    return types.NullId(), status.FromRepository2(err, status.Null, optional.Some(status.ErrNotFound()))
   }
 
   return comment.Id, status.Created()
@@ -99,8 +116,14 @@ func (c *commentService) Edit(ctx context.Context, commentDTO *dto.EditCommentDT
   ctx, span := c.tracer.Start(ctx, "CommentService.Edit")
   defer span.End()
 
+  userId, err := c.getUserClaims(ctx)
+  if err != nil {
+    spanUtil.RecordError(err, span)
+    return status.FromRepository(err, status.NullCode)
+  }
+
   repos := c.unit.Repositories()
-  err := repos.Comment().UpdateContent(ctx, commentDTO.Id, commentDTO.Content)
+  err = repos.Comment().UpdateContent(ctx, userId, commentDTO.Id, commentDTO.Content)
   if err != nil {
     spanUtil.RecordError(err, span)
     return status.FromRepository(err, optional.Some(status.INTERNAL_SERVER_ERROR))
@@ -121,12 +144,12 @@ func (c *commentService) deleteArbitrary(ctx context.Context, commentIds ...type
       return err
     }
 
-    err = c.reactClient.DeleteComments(ctx, commentIds...)
-    if err != nil {
-      spanUtil.RecordError(err, span)
-      stat = status.ErrExternal(err)
-      return err
-    }
+    //err = c.reactClient.DeleteComments(ctx, commentIds...)
+    //if err != nil {
+    //  spanUtil.RecordError(err, span)
+    //  stat = status.ErrExternal(err)
+    //  return err
+    //}
 
     return nil
   })
@@ -146,6 +169,7 @@ func (c *commentService) Delete(ctx context.Context, commentIds ...types.Id) sta
 
   userId, err := types.IdFromString(claims.UserId)
   if err != nil {
+    spanUtil.RecordError(err, span)
     return status.ErrUnAuthorized(err)
   }
 
@@ -167,21 +191,53 @@ func (c *commentService) Delete(ctx context.Context, commentIds ...types.Id) sta
     }
 
     // Delete each comment's reactions
-    err = c.reactClient.DeleteComments(ctx, commentIds...)
-    if err != nil {
-      spanUtil.RecordError(err, span)
-      stat = status.ErrExternal(err)
-      return err
-    }
+    //err = c.reactClient.DeleteComments(ctx, commentIds...)
+    //if err != nil {
+    //  spanUtil.RecordError(err, span)
+    //  stat = status.ErrExternal(err)
+    //  return err
+    //}
     return nil
   })
 
   return stat
 }
 
+func (c *commentService) FindById(ctx context.Context, findDTO *dto.FindCommentByIdDTO) (dto.CommentResponseDTO, status.Object) {
+  ctx, span := c.tracer.Start(ctx, "CommentService.FindById")
+  defer span.End()
+
+  repos := c.unit.Repositories()
+  comment, err := repos.Comment().FindById(ctx, findDTO.ShowReply, findDTO.CommentId)
+  if err != nil {
+    spanUtil.RecordError(err, span)
+    return dto.CommentResponseDTO{}, status.FromRepository(err, status.NullCode)
+  }
+
+  // Validate post
+  if err := c.checkAvailability(ctx, comment[0].PostId); err != nil { // Index 0 is the comment itself (main parent)
+    spanUtil.RecordError(err, span)
+    return dto.CommentResponseDTO{}, status.ErrExternal(err)
+  }
+
+  resp := mapper.ToCommentsResponse(comment)
+  if len(resp) > 1 {
+    err = errs.ErrResultWithDifferentLength
+    spanUtil.RecordError(err, span)
+    return dto.CommentResponseDTO{}, status.ErrInternal(err)
+  }
+  return resp[0], status.Success()
+}
+
 func (c *commentService) GetPosts(ctx context.Context, getDTO *dto.GetPostsCommentsDTO, pageDTO sharedDto.PagedElementDTO) (sharedDto.PagedElementResult[dto.CommentResponseDTO], status.Object) {
   ctx, span := c.tracer.Start(ctx, "CommentService.GetPosts")
   defer span.End()
+
+  // Validate post
+  if err := c.checkAvailability(ctx, getDTO.PostId); err != nil {
+    spanUtil.RecordError(err, span)
+    return sharedDto.PagedElementResult[dto.CommentResponseDTO]{}, status.ErrExternal(err)
+  }
 
   repos := c.unit.Repositories()
   result, err := repos.Comment().FindByPostId(ctx, getDTO.ShowReply, getDTO.PostId, pageDTO.ToQueryParam())
@@ -191,22 +247,23 @@ func (c *commentService) GetPosts(ctx context.Context, getDTO *dto.GetPostsComme
   }
 
   // Get each comment's reactions
-  commentIds := sharedUtil.CastSliceP(result.Data, func(from *entity.Comment) types.Id {
-    return from.Id
-  })
-  reactions, err := c.reactClient.GetCommentsCounts(ctx, commentIds...)
-  if err != nil {
-    spanUtil.RecordError(err, span)
-    return sharedDto.NewPagedElementResult2[dto.CommentResponseDTO](nil, &pageDTO, result.Total), status.ErrExternal(err)
-  }
-
+  //commentIds := sharedUtil.CastSliceP(result.Data, func(from *entity.Comment) types.Id {
+  //  return from.Id
+  //})
+  //reactions, err := c.reactClient.GetCommentsCounts(ctx, commentIds...)
+  //if err != nil {
+  //  spanUtil.RecordError(err, span)
+  //  return sharedDto.NewPagedElementResult2[dto.CommentResponseDTO](nil, &pageDTO, result.Total), status.ErrExternal(err)
+  //}
+  //
   // Error different length
-  if len(reactions) != len(commentIds) {
-    spanUtil.RecordError(err, span)
-    return sharedDto.NewPagedElementResult2[dto.CommentResponseDTO](nil, &pageDTO, result.Total), status.ErrInternal(err)
-  }
+  //if len(reactions) != len(commentIds) {
+  //  err = errs.ErrResultWithDifferentLength
+  //  spanUtil.RecordError(err, span)
+  //  return sharedDto.NewPagedElementResult2[dto.CommentResponseDTO](nil, &pageDTO, result.Total), status.ErrInternal(err)
+  //}
 
-  resp := mapper.ToCommentsResponse(result.Data, reactions)
+  resp := mapper.ToCommentsResponse(result.Data)
   return sharedDto.NewPagedElementResult2(resp, &pageDTO, result.Total), status.Success()
 }
 
@@ -215,29 +272,40 @@ func (c *commentService) GetReplies(ctx context.Context, repliesDTO *dto.GetComm
   defer span.End()
 
   repos := c.unit.Repositories()
+  comment, err := repos.Comment().FindById(ctx, false, repliesDTO.CommentId)
+  if err != nil {
+    spanUtil.RecordError(err, span)
+    return sharedDto.PagedElementResult[dto.CommentResponseDTO]{}, status.FromRepository(err, status.NullCode)
+  }
+
+  if err := c.checkAvailability(ctx, comment[0].PostId); err != nil {
+    spanUtil.RecordError(err, span)
+    return sharedDto.PagedElementResult[dto.CommentResponseDTO]{}, status.ErrExternal(err)
+  }
+
   result, err := repos.Comment().GetReplies(ctx, repliesDTO.ShowReply, repliesDTO.CommentId, pageDTO.ToQueryParam())
   if err != nil {
     spanUtil.RecordError(err, span)
     return sharedDto.NewPagedElementResult2[dto.CommentResponseDTO](nil, &pageDTO, result.Total), status.FromRepository(err, status.NullCode)
   }
 
-  // Get each comment's reactions
-  commentIds := sharedUtil.CastSliceP(result.Data, func(from *entity.Comment) types.Id {
-    return from.Id
-  })
-  reactions, err := c.reactClient.GetCommentsCounts(ctx, commentIds...)
-  if err != nil {
-    spanUtil.RecordError(err, span)
-    return sharedDto.NewPagedElementResult2[dto.CommentResponseDTO](nil, &pageDTO, result.Total), status.ErrExternal(err)
-  }
+  //// Get each comment's reactions
+  //commentIds := sharedUtil.CastSliceP(result.Data, func(from *entity.Comment) types.Id {
+  //  return from.Id
+  //})
+  //reactions, err := c.reactClient.GetCommentsCounts(ctx, commentIds...)
+  //if err != nil {
+  //  spanUtil.RecordError(err, span)
+  //  return sharedDto.NewPagedElementResult2[dto.CommentResponseDTO](nil, &pageDTO, result.Total), status.ErrExternal(err)
+  //}
+  //
+  //// Error different length
+  //if len(reactions) != len(commentIds) {
+  //  spanUtil.RecordError(err, span)
+  //  return sharedDto.NewPagedElementResult2[dto.CommentResponseDTO](nil, &pageDTO, result.Total), status.ErrInternal(err)
+  //}
 
-  // Error different length
-  if len(reactions) != len(commentIds) {
-    spanUtil.RecordError(err, span)
-    return sharedDto.NewPagedElementResult2[dto.CommentResponseDTO](nil, &pageDTO, result.Total), status.ErrInternal(err)
-  }
-
-  resp := mapper.ToCommentsResponse(result.Data, reactions)
+  resp := mapper.ToCommentsResponse(result.Data)
   return sharedDto.NewPagedElementResult2(resp, &pageDTO, result.Total), status.Success()
 }
 
@@ -273,10 +341,17 @@ func (c *commentService) ClearPosts(ctx context.Context, postIds ...types.Id) st
   ctx, span := c.tracer.Start(ctx, "CommentService.ClearPosts")
   defer span.End()
 
+  for _, id := range postIds {
+    if err := c.checkAvailability(ctx, id); err != nil {
+      spanUtil.RecordError(err, span)
+      return status.ErrExternal(err)
+    }
+  }
+
   stat := status.Deleted()
   _ = c.unit.DoTx(ctx, func(ctx context.Context, storage uow.CommentStorage) error {
     // Clear post's comments
-    commentIds, err := storage.Comment().DeleteByPostIds(ctx, postIds...)
+    _, err := storage.Comment().DeleteByPostIds(ctx, postIds...)
     if err != nil {
       spanUtil.RecordError(err, span)
       stat = status.FromRepository(err, status.NullCode)
@@ -284,12 +359,12 @@ func (c *commentService) ClearPosts(ctx context.Context, postIds ...types.Id) st
     }
 
     // Delete each comment's reactions
-    err = c.reactClient.DeleteComments(ctx, commentIds...)
-    if err != nil {
-      spanUtil.RecordError(err, span)
-      stat = status.ErrExternal(err)
-      return err
-    }
+    //err = c.reactClient.DeleteComments(ctx, commentIds...)
+    //if err != nil {
+    //  spanUtil.RecordError(err, span)
+    //  stat = status.ErrExternal(err)
+    //  return err
+    //}
 
     return nil
   })
@@ -309,7 +384,7 @@ func (c *commentService) ClearUsers(ctx context.Context, userId types.Id) status
   stat := status.Deleted()
   _ = c.unit.DoTx(ctx, func(ctx context.Context, storage uow.CommentStorage) error {
     // Delete all comment's created by the user
-    commentIds, err := storage.Comment().DeleteUsers(ctx, userId)
+    _, err := storage.Comment().DeleteUsers(ctx, userId)
     if err != nil {
       spanUtil.RecordError(err, span)
       stat = status.FromRepository(err, status.NullCode)
@@ -317,15 +392,29 @@ func (c *commentService) ClearUsers(ctx context.Context, userId types.Id) status
     }
 
     // Delete each comment's reactions
-    err = c.reactClient.DeleteComments(ctx, commentIds...)
-    if err != nil {
-      spanUtil.RecordError(err, span)
-      stat = status.ErrExternal(err)
-      return err
-    }
+    //err = c.reactClient.DeleteComments(ctx, commentIds...)
+    //if err != nil {
+    //  spanUtil.RecordError(err, span)
+    //  stat = status.ErrExternal(err)
+    //  return err
+    //}
 
     return nil
   })
 
   return stat
+}
+
+func (c *commentService) IsExists(ctx context.Context, commentIds ...types.Id) (bool, status.Object) {
+  ctx, span := c.tracer.Start(ctx, "CommentService.IsExists")
+  defer span.End()
+
+  repos := c.unit.Repositories()
+  count, err := repos.Comment().Count(ctx, commentIds...)
+  if err != nil {
+    spanUtil.RecordError(err, span)
+    return false, status.FromRepository(err, status.NullCode)
+  }
+
+  return count == uint64(len(commentIds)), status.Success()
 }

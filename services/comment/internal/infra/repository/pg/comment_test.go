@@ -678,7 +678,7 @@ func (f *commentTestSuite) Test_commentRepository_UpdateContent() {
       }
       t := f.T()
 
-      if err := c.UpdateContent(tt.args.ctx, tt.args.commentId, tt.args.content); (err != nil) != tt.wantErr {
+      if err := c.UpdateContent(tt.args.ctx,, tt.args.commentId, tt.args.content); (err != nil) != tt.wantErr {
         t.Errorf("UpdateContent() error = %v, wantErr %v", err, tt.wantErr)
       }
     })

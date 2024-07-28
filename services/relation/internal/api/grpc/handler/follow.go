@@ -3,7 +3,6 @@ package handler
 import (
   "context"
   relationv1 "github.com/arcorium/nexa/proto/gen/go/relation/v1"
-  sharedDto "github.com/arcorium/nexa/shared/dto"
   sharedErr "github.com/arcorium/nexa/shared/errors"
   "github.com/arcorium/nexa/shared/jwt"
   "github.com/arcorium/nexa/shared/types"
@@ -75,10 +74,7 @@ func (f *FollowHandler) GetFollowers(ctx context.Context, request *relationv1.Ge
     return nil, sharedErr.NewFieldError("user_id", err).ToGrpcError()
   }
 
-  pageDTO := sharedDto.PagedElementDTO{
-    Element: request.Details.Element,
-    Page:    request.Details.Page,
-  }
+  pageDTO := mapper.ToPagedElementDTO(request.Details)
 
   result, stat := f.svc.GetFollowers(ctx, userId, pageDTO)
   if stat.IsError() {
@@ -107,10 +103,7 @@ func (f *FollowHandler) GetFollowees(ctx context.Context, request *relationv1.Ge
     return nil, sharedErr.NewFieldError("user_id", err).ToGrpcError()
   }
 
-  pageDTO := sharedDto.PagedElementDTO{
-    Element: request.Details.Element,
-    Page:    request.Details.Page,
-  }
+  pageDTO := mapper.ToPagedElementDTO(request.Details)
 
   result, stat := f.svc.GetFollowings(ctx, userId, pageDTO)
   if stat.IsError() {

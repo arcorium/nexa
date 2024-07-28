@@ -1,6 +1,11 @@
 include:
+  - ../post/docker-compose.yml
+  - ../relation/docker-compose.yml
+  - ../file_storage/docker-compose.yml
   - ../authorization/docker-compose.yml
-  - ../reaction/docker-compose.yml
+  - ../authentication/docker-compose.yml
+  - ../token/docker-compose.yml
+  - ../mailer/docker-compose.yml
 
 services:
   comment-db:
@@ -13,6 +18,8 @@ services:
       - POSTGRES_DB=nexa-comment
       - POSTGRES_USER=nexa
       - POSTGRES_PASSWORD=nexa
+    ports:
+      - "5432:5432"
     networks:
       - nc_network
   nexa-comment-migrate:

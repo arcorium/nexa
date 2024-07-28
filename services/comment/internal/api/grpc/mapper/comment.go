@@ -62,6 +62,28 @@ func ToEditCommentDTO(request *commentv1.EditCommentRequest) (dto.EditCommentDTO
   }, nil
 }
 
+func ToPagedElementDTO(input *common.PagedElementInput) sharedDto.PagedElementDTO {
+  if input == nil {
+    return sharedDto.PagedElementDTO{}
+  }
+  return sharedDto.PagedElementDTO{
+    Element: input.Element,
+    Page:    input.Page,
+  }
+}
+
+func ToFindCommentByIdDTO(request *commentv1.FindCommentByIdRequest) (dto.FindCommentByIdDTO, error) {
+  commentId, err := types.IdFromString(request.CommentId)
+  if err != nil {
+    return dto.FindCommentByIdDTO{}, sharedErr.NewFieldError("comment_id", err).ToGrpcError()
+  }
+
+  return dto.FindCommentByIdDTO{
+    CommentId: commentId,
+    ShowReply: request.ShowReply,
+  }, nil
+}
+
 func ToGetPostsCommentsDTO(request *commentv1.GetPostCommentsRequest) (dto.GetPostsCommentsDTO, sharedDto.PagedElementDTO, error) {
   postId, err := types.IdFromString(request.PostId)
   if err != nil {
@@ -72,10 +94,7 @@ func ToGetPostsCommentsDTO(request *commentv1.GetPostCommentsRequest) (dto.GetPo
       PostId:    postId,
       ShowReply: request.ShowReply,
     },
-    sharedDto.PagedElementDTO{
-      Element: request.Details.Element,
-      Page:    request.Details.Page,
-    },
+    ToPagedElementDTO(request.Details),
     nil
 }
 
@@ -89,10 +108,7 @@ func ToGetCommentRepliesDTO(request *commentv1.GetCommentRepliesRequest) (dto.Ge
       CommentId: postId,
       ShowReply: request.ShowReply,
     },
-    sharedDto.PagedElementDTO{
-      Element: request.Details.Element,
-      Page:    request.Details.Page,
-    },
+    ToPagedElementDTO(request.Details),
     nil
 }
 
