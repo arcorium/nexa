@@ -169,7 +169,7 @@ func (s *Server) grpcServerSetup() error {
   additionalMd["forwarder"] = constant.SERVICE_NAME
   additionalMd["forwarder-v"] = constant.SERVICE_VERSION
   forwardConfig := forward.NewConfig(true,
-    forward.WithIncludeKeys("authorization"),
+    forward.WithIncludeKeys("authorization"), // Only forward this key when it is present
     forward.WithAdditionalData(additionalMd),
   )
 

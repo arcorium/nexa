@@ -88,8 +88,9 @@ func (f metadataRepository) Create(ctx context.Context, metadata *entity.FileMet
 
   models := model.FromFileDomain(metadata, func(domain *entity.FileMetadata, metadata *model.FileMetadata) {
     metadata.CreatedAt = time.Now()
-    metadata.UpdatedAt = time.Now()
-    metadata.FullPath = &domain.FullPath
+    if len(domain.FullPath) != 0 {
+      metadata.FullPath = &domain.FullPath
+    }
   })
 
   res, err := f.db.NewInsert().

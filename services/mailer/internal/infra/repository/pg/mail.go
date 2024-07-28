@@ -36,6 +36,7 @@ func (m *mailRepository) Get(ctx context.Context, query repo.QueryParameter) (re
     Model(&models).
     Offset(int(query.Offset)).
     Limit(int(query.Limit)).
+    Relation("Tags").
     OrderExpr("sent_at DESC").
     ScanAndCount(ctx)
 

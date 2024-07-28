@@ -3,11 +3,16 @@ package service
 import (
   "context"
   "errors"
+  sharedErr "github.com/arcorium/nexa/shared/errors"
+  sharedJwt "github.com/arcorium/nexa/shared/jwt"
   "github.com/arcorium/nexa/shared/status"
   "github.com/arcorium/nexa/shared/types"
   sharedUow "github.com/arcorium/nexa/shared/uow"
+  sharedUtil "github.com/arcorium/nexa/shared/util"
+  authUtil "github.com/arcorium/nexa/shared/util/auth"
   spanUtil "github.com/arcorium/nexa/shared/util/span"
   "go.opentelemetry.io/otel/trace"
+  "nexa/services/file_storage/constant"
   "nexa/services/file_storage/internal/app/uow"
   "nexa/services/file_storage/internal/domain/dto"
   "nexa/services/file_storage/internal/domain/external"
@@ -17,29 +22,37 @@ import (
 )
 
 func NewFileStorage(unit sharedUow.IUnitOfWork[uow.FileMetadataStorage], storage external.IStorage) service.IFileStorage {
-  return &fileStorage{
+  return &fileStorageService{
     unit:       unit,
     storageExt: storage,
     tracer:     util.GetTracer(),
   }
 }
 
-type fileStorage struct {
+type fileStorageService struct {
   unit       sharedUow.IUnitOfWork[uow.FileMetadataStorage]
   storageExt external.IStorage
 
   tracer trace.Tracer
 }
 
-func (f *fileStorage) Store(ctx context.Context, storeDto *dto.FileStoreDTO) (types.Id, status.Object) {
+func (f *fileStorageService) Store(ctx context.Context, storeDTO *dto.FileStoreDTO) (dto.FileStoreResponseDTO, status.Object) {
   ctx, span := f.tracer.Start(ctx, "FileStorageService.Store")
   defer span.End()
 
   // Map to domain
-  file, metadata, err := storeDto.ToDomain(f.storageExt.GetProvider())
+  file, metadata, err := storeDTO.ToDomain(f.storageExt.GetProvider())
   if err != nil {
     spanUtil.RecordError(err, span)
-    return types.NullId(), status.ErrInternal(err)
+    return dto.FileStoreResponseDTO{}, status.ErrInternal(err)
+  }
+
+  // Check permissions
+  if !storeDTO.IsPublic {
+    claims := types.Must(sharedJwt.GetUserClaimsFromCtx(ctx))
+    if !authUtil.ContainsPermission(claims.Roles, constant.FILE_STORAGE_PERMISSIONS[constant.FILE_STORE_PRIVATE]) {
+      return dto.FileStoreResponseDTO{}, status.ErrUnAuthorized(sharedErr.ErrUnauthorizedPermission)
+    }
   }
 
   var stat = status.Success()
@@ -71,7 +84,7 @@ func (f *fileStorage) Store(ctx context.Context, storeDto *dto.FileStoreDTO) (ty
     metadata.ProviderPath = relativePath
 
     // Get fullpath for public file
-    if storeDto.IsPublic {
+    if storeDTO.IsPublic {
       path, err := f.storageExt.GetFullPath(ctx, relativePath)
       if err != nil {
         spanUtil.RecordError(err, span)
@@ -81,8 +94,7 @@ func (f *fileStorage) Store(ctx context.Context, storeDto *dto.FileStoreDTO) (ty
       metadata.FullPath = path.Path()
     }
 
-    repos := f.unit.Repositories()
-    err = repos.Metadata().Create(ctx, &metadata)
+    err = storage.Metadata().Create(ctx, &metadata)
     if err != nil {
       spanUtil.RecordError(err, span)
       stat = status.FromRepository(err, status.NullCode)
@@ -94,13 +106,17 @@ func (f *fileStorage) Store(ctx context.Context, storeDto *dto.FileStoreDTO) (ty
 
   if err != nil {
     spanUtil.RecordError(err, span)
-    return types.NullId(), stat
+    return dto.FileStoreResponseDTO{}, stat
   }
 
-  return metadata.Id, stat
+  resp := dto.FileStoreResponseDTO{
+    Id:       metadata.Id,
+    FullPath: types.FilePathFromString(metadata.FullPath),
+  }
+  return resp, stat
 }
 
-func (f *fileStorage) Find(ctx context.Context, id types.Id) (dto.FileResponseDTO, status.Object) {
+func (f *fileStorageService) Find(ctx context.Context, id types.Id) (dto.FileResponseDTO, status.Object) {
   ctx, span := f.tracer.Start(ctx, "FileStorageService.Find")
   defer span.End()
 
@@ -110,6 +126,14 @@ func (f *fileStorage) Find(ctx context.Context, id types.Id) (dto.FileResponseDT
   if err != nil {
     spanUtil.RecordError(err, span)
     return dto.FileResponseDTO{}, status.FromRepository(err, status.NullCode)
+  }
+
+  // Check permission to get private file
+  claims := types.Must(sharedJwt.GetUserClaimsFromCtx(ctx))
+  if !metadata[0].IsPublic && !authUtil.ContainsPermission(claims.Roles, constant.FILE_STORAGE_PERMISSIONS[constant.FILE_GET]) {
+    err = sharedErr.ErrUnauthorizedPermission
+    spanUtil.RecordError(err, span)
+    return dto.FileResponseDTO{}, status.ErrUnAuthorized(err)
   }
 
   // get the file
@@ -124,23 +148,23 @@ func (f *fileStorage) Find(ctx context.Context, id types.Id) (dto.FileResponseDT
   return mapper.ToFileResponse(&file), status.Success()
 }
 
-func (f *fileStorage) FindMetadata(ctx context.Context, id types.Id) (*dto.FileMetadataResponseDTO, status.Object) {
-  ctx, span := f.tracer.Start(ctx, "FileStorageService.FindMetadata")
+func (f *fileStorageService) FindMetadatas(ctx context.Context, ids ...types.Id) ([]dto.FileMetadataResponseDTO, status.Object) {
+  ctx, span := f.tracer.Start(ctx, "FileStorageService.FindMetadatas")
   defer span.End()
 
   // get metadata
   repos := f.unit.Repositories()
-  metadata, err := repos.Metadata().FindByIds(ctx, id)
+  metadata, err := repos.Metadata().FindByIds(ctx, ids...)
   if err != nil {
     spanUtil.RecordError(err, span)
     return nil, status.FromRepository(err, status.NullCode)
   }
 
-  resp := mapper.ToFileMetadataResponse(&metadata[0]) // heap allocated
-  return &resp, status.Success()
+  resp := sharedUtil.CastSliceP(metadata, mapper.ToFileMetadataResponse) // heap allocated
+  return resp, status.Success()
 }
 
-func (f *fileStorage) Delete(ctx context.Context, id types.Id) status.Object {
+func (f *fileStorageService) Delete(ctx context.Context, id types.Id) status.Object {
   ctx, span := f.tracer.Start(ctx, "FileStorageService.Delete")
   defer span.End()
 
@@ -179,7 +203,7 @@ func (f *fileStorage) Delete(ctx context.Context, id types.Id) status.Object {
   return stat
 }
 
-func (f *fileStorage) Move(ctx context.Context, updateDto *dto.UpdateFileMetadataDTO) status.Object {
+func (f *fileStorageService) Move(ctx context.Context, updateDto *dto.UpdateFileMetadataDTO) status.Object {
   ctx, span := f.tracer.Start(ctx, "FileStorageService.Move")
   defer span.End()
 

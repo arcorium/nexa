@@ -269,7 +269,7 @@ func Test_roleService_AppendSuperRolesPermission(t *testing.T) {
         ctx:     context.Background(),
         permIds: sharedUtil.GenerateMultiple(3, types.MustCreateId),
       },
-      want: status.ErrInternal(errors.ErrDefaultRoleNotSeeded),
+      want: status.ErrInternal(errs.ErrDefaultRoleNotSeeded),
     },
     {
       name: "Permission role failed to get role",

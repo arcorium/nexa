@@ -175,13 +175,13 @@ func (r *RoleHandler) RemoveUser(ctx context.Context, request *authZv1.RemoveUse
   ctx, span := r.tracer.Start(ctx, "RoleHandler.RemoveUser")
   defer span.End()
 
-  dtos, err := mapper.ToRemoveUsersDTO(request)
+  removeDTO, err := mapper.ToRemoveUsersDTO(request)
   if err != nil {
     spanUtil.RecordError(err, span)
     return nil, err
   }
 
-  stat := r.roleService.RemoveUsers(ctx, &dtos)
+  stat := r.roleService.RemoveUsers(ctx, &removeDTO)
   return nil, stat.ToGRPCErrorWithSpan(span)
 }
 
@@ -225,7 +225,7 @@ func (r *RoleHandler) AppendDefaultRolePermissions(ctx context.Context, request 
   }
 
   if request.Role == authZv1.DefaultRole_DEFAULT_ROLE {
-    stat := r.roleService.AppendSuperRolesPermission(ctx, permIds...)
+    stat := r.roleService.AppendDefaultRolesPermission(ctx, permIds...)
     return nil, stat.ToGRPCErrorWithSpan(span)
   } else if request.Role == authZv1.DefaultRole_SUPER_ROLE {
     stat := r.roleService.AppendSuperRolesPermission(ctx, permIds...)

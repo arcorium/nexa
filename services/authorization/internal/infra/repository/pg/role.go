@@ -285,7 +285,7 @@ func (r *roleRepository) ClearUser(ctx context.Context, userId types.Id) error {
 
   res, err := r.db.NewDelete().
     Model(types.Nil[model.UserRole]()).
-    Where("AND user_id = ?", userId.String()).
+    Where("user_id = ?", userId.String()).
     Exec(ctx)
 
   return repo.CheckResultWithSpan(res, err, span)

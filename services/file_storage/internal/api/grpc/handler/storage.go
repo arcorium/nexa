@@ -3,6 +3,7 @@ package handler
 import (
   "context"
   storagev1 "github.com/arcorium/nexa/proto/gen/go/file_storage/v1"
+
   sharedErr "github.com/arcorium/nexa/shared/errors"
   "github.com/arcorium/nexa/shared/grpc/interceptor/authz"
   "github.com/arcorium/nexa/shared/types"
@@ -26,7 +27,7 @@ func NewFileStorage(file service.IFileStorage) StorageHandler {
 }
 
 type StorageHandler struct {
-  storagev1.FileStorageServiceServer
+  storagev1.UnimplementedFileStorageServiceServer
   fileService service.IFileStorage
 
   tracer trace.Tracer
@@ -38,7 +39,6 @@ func (s *StorageHandler) Register(server *grpc.Server) {
 
 func (s *StorageHandler) Find(request *storagev1.FindFileRequest, server storagev1.FileStorageService_FindServer) error {
   ctx := authz.GetWrappedContext(server)
-
   ctx, span := s.tracer.Start(ctx, "StorageHandler.Find")
   defer span.End()
 
@@ -75,26 +75,27 @@ func (s *StorageHandler) FindMetadata(ctx context.Context, request *storagev1.Fi
   ctx, span := s.tracer.Start(ctx, "StorageHandler.FindMetadata")
   defer span.End()
 
-  fileId, err := types.IdFromString(request.FileId)
-  if err != nil {
-    spanUtil.RecordError(err, span)
-    return nil, sharedErr.NewFieldError("file_id", err).ToGrpcError()
+  fileIds, ierr := sharedUtil.CastSliceErrs(request.FileIds, types.IdFromString)
+  if !ierr.IsNil() {
+    spanUtil.RecordError(ierr, span)
+    return nil, sharedErr.NewFieldError("file_ids", ierr).ToGrpcError()
   }
 
-  metadata, stat := s.fileService.FindMetadata(ctx, fileId)
+  metadatas, stat := s.fileService.FindMetadatas(ctx, fileIds...)
   if stat.IsError() {
     spanUtil.RecordError(stat.Error, span)
     return nil, stat.ToGRPCError()
   }
 
-  response := &storagev1.FindFileMetadataResponse{File: mapper.ToProtoFile(metadata)}
-  return response, nil
+  resp := &storagev1.FindFileMetadataResponse{
+    Files: mapper.ToMappedProtoFile(metadatas...),
+  }
+  return resp, nil
 }
 
 func (s *StorageHandler) Store(server storagev1.FileStorageService_StoreServer) error {
   ctx := authz.GetWrappedContext(server)
-
-  ctx, span := s.tracer.Start(ctx, "StorageHandler.FindMetadata")
+  ctx, span := s.tracer.Start(ctx, "StorageHandler.Store")
   defer span.End()
 
   storeDto := dto.FileStoreDTO{}
@@ -119,13 +120,23 @@ func (s *StorageHandler) Store(server storagev1.FileStorageService_StoreServer) 
     return err
   }
 
-  id, stat := s.fileService.Store(ctx, &storeDto)
+  result, stat := s.fileService.Store(ctx, &storeDto)
   if stat.IsError() {
     spanUtil.RecordError(stat.Error, span)
     server.SendAndClose(nil)
     return stat.ToGRPCError()
   }
-  return server.SendAndClose(&storagev1.StoreFileResponse{FileId: id.String()})
+
+  var filePath *string
+  if path := result.FullPath.Path(); len(path) > 0 {
+    filePath = &path
+  }
+  resp := storagev1.StoreFileResponse{
+    FileId:   result.Id.String(),
+    Filepath: filePath,
+  }
+
+  return server.SendAndClose(&resp)
 }
 
 func (s *StorageHandler) Update(ctx context.Context, request *storagev1.UpdateFileRequest) (*emptypb.Empty, error) {

@@ -6,5 +6,5 @@ import (
 )
 
 type IPostClient interface {
-  Validate(ctx context.Context, postId types.Id) (bool, error)
+  ValidatePost(ctx context.Context, postId types.Id) (bool, error)
 }

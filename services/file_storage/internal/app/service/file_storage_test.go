@@ -209,7 +209,7 @@ func Test_fileStorage_Delete(t *testing.T) {
         tt.setup(&mocked, &tt.args, &tt.want)
       }
 
-      f := &fileStorage{
+      f := &fileStorageService{
         unit:       mocked.UOW,
         storageExt: mocked.Storage,
         tracer:     mocked.Tracer,
@@ -337,7 +337,7 @@ func Test_fileStorage_Find(t *testing.T) {
         tt.setup(&mocked, &tt.args, &tt.want)
       }
 
-      f := &fileStorage{
+      f := &fileStorageService{
         unit:       mocked.UOW,
         storageExt: mocked.Storage,
         tracer:     mocked.Tracer,
@@ -426,17 +426,17 @@ func Test_fileStorage_FindMetadata(t *testing.T) {
         tt.setup(&mocked, &tt.args, tt.want)
       }
 
-      f := &fileStorage{
+      f := &fileStorageService{
         unit:       mocked.UOW,
         storageExt: mocked.Storage,
         tracer:     mocked.Tracer,
       }
-      got, got1 := f.FindMetadata(tt.args.ctx, tt.args.id)
+      got, got1 := f.FindMetadatas(tt.args.ctx, tt.args.id)
       if !reflect.DeepEqual(got, tt.want) {
-        t.Errorf("FindMetadata() got = %v, want %v", got, tt.want)
+        t.Errorf("FindMetadatas() got = %v, want %v", got, tt.want)
       }
       if !reflect.DeepEqual(got1, tt.want1) {
-        t.Errorf("FindMetadata() got1 = %v, want %v", got1, tt.want1)
+        t.Errorf("FindMetadatas() got1 = %v, want %v", got1, tt.want1)
       }
     })
   }
@@ -581,7 +581,7 @@ func Test_fileStorage_Store(t *testing.T) {
         tt.setup(&mocked, &tt.args, nil)
       }
 
-      f := &fileStorage{
+      f := &fileStorageService{
         unit:       mocked.UOW,
         storageExt: mocked.Storage,
         tracer:     mocked.Tracer,
@@ -895,7 +895,7 @@ func Test_fileStorage_Move(t *testing.T) {
         tt.setup(&mocked, &tt.args, nil)
       }
 
-      f := &fileStorage{
+      f := &fileStorageService{
         unit:       mocked.UOW,
         storageExt: mocked.Storage,
         tracer:     mocked.Tracer,

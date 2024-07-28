@@ -38,6 +38,35 @@ services:
       - PG_IS_SECURE=false
     networks:
       - nf_network
+  storage-token_generator:
+    build:
+      context: ../../token_generator/
+      dockerfile: Dockerfile
+    entrypoint: /bin/sh -c "./main > /output/token.txt"
+    volumes:
+      - storage-token_output:/output
+  nexa-storage-seed:
+    build:
+      dockerfile: ./docker/seed.Dockerfile
+    restart: on-failure
+    depends_on:
+      nexa-storage-migrate:
+        condition: service_completed_successfully
+      storage-token_generator:
+        condition: service_completed_successfully
+    #      nexa-authz:
+    #        condition: service_healthy
+    environment:
+      - PG_ADDRESS=file-db
+      - PG_USERNAME=nexa
+      - PG_PASSWORD=nexa
+      - PG_DB_NAME=nexa-file
+      - PG_IS_SECURE=false
+    #      - AUTHZ_SERVICE_ADDR=nexa-authz:8080
+    networks:
+      - nf_network
+    volumes:
+      - storage-token_output:/output
   nexa-storage:
     build:
       dockerfile: ./docker/app.Dockerfile
@@ -71,6 +100,10 @@ services:
 #      - "8081"
     networks:
       - nf_network
+
 networks:
   nf_network:
     driver: bridge
+
+volumes:
+  storage-token_output:

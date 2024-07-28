@@ -6,10 +6,12 @@ build.local:
 
 build.image.server:
 	docker build -f ./docker/app.Dockerfile -t nexa-relation:latest .
+	docker build -f ./docker/migrate.Dockerfile -t nexa-relation-migrate:latest .
+	docker build -f ./docker/seed.Dockerfile -t nexa-relation-seed:latest .
 
 run.compose: pubkey.pem
 	docker compose -f ./docker-compose.dev.yml -f ./docker-compose.dev.override.yml \
-	-p relation up -d
+	-p nexa-relation up -d
 
 stop.compose:
 	docker compose down --remove-orphans

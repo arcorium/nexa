@@ -78,23 +78,26 @@ func getData() ([]*authZv1.CreatePermissionRequest, []*authZv1.CreatePermissionR
   return superPerms, defaultPerms
 }
 
-func seedPerms(permClient authZv1.PermissionServiceClient, roleClient authZv1.RoleServiceClient, md metadata.MD, role authZv1.DefaultRole, perms []*authZv1.CreatePermissionRequest) {
-  // Seed permissions
+func seedPermissions(permClient authZv1.PermissionServiceClient, md metadata.MD, perms []*authZv1.CreatePermissionRequest, role string) []string {
   var permIds []string
   for {
     // Try until success
     mdCtx := metadata.NewOutgoingContext(context.Background(), md)
     resp, err := permClient.Seed(mdCtx, &authZv1.SeedPermissionRequest{Permissions: perms})
     if err != nil {
-      log.Printf("failed to create permission: %s", err)
+      log.Printf("failed to create permission into %s role: %s", role, err)
+      time.Sleep(1000)
       continue
     }
 
     permIds = resp.PermissionIds
     break
   }
-  log.Println("Succeed seed super role permissions")
+  log.Printf("Succeed seed %s role permissions", role)
+  return permIds
+}
 
+func appendPermission(roleClient authZv1.RoleServiceClient, md metadata.MD, role authZv1.DefaultRole, permIds []string) {
   for {
     mdCtx := metadata.NewOutgoingContext(context.Background(), md)
     _, err := roleClient.AppendDefaultRolePermissions(mdCtx, &authZv1.AppendDefaultRolePermissionsRequest{
@@ -102,13 +105,53 @@ func seedPerms(permClient authZv1.PermissionServiceClient, roleClient authZv1.Ro
       PermissionIds: permIds,
     })
     if err != nil {
-      log.Printf("failed to append super admin role permission: %s", err)
+      log.Printf("failed to append %s role permission: %s", role.String(), err)
+      time.Sleep(1000)
       continue
     }
     break
   }
 
-  log.Println("Succeed append super role permissions")
+  log.Printf("Succeed append %s role permissions", role.String())
+}
+
+func seed(conn grpc.ClientConnInterface, token string) {
+  md := metadata.New(map[string]string{
+    "authorization": fmt.Sprintf("%s %s", sharedConst.DEFAULT_ACCESS_TOKEN_SCHEME, token),
+  })
+  permClient := authZv1.NewPermissionServiceClient(conn)
+  roleClient := authZv1.NewRoleServiceClient(conn)
+
+  superPerms, defaultPerms := getData()
+  // Seed permissions
+  var defaultPermIds []string
+  var superPermIds []string
+
+  wg := sync.WaitGroup{}
+  wg.Add(2)
+  go func() {
+    defer wg.Done()
+    defaultPermIds = seedPermissions(permClient, md, defaultPerms, "DEFAULT")
+  }()
+  go func() {
+    defer wg.Done()
+    superPermIds = seedPermissions(permClient, md, superPerms, "SUPER")
+  }()
+  wg.Wait()
+
+  // Append permissions
+  wg.Add(2)
+  go func() {
+    defer wg.Done()
+    appendPermission(roleClient, md, authZv1.DefaultRole_DEFAULT_ROLE, defaultPermIds)
+  }()
+  go func() {
+    defer wg.Done()
+    ids := append(defaultPermIds, superPermIds...)
+    appendPermission(roleClient, md, authZv1.DefaultRole_SUPER_ROLE, ids)
+  }()
+
+  wg.Wait()
 }
 
 func main() {
@@ -140,23 +183,5 @@ func main() {
     break
   }
 
-  md := metadata.New(map[string]string{
-    "authorization": fmt.Sprintf("%s %s", sharedConst.DEFAULT_ACCESS_TOKEN_SCHEME, token),
-  })
-  permClient := authZv1.NewPermissionServiceClient(conn)
-  roleClient := authZv1.NewRoleServiceClient(conn)
-
-  superPerms, defaultPerms := getData()
-
-  wg := sync.WaitGroup{}
-  wg.Add(2)
-  go func() {
-    defer wg.Done()
-    seedPerms(permClient, roleClient, md, authZv1.DefaultRole_DEFAULT_ROLE, defaultPerms)
-  }()
-  go func() {
-    defer wg.Done()
-    seedPerms(permClient, roleClient, md, authZv1.DefaultRole_SUPER_ROLE, superPerms)
-  }()
-  wg.Wait()
+  seed(conn, token)
 }

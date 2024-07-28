@@ -35,11 +35,11 @@ type postClient struct {
   cb     *gobreaker.CircuitBreaker
 }
 
-func (c *postClient) Validate(ctx context.Context, postId types.Id) (bool, error) {
+func (c *postClient) Validate(ctx context.Context, userId types.Id) (bool, error) {
   ctx, span := c.tracer.Start(ctx, "CommentClient.Validate")
   defer span.End()
 
-  req := &postv1.FindPostByIdRequest{PostId: postId.String()}
+  req := &postv1.FindPostByIdRequest{PostId: userId.String()}
   result, err := c.cb.Execute(func() (interface{}, error) {
     return c.client.FindById(ctx, req)
   })

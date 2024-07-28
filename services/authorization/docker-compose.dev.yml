@@ -55,7 +55,7 @@ services:
         condition: service_completed_successfully
         restart: false
     environment:
-      - PG_ADDRESS=db
+      - PG_ADDRESS=authz-db
       - PG_USERNAME=nexa
       - PG_PASSWORD=nexa
       - PG_DB_NAME=nexa-authz

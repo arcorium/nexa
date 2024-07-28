@@ -14,13 +14,13 @@ type FileAttachment struct {
 }
 
 type SendMailDTO struct {
-  Subject     string        `validate:"required"`
-  Recipients  []types.Email `validate:"required"`
-  Sender      types.Nullable[types.Email]
-  BodyType    domain.MailBodyType ` validate:"required"`
-  Body        string
-  TagIds      []types.Id `validate:"required"`
-  Attachments []FileAttachment
+  Subject           string        `validate:"required"`
+  Recipients        []types.Email `validate:"required"`
+  Sender            types.Nullable[types.Email]
+  BodyType          domain.MailBodyType ` validate:"required"`
+  Body              string
+  TagIds            []types.Id `validate:"required"`
+  AttachmentFileIds []types.Id `validate:"required"`
 }
 
 func (m *SendMailDTO) ToDomain() ([]domain.Mail, error) {

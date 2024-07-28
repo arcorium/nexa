@@ -35,19 +35,19 @@ func ToSendMailDTO(request *mailerv1.SendMailRequest) (dto.SendMailDTO, error) {
     senderEmail = &email // dangling and escaped
   }
 
+  fileIds, ierr := sharedUtil.CastSliceErrs(request.AttachmentFileIds, types.IdFromString)
+  if !ierr.IsNil() {
+    return dto.SendMailDTO{}, ierr.ToGRPCError("attachment_file_ids")
+  }
+
   dtos := dto.SendMailDTO{
-    Subject:    request.Subject,
-    Recipients: recipientEmails,
-    Sender:     types.NewNullable(senderEmail),
-    BodyType:   bodyType,
-    Body:       request.Body,
-    TagIds:     tagIds,
-    Attachments: sharedUtil.CastSlice(request.Attachments, func(attachment *mailerv1.FileAttachment) dto.FileAttachment {
-      return dto.FileAttachment{
-        Filename: attachment.Filename,
-        Data:     attachment.Data,
-      }
-    }),
+    Subject:           request.Subject,
+    Recipients:        recipientEmails,
+    Sender:            types.NewNullable(senderEmail),
+    BodyType:          bodyType,
+    Body:              request.Body,
+    TagIds:            tagIds,
+    AttachmentFileIds: fileIds,
   }
 
   err = sharedUtil.ValidateStruct(&dtos)

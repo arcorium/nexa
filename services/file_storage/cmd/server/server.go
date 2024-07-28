@@ -6,6 +6,7 @@ import (
   "errors"
   "github.com/arcorium/nexa/shared/database"
   "github.com/arcorium/nexa/shared/grpc/interceptor"
+  "github.com/arcorium/nexa/shared/grpc/interceptor/authz"
   "github.com/arcorium/nexa/shared/logger"
   "github.com/arcorium/nexa/shared/types"
   sharedUtil "github.com/arcorium/nexa/shared/util"
@@ -30,11 +31,14 @@ import (
   "google.golang.org/grpc/health"
   "google.golang.org/grpc/health/grpc_health_v1"
   "google.golang.org/grpc/reflection"
+  "google.golang.org/grpc/reflection/grpc_reflection_v1"
+  "google.golang.org/grpc/reflection/grpc_reflection_v1alpha"
   "net"
   "net/http"
   "nexa/services/file_storage/config"
   "nexa/services/file_storage/constant"
   "nexa/services/file_storage/internal/api/grpc/handler"
+  inter "nexa/services/file_storage/internal/api/grpc/interceptor"
   "nexa/services/file_storage/internal/app/service"
   pgUow "nexa/services/file_storage/internal/app/uow/pg"
   domainExt "nexa/services/file_storage/internal/domain/external"
@@ -142,18 +146,31 @@ func (s *Server) grpcServerSetup() error {
     return nil
   }
 
+  authorizationConfig := authz.NewUserConfig(s.publicKey, inter.PermissionCheck)
+  skipServices := []string{
+    grpc_health_v1.Health_ServiceDesc.ServiceName,
+  }
+  if config.IsDebug() {
+    skipServices = append(skipServices,
+      grpc_reflection_v1.ServerReflection_ServiceDesc.ServiceName,
+      grpc_reflection_v1alpha.ServerReflection_ServiceDesc.ServiceName,
+    )
+  }
+
   s.grpcServer = grpc.NewServer(
     grpc.StatsHandler(otelgrpc.NewServerHandler()), // tracing
     grpc.ChainUnaryInterceptor(
       recovery.UnaryServerInterceptor(),
       logging.UnaryServerInterceptor(zapLogger), // logging
-      //interceptor.UnaryServerAuth(inter.Auth, inter.AuthSelector),
+      authz.UserUnaryServerInterceptor(&authorizationConfig,
+        inter.AuthSelector, skipServices...),
       metrics.UnaryServerInterceptor(promProv.WithExemplarFromContext(exemplarFromCtx)),
     ),
     grpc.ChainStreamInterceptor(
       recovery.StreamServerInterceptor(),
       logging.StreamServerInterceptor(zapLogger), // logging
-      //interceptor.StreamServerAuth(inter.Auth, inter.AuthSelector),
+      authz.UserStreamServerInterceptor(&authorizationConfig,
+        inter.AuthSelector, skipServices...),
       metrics.StreamServerInterceptor(promProv.WithExemplarFromContext(exemplarFromCtx)),
     ),
   )
@@ -299,7 +316,7 @@ func (s *Server) Run() error {
 
     err = s.grpcServer.Serve(listener)
     logger.Info("Server Stopping ")
-    if err != nil {
+    if err != nil && !errors.Is(err, http.ErrServerClosed) {
       logger.Warnf("Server failed to serve: %s", err)
     }
   }()
@@ -311,7 +328,7 @@ func (s *Server) Run() error {
 
     err = s.metricServer.ListenAndServe()
     logger.Info("Metrics Server Stopping")
-    if err != nil {
+    if err != nil && !errors.Is(err, http.ErrServerClosed) {
       logger.Warnf("Metrics server failed to serve: %s", err)
     }
   }()

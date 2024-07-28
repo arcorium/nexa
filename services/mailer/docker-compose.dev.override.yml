@@ -4,3 +4,18 @@ services:
       - OTLP_GRPC_COLLECTOR_ADDRESS=jaeger:4317
     networks:
       - nm_network
+  nexa-storage-seed:
+    depends_on:
+      nexa-authz:
+        condition: service_healthy
+    environment:
+      - AUTHZ_SERVICE_ADDR=nexa-authz:8080
+    networks:
+      - nm_network
+  nexa-storage:
+    environment:
+      - OTLP_GRPC_COLLECTOR_ADDRESS=jaeger:4317
+    ports:
+      - "8083:8080"
+    networks:
+      - nm_network

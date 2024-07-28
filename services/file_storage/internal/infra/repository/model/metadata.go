@@ -20,7 +20,7 @@ func FromPatchedDomain(ent *entity.PatchedFileMetadata, opts ...PatchedFileMapOp
     IsPublic:        ent.SqlIsPublic(),
     StorageProvider: ent.SqlStorageProvider(),
     StoragePath:     ent.ProviderPath,
-    FullPath:        ent.FullPath.Value(),
+    FullPath:        ent.FullPath.ValueOrNil(),
   }
 
   variadic.New(opts...).DoAll(repo.MapOptionFunc(ent, &obj))
@@ -28,6 +28,10 @@ func FromPatchedDomain(ent *entity.PatchedFileMetadata, opts ...PatchedFileMapOp
 }
 
 func FromFileDomain(ent *entity.FileMetadata, opts ...FileMapOption) FileMetadata {
+  var fullpath *string
+  if len(ent.FullPath) > 0 {
+    fullpath = &ent.FullPath
+  }
   obj := FileMetadata{
     Id:              ent.Id.String(),
     Filename:        ent.Name,
@@ -36,6 +40,7 @@ func FromFileDomain(ent *entity.FileMetadata, opts ...FileMapOption) FileMetadat
     IsPublic:        sql.NullBool{Bool: ent.IsPublic, Valid: true},
     StorageProvider: sql.NullInt64{Int64: int64(ent.Provider.Underlying()), Valid: true},
     StoragePath:     ent.ProviderPath,
+    FullPath:        fullpath,
   }
 
   variadic.New(opts...).DoAll(repo.MapOptionFunc(ent, &obj))

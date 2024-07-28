@@ -6,5 +6,5 @@ import (
 )
 
 type ICommentClient interface {
-  Validate(ctx context.Context, commentIds ...types.Id) (bool, error)
+  ValidateComment(ctx context.Context, commentIds ...types.Id) (bool, error)
 }

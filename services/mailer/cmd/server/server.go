@@ -7,6 +7,7 @@ import (
   "github.com/arcorium/nexa/shared/database"
   "github.com/arcorium/nexa/shared/grpc/interceptor"
   "github.com/arcorium/nexa/shared/grpc/interceptor/authz"
+  "github.com/arcorium/nexa/shared/grpc/interceptor/forward"
   "github.com/arcorium/nexa/shared/logger"
   "github.com/arcorium/nexa/shared/types"
   sharedUtil "github.com/arcorium/nexa/shared/util"
@@ -28,6 +29,7 @@ import (
   semconv "go.opentelemetry.io/otel/semconv/v1.25.0"
   "go.opentelemetry.io/otel/trace"
   "google.golang.org/grpc"
+  "google.golang.org/grpc/credentials/insecure"
   "google.golang.org/grpc/health"
   "google.golang.org/grpc/health/grpc_health_v1"
   "google.golang.org/grpc/reflection"
@@ -63,9 +65,11 @@ func NewServer(dbConfig *config.Database, serverConfig *config.Server) (*Server,
 type Server struct {
   dbConfig     *config.Database
   serverConfig *config.Server
-  db           *bun.DB
-  mailClient   external2.IMail
   publicKey    *rsa.PublicKey
+
+  db          *bun.DB
+  storageConn *grpc.ClientConn
+  mailClient  external2.IMail
 
   grpcServer     *grpc.Server
   metricServer   *http.Server
@@ -158,6 +162,15 @@ func (s *Server) grpcServerSetup() error {
     )
   }
 
+  additionalMd := make(map[string]string)
+  // To identify when the request is forwarded from another service
+  additionalMd["forwarder"] = constant.SERVICE_NAME
+  additionalMd["forwarder-v"] = constant.SERVICE_VERSION
+  forwardConfig := forward.NewConfig(true,
+    forward.WithIncludeKeys("authorization"), // Only forward this key when it is present
+    forward.WithAdditionalData(additionalMd),
+  )
+
   s.grpcServer = grpc.NewServer(
     grpc.StatsHandler(otelgrpc.NewServerHandler()), // tracing
     grpc.ChainUnaryInterceptor(
@@ -166,6 +179,7 @@ func (s *Server) grpcServerSetup() error {
       authz.UserUnaryServerInterceptor(&authzConf,
         authz.SkipSelector(inter.AuthSkipSelector), skipServices...),
       metrics.UnaryServerInterceptor(promProv.WithExemplarFromContext(exemplarFromCtx)),
+      forward.UnaryServerInterceptor(&forwardConfig),
     ),
     grpc.ChainStreamInterceptor(
       recovery.StreamServerInterceptor(),
@@ -173,6 +187,7 @@ func (s *Server) grpcServerSetup() error {
       authz.UserStreamServerInterceptor(&authzConf,
         authz.SkipSelector(inter.AuthSkipSelector), skipServices...),
       metrics.StreamServerInterceptor(promProv.WithExemplarFromContext(exemplarFromCtx)),
+      forward.StreamServerInterceptor(&forwardConfig),
     ),
   )
 
@@ -259,12 +274,20 @@ func (s *Server) setup() error {
     s.mailClient = smtpClient
   }
 
+  creds := insecure.NewCredentials()
+  conn, err := grpc.NewClient(s.serverConfig.Service.FileStorage, grpc.WithTransportCredentials(creds))
+  if err != nil {
+    return err
+  }
+  s.storageConn = conn
+  storageClient := external.NewFileStorageClient(conn, &s.serverConfig.CircuitBreaker)
+
   // Repository
   mailUOW := pg.NewMailUOW(s.db)
   repos := mailUOW.Repositories()
 
   // Service
-  mailService := service.NewMail(mailUOW, s.mailClient)
+  mailService := service.NewMail(mailUOW, s.mailClient, storageClient)
   tagService := service.NewTag(repos.Tag())
 
   // GRPC Handler
@@ -301,6 +324,10 @@ func (s *Server) shutdown() {
     logger.Warn(err.Error())
   }
 
+  if err := s.storageConn.Close(); err != nil {
+    logger.Warn(err.Error())
+  }
+
   // Database
   if err := s.db.Close(); err != nil {
     logger.Warn(err.Error())
@@ -324,7 +351,7 @@ func (s *Server) Run() error {
 
     err = s.grpcServer.Serve(listener)
     logger.Info("Server Stopping ")
-    if err != nil {
+    if err != nil && !errors.Is(err, http.ErrServerClosed) {
       logger.Warnf("Server failed to serve: %s", err)
     }
   }()
@@ -336,7 +363,7 @@ func (s *Server) Run() error {
 
     err = s.metricServer.ListenAndServe()
     logger.Info("Metrics Server Stopping")
-    if err != nil {
+    if err != nil && !errors.Is(err, http.ErrServerClosed) {
       logger.Warnf("Metrics server failed to serve: %s", err)
     }
   }()

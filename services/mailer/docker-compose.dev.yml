@@ -1,5 +1,6 @@
 include:
   - ../authorization/docker-compose.yml
+  - ../file_storage/docker-compose.yml
 
 services:
   mailer-db:
@@ -13,7 +14,7 @@ services:
       - POSTGRES_USER=nexa
       - POSTGRES_PASSWORD=nexa
     ports:
-      - 5432
+      - "5432:5432"
     networks:
       - nm_network
   jaeger:
@@ -37,6 +38,7 @@ services:
     depends_on:
       mailer-db:
         condition: service_healthy
+    restart: on-failure
     environment:
       - PG_ADDRESS=mailer-db
       - PG_USERNAME=nexa
@@ -45,7 +47,7 @@ services:
       - PG_IS_SECURE=false
     networks:
       - nm_network
-  token_generator:
+  mailer-token_generator:
     build:
       context: ../../token_generator/
       dockerfile: Dockerfile
@@ -60,8 +62,9 @@ services:
         condition: service_completed_successfully
       nexa-authz:
         condition: service_healthy
-      token_generator:
+      mailer-token_generator:
         condition: service_completed_successfully
+    restart: on-failure
     environment:
       - PG_ADDRESS=mailer-db
       - PG_USERNAME=nexa

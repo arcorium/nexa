@@ -15,6 +15,12 @@ github.com/arcorium/nexa/proto/gen/go v1.0.1/go.mod h1:iNK4pbds+qZ1Lf0s+MYFT3cNB
 github.com/arcorium/nexa/proto/gen/go v1.0.3/go.mod h1:iNK4pbds+qZ1Lf0s+MYFT3cNBDs96K2YeB6vYAPmlgY=
 github.com/arcorium/nexa/proto/gen/go v1.0.5-0.20240722185652-7eea1482d7cb h1:kchYflNbwtfmGE9uIn4ZugYNMJWiE1RnEqieyyrVeo0=
 github.com/arcorium/nexa/proto/gen/go v1.0.5-0.20240722185652-7eea1482d7cb/go.mod h1:iNK4pbds+qZ1Lf0s+MYFT3cNBDs96K2YeB6vYAPmlgY=
+github.com/arcorium/nexa/proto/gen/go v1.0.5-0.20240723114734-4908f670ff6a h1:enhq4mmXkGP4wyGxw+eYAiCHn5TxhZY2uT1ySoAwCIw=
+github.com/arcorium/nexa/proto/gen/go v1.0.5-0.20240723114734-4908f670ff6a/go.mod h1:iNK4pbds+qZ1Lf0s+MYFT3cNBDs96K2YeB6vYAPmlgY=
+github.com/arcorium/nexa/proto/gen/go v1.0.5-0.20240723180757-4b989003cc3f h1:IJ+i/Ov+7oVvCuQmAEgyAT+EfmcjZyg+No6IuNnL91g=
+github.com/arcorium/nexa/proto/gen/go v1.0.5-0.20240723180757-4b989003cc3f/go.mod h1:iNK4pbds+qZ1Lf0s+MYFT3cNBDs96K2YeB6vYAPmlgY=
+github.com/arcorium/nexa/proto/gen/go v1.0.5-0.20240723193005-326e5964ff2d h1:YHb+gQYA0Su14fzub+qN+VAgwU5BfbVn/yl+9EkpfWA=
+github.com/arcorium/nexa/proto/gen/go v1.0.5-0.20240723193005-326e5964ff2d/go.mod h1:iNK4pbds+qZ1Lf0s+MYFT3cNBDs96K2YeB6vYAPmlgY=
 github.com/arcorium/nexa/shared v0.1.2/go.mod h1:J31s3Ro8JIkX/Rv0cPJecU7IL4QiJR4wqdaB8uBS7l4=
 github.com/arcorium/nexa/shared v0.1.3 h1:cn1aeSI1kTHjMkZOkZ+xb2ycLcBvvMzEi/6ffsjTrmU=
 github.com/arcorium/nexa/shared v0.1.3/go.mod h1:7ULmV/j8UUAaNQIlLhZtq3CYkGE4zdtIIzcVVdPpwOM=

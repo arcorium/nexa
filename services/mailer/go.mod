@@ -3,8 +3,8 @@ module nexa/services/mailer
 go 1.22.4
 
 require (
-	github.com/arcorium/nexa/proto/gen/go v1.0.3
-	github.com/arcorium/nexa/shared v0.1.5
+	github.com/arcorium/nexa/proto/gen/go v1.0.5-0.20240728180618-59e4d3bf1e8c
+	github.com/arcorium/nexa/shared v0.1.7-0.20240728180618-59e4d3bf1e8c
 	github.com/brianvoe/gofakeit/v7 v7.0.3
 	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.0.1
@@ -80,6 +80,7 @@ require (
 	github.com/shirou/gopsutil/v3 v3.23.12 // indirect
 	github.com/shoenig/go-m1cpu v0.1.6 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
+	github.com/sony/gobreaker v1.0.0 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/tklauser/go-sysconf v0.3.12 // indirect
 	github.com/tklauser/numcpus v0.6.1 // indirect

@@ -3,7 +3,7 @@ module nexa/services/authorization
 go 1.22.4
 
 require (
-	github.com/arcorium/nexa/proto/gen/go v1.0.5-0.20240722185652-7eea1482d7cb
+	github.com/arcorium/nexa/proto/gen/go v1.0.5-0.20240723193005-326e5964ff2d
 	github.com/arcorium/nexa/shared v0.1.6
 	github.com/brianvoe/gofakeit/v7 v7.0.4
 	github.com/golang-jwt/jwt/v5 v5.2.1

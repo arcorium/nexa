@@ -1,5 +1,11 @@
+include:
+  - ../authorization/docker-compose.yml
+  - ../authentication/docker-compose.yml
+  - ../token/docker-compose.yml
+  - ../mailer/docker-compose.yml
+
 services:
-  db:
+  file-db:
     image: postgres
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U nexa -d nexa-file" ]
@@ -50,16 +56,48 @@ services:
       dockerfile: ./docker/migrate.Dockerfile
     restart: on-failure
     depends_on:
-      db:
+      file-db:
         condition: service_healthy
     environment:
-      - PG_ADDRESS=db
+      - PG_ADDRESS=file-db
       - PG_USERNAME=nexa
       - PG_PASSWORD=nexa
       - PG_DB_NAME=nexa-file
       - PG_IS_SECURE=false
     networks:
       - nf_network
+  storage-token_generator:
+    build:
+      context: ../../token_generator/
+      dockerfile: Dockerfile
+    entrypoint: /bin/sh -c "./main > /output/token.txt"
+    volumes:
+      - storage-token_output:/output
+  nexa-storage-seed:
+    build:
+      dockerfile: ./docker/seed.Dockerfile
+    restart: on-failure
+    depends_on:
+      nexa-storage-migrate:
+        condition: service_completed_successfully
+      storage-token_generator:
+        condition: service_completed_successfully
+      nexa-authz:
+        condition: service_healthy
+    environment:
+      - PG_ADDRESS=file-db
+      - PG_USERNAME=nexa
+      - PG_PASSWORD=nexa
+      - PG_DB_NAME=nexa-file
+      - PG_IS_SECURE=false
+      - AUTHZ_SERVICE_ADDR=nexa-authz:8080
+    networks:
+      - nf_network
+    volumes:
+      - storage-token_output:/output
 networks:
   nf_network:
     driver: bridge
+
+volumes:
+  storage-token_output:

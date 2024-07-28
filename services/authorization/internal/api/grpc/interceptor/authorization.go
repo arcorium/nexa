@@ -47,15 +47,15 @@ func UserCheckPermission(claims *sharedJwt.UserClaims, meta interceptors.CallMet
   case authZv1.RoleService_Find_FullMethodName:
     fallthrough
   case authZv1.RoleService_FindAll_FullMethodName:
-    return authUtil.ContainsPermission(claims.Roles, constant.AUTHZ_PERMISSIONS[constant.AUTHZ_READ_ROLE])
+    return authUtil.ContainsPermission(claims.Roles, constant.AUTHZ_PERMISSIONS[constant.AUTHZ_GET_ROLE])
   case authZv1.RoleService_AddUser_FullMethodName:
-    fallthrough
+    return authUtil.ContainsPermission(claims.Roles, constant.AUTHZ_PERMISSIONS[constant.AUTHZ_ADD_USER_ROLE])
   case authZv1.RoleService_RemoveUser_FullMethodName:
-    return authUtil.ContainsPermission(claims.Roles, constant.AUTHZ_PERMISSIONS[constant.AUTHZ_MODIFY_USER_ROLE])
+    return authUtil.ContainsPermission(claims.Roles, constant.AUTHZ_PERMISSIONS[constant.AUTHZ_DELETE_USER_ROLE])
   case authZv1.RoleService_AppendPermissions_FullMethodName:
     fallthrough
   case authZv1.RoleService_RemovePermissions_FullMethodName:
-    return authUtil.ContainsPermission(claims.Roles, constant.AUTHZ_PERMISSIONS[constant.AUTHZ_MODIFY_USER_ROLE])
+    return authUtil.ContainsPermission(claims.Roles, constant.AUTHZ_PERMISSIONS[constant.AUTHZ_MODIFY_ROLE_PERMISSIONS])
   case authZv1.PermissionService_Create_FullMethodName:
     return authUtil.ContainsPermission(claims.Roles, constant.AUTHZ_PERMISSIONS[constant.AUTHZ_CREATE_PERMISSION])
   case authZv1.PermissionService_Delete_FullMethodName:

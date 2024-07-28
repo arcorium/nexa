@@ -131,20 +131,20 @@ func (_c *FileStorageMock_Find_Call) RunAndReturn(run func(context.Context, type
 }
 
 // FindMetadata provides a mock function with given fields: ctx, id
-func (_m *FileStorageMock) FindMetadata(ctx context.Context, id types.Id) (*dto.FileMetadataResponseDTO, status.Object) {
-	ret := _m.Called(ctx, id)
+func (_m *FileStorageMock) FindMetadatas(ctx context.Context, ids ...types.Id) ([]dto.FileMetadataResponseDTO, status.Object) {
+	ret := _m.Called(ctx, ids)
 
 	if len(ret) == 0 {
-		panic("no return value specified for FindMetadata")
+		panic("no return value specified for FindMetadatas")
 	}
 
 	var r0 *dto.FileMetadataResponseDTO
 	var r1 status.Object
 	if rf, ok := ret.Get(0).(func(context.Context, types.Id) (*dto.FileMetadataResponseDTO, status.Object)); ok {
-		return rf(ctx, id)
+		return rf(ctx, ids)
 	}
 	if rf, ok := ret.Get(0).(func(context.Context, types.Id) *dto.FileMetadataResponseDTO); ok {
-		r0 = rf(ctx, id)
+		r0 = rf(ctx, ids)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*dto.FileMetadataResponseDTO)
@@ -152,15 +152,15 @@ func (_m *FileStorageMock) FindMetadata(ctx context.Context, id types.Id) (*dto.
 	}
 
 	if rf, ok := ret.Get(1).(func(context.Context, types.Id) status.Object); ok {
-		r1 = rf(ctx, id)
+		r1 = rf(ctx, ids)
 	} else {
 		r1 = ret.Get(1).(status.Object)
 	}
 
-	return r0, r1
+  return r0, r1
 }
 
-// FileStorageMock_FindMetadata_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FindMetadata'
+// FileStorageMock_FindMetadata_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FindMetadatas'
 type FileStorageMock_FindMetadata_Call struct {
 	*mock.Call
 }
@@ -169,7 +169,7 @@ type FileStorageMock_FindMetadata_Call struct {
 //   - ctx context.Context
 //   - id types.Id
 func (_e *FileStorageMock_Expecter) FindMetadata(ctx interface{}, id interface{}) *FileStorageMock_FindMetadata_Call {
-	return &FileStorageMock_FindMetadata_Call{Call: _e.mock.On("FindMetadata", ctx, id)}
+	return &FileStorageMock_FindMetadata_Call{Call: _e.mock.On("FindMetadatas", ctx, id)}
 }
 
 func (_c *FileStorageMock_FindMetadata_Call) Run(run func(ctx context.Context, id types.Id)) *FileStorageMock_FindMetadata_Call {
@@ -237,8 +237,8 @@ func (_c *FileStorageMock_Move_Call) RunAndReturn(run func(context.Context, *dto
 }
 
 // Store provides a mock function with given fields: ctx, file
-func (_m *FileStorageMock) Store(ctx context.Context, file *dto.FileStoreDTO) (types.Id, status.Object) {
-	ret := _m.Called(ctx, file)
+func (_m *FileStorageMock) Store(ctx context.Context, storeDTO *dto.FileStoreDTO) (dto.FileStoreResponseDTO, status.Object) {
+	ret := _m.Called(ctx, storeDTO)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Store")
@@ -247,10 +247,10 @@ func (_m *FileStorageMock) Store(ctx context.Context, file *dto.FileStoreDTO) (t
 	var r0 types.Id
 	var r1 status.Object
 	if rf, ok := ret.Get(0).(func(context.Context, *dto.FileStoreDTO) (types.Id, status.Object)); ok {
-		return rf(ctx, file)
+		return rf(ctx, storeDTO)
 	}
 	if rf, ok := ret.Get(0).(func(context.Context, *dto.FileStoreDTO) types.Id); ok {
-		r0 = rf(ctx, file)
+		r0 = rf(ctx, storeDTO)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(types.Id)
@@ -258,12 +258,12 @@ func (_m *FileStorageMock) Store(ctx context.Context, file *dto.FileStoreDTO) (t
 	}
 
 	if rf, ok := ret.Get(1).(func(context.Context, *dto.FileStoreDTO) status.Object); ok {
-		r1 = rf(ctx, file)
+		r1 = rf(ctx, storeDTO)
 	} else {
 		r1 = ret.Get(1).(status.Object)
 	}
 
-	return r0, r1
+  return r0, r1
 }
 
 // FileStorageMock_Store_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Store'

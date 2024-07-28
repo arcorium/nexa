@@ -3,6 +3,7 @@ package service
 import (
   "context"
   sharedDto "github.com/arcorium/nexa/shared/dto"
+  "github.com/arcorium/nexa/shared/logger"
   "github.com/arcorium/nexa/shared/status"
   "github.com/arcorium/nexa/shared/types"
   sharedUOW "github.com/arcorium/nexa/shared/uow"
@@ -22,18 +23,20 @@ import (
   "time"
 )
 
-func NewMail(unit sharedUOW.IUnitOfWork[uow.MailStorage], mailExt external.IMail) service.IMail {
+func NewMail(unit sharedUOW.IUnitOfWork[uow.MailStorage], mailExt external.IMail, storageClient external.IFileStorageClient) service.IMail {
   return &mailService{
-    mailUow: unit,
-    mailExt: mailExt,
-    tracer:  util.GetTracer(),
+    mailUow:       unit,
+    mailExt:       mailExt,
+    storageClient: storageClient,
+    tracer:        util.GetTracer(),
   }
 }
 
 type mailService struct {
-  mailExt external.IMail
-  mailUow sharedUOW.IUnitOfWork[uow.MailStorage]
-  tracer  trace.Tracer
+  mailExt       external.IMail
+  storageClient external.IFileStorageClient
+  mailUow       sharedUOW.IUnitOfWork[uow.MailStorage]
+  tracer        trace.Tracer
 
   workCount atomic.Int64
 }
@@ -126,16 +129,30 @@ func (m *mailService) Send(ctx context.Context, mailDTO *dto.SendMailDTO) ([]typ
     return nil, status.FromRepository(err, status.NullCode)
   }
 
+  // Get files from file storage
+  var attachments []dto.FileAttachment
+  if len(mailDTO.AttachmentFileIds) > 0 {
+    attachments, err = m.storageClient.GetFiles(ctx, mailDTO.AttachmentFileIds...)
+    if err != nil {
+      spanUtil.RecordError(err, span)
+      return nil, status.ErrExternal(err)
+    }
+  }
+
   // Send mails
   for _, mail := range mails {
     m.workCount.Add(1)
     go func() {
       defer m.workCount.Store(-1)
-      ctx := context.Background()
+      span := trace.SpanFromContext(ctx)
+      ctx := trace.ContextWithSpan(context.Background(), span)
+      defer span.End()
 
-      err = m.mailExt.Send(ctx, &mail, mailDTO.Attachments)
+      err = m.mailExt.Send(ctx, &mail, attachments)
       stat := entity.StatusDelivered
       if err != nil {
+        logger.Warnf("Error on sending email %s: %s", mail.Id, err)
+        spanUtil.RecordError(err, span)
         stat = entity.StatusFailed
       }
       repos := m.mailUow.Repositories()
@@ -148,6 +165,7 @@ func (m *mailService) Send(ctx context.Context, mailDTO *dto.SendMailDTO) ([]typ
 
       err = repos.Mail().Patch(ctx, &newMail)
       if err != nil {
+        spanUtil.RecordError(err, span)
         log.Println("Error set mail status:", err)
       }
     }()

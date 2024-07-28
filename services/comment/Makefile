@@ -6,13 +6,13 @@ build.local:
 	go build -o build/migrate "./cmd/migrate/"
 
 build.image:
-	docker build -f ./docker/app.Dockerfile -t nexa-mailer:latest .
-	docker build -f ./docker/migrate.Dockerfile -t nexa-mailer-migrate:latest .
-	docker build -f ./docker/seed.Dockerfile -t nexa-mailer-seed:latest .
+	docker build -f ./docker/app.Dockerfile -t nexa-comment:latest .
+	docker build -f ./docker/migrate.Dockerfile -t nexa-comment-migrate:latest .
+	docker build -f ./docker/seed.Dockerfile -t nexa-comment-seed:latest .
 
 run.compose: pubkey.pem
 	docker compose -f ./docker-compose.dev.yml -f ./docker-compose.dev.override.yml \
-	-p nexa-mailer up -d
+	-p nexa-comment up -d
 
 stop.compose:
 	docker compose down --remove-orphans
@@ -21,7 +21,7 @@ run.dev: run.compose build.local
 	@./build/server
 
 run: build.local
-	@export NEXA_MAILER_RELEASE=1; \
+	@export NEXA_COMMENT_RELEASE=1; \
 	./build/server
 
 migrate: build.local

@@ -54,19 +54,19 @@ func seedData() ([]model.Role, []model.Permission, []model.RolePermission) {
 
   roles := []model.Role{defaultRole, superRole}
 
-  // Super role permissions
-  superRolePerms := sharedUtil.CastSliceP(superPerms, func(perm *model.Permission) model.RolePermission {
+  // Default role permissions
+  defaultRolePerms := sharedUtil.CastSliceP(defaultPerms, func(perm *model.Permission) model.RolePermission {
     return model.RolePermission{
-      RoleId:       superRole.Id,
+      RoleId:       defaultRole.Id,
       PermissionId: perm.Id,
       CreatedAt:    time.Now(),
     }
   })
 
-  // Default role permissions
-  defaultRolePerms := sharedUtil.CastSliceP(defaultPerms, func(perm *model.Permission) model.RolePermission {
+  // Super role permissions
+  superRolePerms := sharedUtil.CastSliceP(perms, func(perm *model.Permission) model.RolePermission {
     return model.RolePermission{
-      RoleId:       defaultRole.Id,
+      RoleId:       superRole.Id,
       PermissionId: perm.Id,
       CreatedAt:    time.Now(),
     }

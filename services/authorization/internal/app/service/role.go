@@ -2,10 +2,15 @@ package service
 
 import (
   "context"
+  "database/sql"
+  "errors"
   sharedDto "github.com/arcorium/nexa/shared/dto"
+  sharedErr "github.com/arcorium/nexa/shared/errors"
+  sharedJwt "github.com/arcorium/nexa/shared/jwt"
   "github.com/arcorium/nexa/shared/status"
   "github.com/arcorium/nexa/shared/types"
   sharedUtil "github.com/arcorium/nexa/shared/util"
+  authUtil "github.com/arcorium/nexa/shared/util/auth"
   spanUtil "github.com/arcorium/nexa/shared/util/span"
   "go.opentelemetry.io/otel/trace"
   "nexa/services/authorization/constant"
@@ -14,7 +19,7 @@ import (
   "nexa/services/authorization/internal/domain/repository"
   "nexa/services/authorization/internal/domain/service"
   "nexa/services/authorization/util"
-  "nexa/services/authorization/util/errors"
+  "nexa/services/authorization/util/errs"
 )
 
 func NewRole(role repository.IRole) service.IRole {
@@ -27,6 +32,18 @@ func NewRole(role repository.IRole) service.IRole {
 type roleService struct {
   roleRepo repository.IRole
   tracer   trace.Tracer
+}
+
+func (r *roleService) checkPermission(ctx context.Context, targetId types.Id, permission string) error {
+  // Validate permission
+  claims := types.Must(sharedJwt.GetUserClaimsFromCtx(ctx))
+  if !targetId.EqWithString(claims.UserId) {
+    // Need permission to update other users
+    if !authUtil.ContainsPermission(claims.Roles, permission) {
+      return sharedErr.ErrUnauthorizedPermission
+    }
+  }
+  return nil
 }
 
 func (r *roleService) FindByIds(ctx context.Context, roleIds ...types.Id) ([]dto.RoleResponseDTO, status.Object) {
@@ -62,7 +79,7 @@ func (r *roleService) GetAll(ctx context.Context, input *sharedDto.PagedElementD
   defer span.End()
 
   result, err := r.roleRepo.Get(ctx, input.ToQueryParam())
-  if err != nil {
+  if err != nil && !errors.Is(err, sql.ErrNoRows) {
     spanUtil.RecordError(err, span)
     return sharedDto.PagedElementResult[dto.RoleResponseDTO]{}, status.FromRepository(err, status.NullCode)
   }
@@ -165,6 +182,11 @@ func (r *roleService) RemoveUsers(ctx context.Context, usersDTO *dto.ModifyUserR
   ctx, span := r.tracer.Start(ctx, "RoleService.RemoveUsers")
   defer span.End()
 
+  if err := r.checkPermission(ctx, usersDTO.UserId, constant.AUTHZ_PERMISSIONS[constant.AUTHZ_DELETE_USER_ROLE_ARB]); err != nil {
+    spanUtil.RecordError(err, span)
+    return status.ErrUnAuthorized(err)
+  }
+
   var err error
   if usersDTO.RoleIds == nil {
     err = r.roleRepo.ClearUser(ctx, usersDTO.UserId)
@@ -185,7 +207,7 @@ func (r *roleService) getByName(ctx context.Context, roleName string) (dto.RoleR
   role, err := r.roleRepo.FindByName(ctx, roleName)
   if err != nil {
     spanUtil.RecordError(err, span)
-    return dto.RoleResponseDTO{}, status.FromRepositoryOverride(err, types.NewPair(status.INTERNAL_SERVER_ERROR, errors.ErrDefaultRoleNotSeeded))
+    return dto.RoleResponseDTO{}, status.FromRepositoryOverride(err, types.NewPair(status.INTERNAL_SERVER_ERROR, errs.ErrDefaultRoleNotSeeded))
   }
 
   responseDTO := mapper.ToRoleResponseDTO(&role)
@@ -213,7 +235,7 @@ func (r *roleService) appendDefaultRolesPermissions(ctx context.Context, roleNam
   role, err := r.roleRepo.FindByName(ctx, roleName)
   if err != nil {
     spanUtil.RecordError(err, span)
-    return status.FromRepositoryOverride(err, types.NewPair(status.INTERNAL_SERVER_ERROR, errors.ErrDefaultRoleNotSeeded))
+    return status.FromRepositoryOverride(err, types.NewPair(status.INTERNAL_SERVER_ERROR, errs.ErrDefaultRoleNotSeeded))
   }
 
   // Append permission into it

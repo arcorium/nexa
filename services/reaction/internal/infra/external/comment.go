@@ -36,7 +36,7 @@ type commentClient struct {
   cb     *gobreaker.CircuitBreaker
 }
 
-func (c *commentClient) Validate(ctx context.Context, commentIds ...types.Id) (bool, error) {
+func (c *commentClient) ValidateComment(ctx context.Context, commentIds ...types.Id) (bool, error) {
   ctx, span := c.tracer.Start(ctx, "CommentClient.Validate")
   defer span.End()
 

@@ -21,6 +21,11 @@ type FileStoreDTO struct {
   IsPublic bool   `validate:"required"`
 }
 
+type FileStoreResponseDTO struct {
+  Id       types.Id
+  FullPath types.FilePath
+}
+
 func (s *FileStoreDTO) ToDomain(provider entity.StorageProvider) (entity.File, entity.FileMetadata, error) {
   id, err := types.NewId()
   if err != nil {

@@ -3,14 +3,16 @@
 build.local:
 	go build -o build/server "./cmd/server/"
 	go build -o build/migrate "./cmd/migrate/"
+	go build -o build/seed "./cmd/seed/"
 
 build.image:
-	docker build -f ./docker/app.Dockerfile -t nexa-token:latest .
-	docker build -f ./docker/migrate.Dockerfile -t nexa-token-migrate:latest .
+	docker build -f ./docker/app.Dockerfile -t nexa-reaction:latest .
+	docker build -f ./docker/migrate.Dockerfile -t nexa-reaction-migrate:latest .
+	docker build -f ./docker/seed.Dockerfile -t nexa-reaction-seed:latest .
 
 run.compose: pubkey.pem
-	docker compose -f ./docker-compose.dev.yml \
-	-p nexa-token up -d
+	docker compose -f ./docker-compose.dev.yml -f ./docker-compose.dev.override.yml \
+	-p nexa-reaction up -d
 
 stop.compose:
 	docker compose down --remove-orphans
@@ -19,7 +21,7 @@ run.dev: run.compose build.local
 	@./build/server
 
 run: build.local
-	@export NEXA_TOKEN_RELEASE=1; \
+	@export NEXA_REACTION_RELEASE=1; \
 	./build/server
 
 migrate: build.local

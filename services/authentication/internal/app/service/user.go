@@ -372,12 +372,12 @@ func (u userService) DeleteById(ctx context.Context, userId types.Id) status.Obj
       return err
     }
 
-    err = u.config.RoleClient.RemoveUserRoles(ctx, userId)
-    if err != nil {
-      span.RecordError(err)
-      stat = status.ErrExternal(err)
-      return err
-    }
+    //err = u.config.RoleClient.RemoveUserRoles(ctx, userId)
+    //if err != nil {
+    //  span.RecordError(err)
+    //  stat = status.ErrExternal(err)
+    //  return err
+    //}
 
     return nil
   })

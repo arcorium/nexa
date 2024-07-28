@@ -6,13 +6,13 @@ build.local:
 	go build -o build/seed "./cmd/seed/"
 
 build.image:
-	docker build -f ./docker/app.Dockerfile -t nexa-reaction:latest .
-	docker build -f ./docker/migrate.Dockerfile -t nexa-reaction-migrate:latest .
-	docker build -f ./docker/seed.Dockerfile -t nexa-reaction-seed:latest .
+	docker build -f ./docker/app.Dockerfile -t nexa-post:latest .
+	docker build -f ./docker/migrate.Dockerfile -t nexa-post-migrate:latest .
+	docker build -f ./docker/seed.Dockerfile -t nexa-post-seed:latest .
 
 run.compose: pubkey.pem
 	docker compose -f ./docker-compose.dev.yml \
-	-p nexa-reaction up -d
+	-p nexa-post up -d
 
 stop.compose:
 	docker compose down --remove-orphans
@@ -21,7 +21,7 @@ run.dev: run.compose build.local
 	@./build/server
 
 run: build.local
-	@export NEXA_REACTION_RELEASE=1; \
+	@export NEXA_POST_RELEASE=1; \
 	./build/server
 
 migrate: build.local

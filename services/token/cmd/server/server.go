@@ -258,7 +258,7 @@ func (s *Server) Run() error {
 
     err = s.grpcServer.Serve(listener)
     logger.Info("Server Stopping ")
-    if err != nil {
+    if err != nil && !errors.Is(err, http.ErrServerClosed) {
       logger.Warnf("Server failed to serve: %s", err)
     }
   }()
@@ -270,7 +270,7 @@ func (s *Server) Run() error {
 
     err = s.metricServer.ListenAndServe()
     logger.Info("Metrics Server Stopping")
-    if err != nil {
+    if err != nil && !errors.Is(err, http.ErrServerClosed) {
       logger.Warnf("Metrics server failed to serve: %s", err)
     }
   }()

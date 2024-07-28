@@ -26,7 +26,7 @@ services:
       - PG_IS_SECURE=false
     networks:
       - nc_network
-  token_generator:
+  comment-token_generator:
     build:
       context: ../../token_generator/
       dockerfile: Dockerfile
@@ -40,7 +40,7 @@ services:
     depends_on:
       nexa-comment-migrate:
         condition: service_completed_successfully
-      token_generator:
+      comment-token_generator:
         condition: service_completed_successfully
 #      nexa-authz:
 #        condition: service_healthy
@@ -71,11 +71,11 @@ services:
     networks:
       - nc_network
     environment:
-      - PG_ADDRESS=relation-db
+      - PG_ADDRESS=comment-db
       - PG_USERNAME=nexa
       - PG_PASSWORD=nexa
-      - PG_DB_NAME=nexa-user
-      - PG_PARAMETER=application_name=nexa-authn
+      - PG_DB_NAME=nexa-comment
+      - PG_PARAMETER=application_name=nexa-comment
       - PG_IS_SECURE=false
 #      - OTLP_GRPC_COLLECTOR_ADDRESS=
 #      - POST_SERVICE_ADDRESS=

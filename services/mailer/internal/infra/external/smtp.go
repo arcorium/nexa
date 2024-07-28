@@ -10,6 +10,7 @@ import (
   domain "nexa/services/mailer/internal/domain/entity"
   "nexa/services/mailer/internal/domain/external"
   "nexa/services/mailer/util"
+  "sync"
 )
 
 func NewSMTP(config *SMTPConfig) (external.IMail, error) {
@@ -40,6 +41,8 @@ type SMTPMailer struct {
   dialer *gomail.Dialer
   sender gomail.SendCloser // FIX: Make pool?
   tracer trace.Tracer
+
+  sync.Mutex
 }
 
 func (s *SMTPMailer) Send(ctx context.Context, mail *domain.Mail, attachments []dto.FileAttachment) error {
@@ -57,6 +60,9 @@ func (s *SMTPMailer) Send(ctx context.Context, mail *domain.Mail, attachments []
     }
   })
 
+  // Allow only single send at a time to prevent error from sending multiple emails (Code 503)
+  s.Lock()
+  defer s.Unlock()
   return gomail.Send(s.sender, message)
 }
 

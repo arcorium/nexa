@@ -15,7 +15,7 @@ stop.compose:
 	docker compose down --remove-orphans
 
 run: build
-	@export NEXA_AUTHZ_RELEASE=1; \
+	@export NEXA_AUTHN_RELEASE=1; \
 	./build/server
 
 migrate: build

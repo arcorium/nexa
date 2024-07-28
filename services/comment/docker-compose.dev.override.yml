@@ -61,6 +61,7 @@ services:
       - ../mailer/dev.smtp.env
     environment:
       - OTLP_GRPC_COLLECTOR_ADDRESS=jaeger:4317
+      - FILE_STORAGE_SERVICE_ADDRESS=nexa-storage:8080
     ports:
       - "8084:8080"
     networks:

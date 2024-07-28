@@ -76,9 +76,9 @@ func (r *reactionService) isExists(ctx context.Context, itemType entity.ItemType
   var exists bool
   var err error
   if itemType == entity.ItemPost {
-    exists, err = r.postClient.Validate(ctx, itemId)
+    exists, err = r.postClient.ValidatePost(ctx, itemId)
   } else if itemType == entity.ItemComment {
-    exists, err = r.commentClient.Validate(ctx, itemId)
+    exists, err = r.commentClient.ValidateComment(ctx, itemId)
   }
   if err != nil {
     return err
