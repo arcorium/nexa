@@ -26,6 +26,23 @@ func UnaryServerInterceptor(config *Config) grpc.UnaryServerInterceptor {
   }
 }
 
+func UnaryClientInterceptor(config *Config) grpc.UnaryClientInterceptor {
+  return func(ctx context.Context, method string, req, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
+    md, ok := metadata.FromIncomingContext(ctx)
+    if !ok && !config.allowEmpty {
+      return status.Errorf(codes.InvalidArgument, "expected metadata")
+    }
+
+    newMd := config.getNewMetadata(md)
+    if err := config.validate(newMd); err != nil {
+      return err
+    }
+
+    ctx = metadata.NewOutgoingContext(ctx, newMd)
+    return invoker(ctx, method, req, reply, cc, opts...)
+  }
+}
+
 func StreamServerInterceptor(config *Config) grpc.StreamServerInterceptor {
   return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
     // Check if server stream is wrapped
@@ -54,5 +71,22 @@ func StreamServerInterceptor(config *Config) grpc.StreamServerInterceptor {
     wrappedServerStream.WrappedContext = newCtx
 
     return handler(srv, wrappedServerStream)
+  }
+}
+
+func StreamClientInterceptor(config *Config) grpc.StreamClientInterceptor {
+  return func(ctx context.Context, desc *grpc.StreamDesc, cc *grpc.ClientConn, method string, streamer grpc.Streamer, opts ...grpc.CallOption) (grpc.ClientStream, error) {
+    md, ok := metadata.FromIncomingContext(ctx)
+    if !ok && !config.allowEmpty {
+      return nil, status.Errorf(codes.InvalidArgument, "expected metadata")
+    }
+
+    newMd := config.getNewMetadata(md)
+    if err := config.validate(newMd); err != nil {
+      return nil, err
+    }
+
+    ctx = metadata.NewOutgoingContext(ctx, md)
+    return streamer(ctx, desc, cc, method, opts...)
   }
 }
