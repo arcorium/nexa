@@ -1,0 +1,22 @@
+syntax = "proto3";
+package nexa.feed.v1;
+option go_package = "nexa/proto/gen/go/feed/v1";
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+import "common/paged.proto";
+import "post/v1/post.proto";
+
+service FeedService {
+  rpc GetUserFeed(GetUserFeedRequest) returns (GetUserFeedResponse);
+}
+
+message GetUserFeedRequest {
+  optional string user_id = 1;
+  optional uint64 limit = 2;
+}
+
+message GetUserFeedResponse {
+  repeated post.v1.Post posts = 1;
+  uint64 element = 2;
+}
