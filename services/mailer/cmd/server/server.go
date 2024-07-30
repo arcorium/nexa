@@ -162,15 +162,6 @@ func (s *Server) grpcServerSetup() error {
     )
   }
 
-  additionalMd := make(map[string]string)
-  // To identify when the request is forwarded from another service
-  additionalMd["forwarder"] = constant.SERVICE_NAME
-  additionalMd["forwarder-v"] = constant.SERVICE_VERSION
-  forwardConfig := forward.NewConfig(true,
-    forward.WithIncludeKeys("authorization"), // Only forward this key when it is present
-    forward.WithAdditionalData(additionalMd),
-  )
-
   s.grpcServer = grpc.NewServer(
     grpc.StatsHandler(otelgrpc.NewServerHandler()), // tracing
     grpc.ChainUnaryInterceptor(
@@ -179,7 +170,6 @@ func (s *Server) grpcServerSetup() error {
       authz.UserUnaryServerInterceptor(&authzConf,
         authz.SkipSelector(inter.AuthSkipSelector), skipServices...),
       metrics.UnaryServerInterceptor(promProv.WithExemplarFromContext(exemplarFromCtx)),
-      forward.UnaryServerInterceptor(&forwardConfig),
     ),
     grpc.ChainStreamInterceptor(
       recovery.StreamServerInterceptor(),
@@ -187,7 +177,6 @@ func (s *Server) grpcServerSetup() error {
       authz.UserStreamServerInterceptor(&authzConf,
         authz.SkipSelector(inter.AuthSkipSelector), skipServices...),
       metrics.StreamServerInterceptor(promProv.WithExemplarFromContext(exemplarFromCtx)),
-      forward.StreamServerInterceptor(&forwardConfig),
     ),
   )
 
@@ -274,8 +263,22 @@ func (s *Server) setup() error {
     s.mailClient = smtpClient
   }
 
+  additionalMd := make(map[string]string)
+  // To identify when the request is forwarded from another service
+  additionalMd["forwarder"] = constant.SERVICE_NAME
+  additionalMd["forwarder-v"] = constant.SERVICE_VERSION
+  forwardConfig := forward.NewConfig(true,
+    forward.WithIncludeKeys("authorization"), // Only forward this key when it is present
+    forward.WithAdditionalData(additionalMd),
+  )
+
   creds := insecure.NewCredentials()
-  conn, err := grpc.NewClient(s.serverConfig.Service.FileStorage, grpc.WithTransportCredentials(creds))
+  conn, err := grpc.NewClient(s.serverConfig.Service.FileStorage,
+    grpc.WithTransportCredentials(creds),
+    grpc.WithUnaryInterceptor(forward.UnaryClientInterceptor(&forwardConfig)),
+    grpc.WithStreamInterceptor(forward.StreamClientInterceptor(&forwardConfig)),
+    grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
+  )
   if err != nil {
     return err
   }

@@ -61,6 +61,8 @@ github.com/arcorium/nexa/shared v0.1.7-0.20240725172805-986135e00413 h1:us1MTR2A
 github.com/arcorium/nexa/shared v0.1.7-0.20240725172805-986135e00413/go.mod h1:7ULmV/j8UUAaNQIlLhZtq3CYkGE4zdtIIzcVVdPpwOM=
 github.com/arcorium/nexa/shared v0.1.7-0.20240728143403-c54f113451e9 h1:S/FbK/26E6sWNalMX8os+QjbGtCZmz6YdZjMbvnoabE=
 github.com/arcorium/nexa/shared v0.1.7-0.20240728143403-c54f113451e9/go.mod h1:7ULmV/j8UUAaNQIlLhZtq3CYkGE4zdtIIzcVVdPpwOM=
+github.com/arcorium/nexa/shared v0.1.7-0.20240729203418-8e6e8ec34ec8 h1:X0fdhPw2weYCmKzw6I79ephv/P0Rk8YuYuD08RxQJWI=
+github.com/arcorium/nexa/shared v0.1.7-0.20240729203418-8e6e8ec34ec8/go.mod h1:7ULmV/j8UUAaNQIlLhZtq3CYkGE4zdtIIzcVVdPpwOM=
 github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973/go.mod h1:Dwedo/Wpr24TaqPxmxbtue+5NUziq4I4S80YR8gNf3Q=
 github.com/beorn7/perks v1.0.0/go.mod h1:KWe93zE9D1o94FZ5RNwFwVgaQK1VOXiVxmqh+CedLV8=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=

@@ -15,23 +15,25 @@ func main() {
   }
   _ = env.LoadEnvs(envName)
 
-  // Config
-  dbConfig, err := sharedConf.Load[config.Database]()
-  if err != nil {
-    env.LogError(err, -1)
-  }
-
-  serverConfig, err := sharedConf.Load[config.Server]()
-  if err != nil {
-    env.LogError(err, -1)
-  }
-
   // Init global logger
   logg, err := logger.NewZapLogger(config.IsDebug())
   if err != nil {
     log.Fatalln(err)
   }
   logger.SetGlobal(logg)
+
+  // Config
+  dbConfig, err := sharedConf.Load[config.Database]()
+  if err != nil {
+    env.LogError(err, -1)
+  }
+  logger.Infof("Database Config: %v", dbConfig)
+
+  serverConfig, err := sharedConf.Load[config.Server]()
+  if err != nil {
+    env.LogError(err, -1)
+  }
+  logger.Infof("Server Config: %v", serverConfig)
 
   server, err := NewServer(dbConfig, serverConfig)
   if err != nil {

@@ -159,15 +159,6 @@ func (s *Server) grpcServerSetup() error {
     )
   }
 
-  additionalMd := make(map[string]string)
-  // To identify when the request is forwarded from another service
-  additionalMd["forwarder"] = constant.SERVICE_NAME
-  additionalMd["forwarder-v"] = constant.SERVICE_VERSION
-  forwardConfig := forward.NewConfig(true,
-    forward.WithIncludeKeys("authorization"), // Only forward this key when it is present
-    forward.WithAdditionalData(additionalMd),
-  )
-
   s.grpcServer = grpc.NewServer(
     grpc.StatsHandler(otelgrpc.NewServerHandler()), // tracing
     grpc.ChainUnaryInterceptor(
@@ -175,14 +166,14 @@ func (s *Server) grpcServerSetup() error {
       logging.UnaryServerInterceptor(zapLogger), // logging
       authz.UserUnaryServerInterceptor(&authorizationConfig, inter.AuthSelector, skipServices...),
       metrics.UnaryServerInterceptor(promProv.WithExemplarFromContext(exemplarFromCtx)),
-      forward.UnaryServerInterceptor(&forwardConfig),
+      //forward.UnaryServerInterceptor(&forwardConfig),
     ),
     grpc.ChainStreamInterceptor(
       recovery.StreamServerInterceptor(),
       logging.StreamServerInterceptor(zapLogger), // logging
       authz.UserStreamServerInterceptor(&authorizationConfig, inter.AuthSelector, skipServices...),
       metrics.StreamServerInterceptor(promProv.WithExemplarFromContext(exemplarFromCtx)),
-      forward.StreamServerInterceptor(&forwardConfig),
+      //forward.StreamServerInterceptor(&forwardConfig),
     ),
   )
 
@@ -255,9 +246,22 @@ func (s *Server) setup() error {
     return err
   }
 
+  additionalMd := make(map[string]string)
+  // To identify when the request is forwarded from another service
+  additionalMd["forwarder"] = constant.SERVICE_NAME
+  additionalMd["forwarder-v"] = constant.SERVICE_VERSION
+  forwardConfig := forward.NewConfig(true,
+    forward.WithIncludeKeys("authorization"), // Only forward this key when it is present
+    forward.WithAdditionalData(additionalMd),
+  )
   // External clients
   creds := grpc.WithTransportCredentials(insecure.NewCredentials())
-  ext, err := factory.NewExternalWithConfig(&s.serverConfig.Service, &s.serverConfig.CircuitBreaker, creds)
+  ext, err := factory.NewExternalWithConfig(&s.serverConfig.Service, &s.serverConfig.CircuitBreaker,
+    creds,
+    grpc.WithUnaryInterceptor(forward.UnaryClientInterceptor(&forwardConfig)),
+    grpc.WithStreamInterceptor(forward.StreamClientInterceptor(&forwardConfig)),
+    grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
+  )
   if err != nil {
     return err
   }

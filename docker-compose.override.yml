@@ -42,6 +42,38 @@ services:
       - "8082:8080"
     networks:
       - nexa_networks
+  nexa-feed-seed:
+    depends_on:
+      nexa-authz:
+        condition: service_healthy
+    environment:
+      - AUTHZ_SERVICE_ADDR=nexa-authz:8080
+    networks:
+      - nexa_networks
+  nexa-feed:
+    #    depends_on:
+    #      jaeger:
+    #        condition: service_healthy
+    depends_on:
+      nexa-post:
+        condition: service_healthy
+      nexa-relation:
+        condition: service_healthy
+      nexa-reaction:
+        condition: service_healthy
+      nexa-comment:
+        condition: service_healthy
+    environment:
+      - NEXA_FEED_RELEASE=$NEXA_RELEASE
+      - OTLP_GRPC_COLLECTOR_ADDRESS=jaeger:4317
+      - POST_SERVICE_ADDRESS=nexa-post:8080
+      - RELATION_SERVICE_ADDRESS=nexa-relation:8080
+      - REACTION_SERVICE_ADDRESS=nexa-reaction:8080
+      - COMMENT_SERVICE_ADDRESS=nexa-comment:8080
+    ports:
+      - "8090:8080"
+    networks:
+      - nexa_networks
   nexa-storage-seed:
     depends_on:
       nexa-authz:

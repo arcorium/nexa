@@ -11,33 +11,39 @@ import (
 )
 
 func ToSendMailDTO(request *mailerv1.SendMailRequest) (dto.SendMailDTO, error) {
+  var fieldErrs []sharedErr.FieldError
+
   recipientEmails, ierr := sharedUtil.CastSliceErrs(request.Recipients, types.EmailFromString)
   if !ierr.IsNil() {
-    return dto.SendMailDTO{}, ierr.ToGRPCError("recipients")
+    fieldErrs = append(fieldErrs, sharedErr.NewFieldError("recipients", ierr))
   }
 
   tagIds, ierr := sharedUtil.CastSliceErrs(request.TagIds, types.IdFromString)
-  if !ierr.IsNil() {
-    return dto.SendMailDTO{}, ierr.ToGRPCError("tag_ids")
+  if !ierr.IsNil() && !ierr.IsEmptySlice() {
+    fieldErrs = append(fieldErrs, sharedErr.NewFieldError("tag_ids", ierr))
   }
 
   bodyType, err := util.ToDomainBodyType(request.BodyType)
   if err != nil {
-    return dto.SendMailDTO{}, sharedErr.NewFieldError("body_type", err).ToGrpcError()
+    fieldErrs = append(fieldErrs, sharedErr.NewFieldError("body_type", err))
   }
 
   var senderEmail *types.Email = nil
   if request.Sender != nil {
     email, err := types.EmailFromString(*request.Sender)
     if err != nil {
-      return dto.SendMailDTO{}, sharedErr.NewFieldError("sender", err).ToGrpcError()
+      fieldErrs = append(fieldErrs, sharedErr.NewFieldError("sender", err))
     }
     senderEmail = &email // dangling and escaped
   }
 
   fileIds, ierr := sharedUtil.CastSliceErrs(request.AttachmentFileIds, types.IdFromString)
-  if !ierr.IsNil() {
-    return dto.SendMailDTO{}, ierr.ToGRPCError("attachment_file_ids")
+  if !ierr.IsNil() && !ierr.IsEmptySlice() {
+    fieldErrs = append(fieldErrs, sharedErr.NewFieldError("attachment_file_ids", ierr))
+  }
+
+  if len(fieldErrs) > 0 {
+    return dto.SendMailDTO{}, sharedErr.GrpcFieldErrors2(fieldErrs...)
   }
 
   dtos := dto.SendMailDTO{
@@ -50,25 +56,30 @@ func ToSendMailDTO(request *mailerv1.SendMailRequest) (dto.SendMailDTO, error) {
     AttachmentFileIds: fileIds,
   }
 
-  err = sharedUtil.ValidateStruct(&dtos)
+  //err = sharedUtil.ValidateStruct(&dtos)
   return dtos, err
 }
 
 func ToUpdateMailDTO(request *mailerv1.UpdateMailRequest) (dto.UpdateMailDTO, error) {
+  var fieldErrs []sharedErr.FieldError
   // Mapping and Validation
   mailId, err := types.IdFromString(request.MailId)
   if err != nil {
-    return dto.UpdateMailDTO{}, sharedErr.NewFieldError("mail_id", err).ToGrpcError()
+    fieldErrs = append(fieldErrs, sharedErr.NewFieldError("mail_id", err))
   }
 
   appendTagIds, ierr := sharedUtil.CastSliceErrs(request.AddedTagIds, types.IdFromString)
-  if !ierr.IsNil() {
-    return dto.UpdateMailDTO{}, ierr.ToGRPCError("added_tag_ids")
+  if !ierr.IsNil() && !ierr.IsEmptySlice() {
+    fieldErrs = append(fieldErrs, sharedErr.NewFieldError("added_tag_ids", ierr))
   }
 
   removedTagIds, ierr := sharedUtil.CastSliceErrs(request.RemovedTagIds, types.IdFromString)
-  if !ierr.IsNil() {
-    return dto.UpdateMailDTO{}, ierr.ToGRPCError("removed_tag_ids")
+  if !ierr.IsNil() && !ierr.IsEmptySlice() {
+    fieldErrs = append(fieldErrs, sharedErr.NewFieldError("removed_tag_ids", ierr))
+  }
+
+  if len(fieldErrs) > 0 {
+    return dto.UpdateMailDTO{}, sharedErr.GrpcFieldErrors2(fieldErrs...)
   }
 
   return dto.UpdateMailDTO{

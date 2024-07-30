@@ -70,7 +70,7 @@ func (f *followService) checkPermission(ctx context.Context, targetId types.Id, 
 
 func (f *followService) isUserExists(ctx context.Context, userIds ...types.Id) error {
   // Validate the user id
-  exist, err := f.userClient.Validate(ctx, userIds...)
+  exist, err := f.userClient.ValidateUsers(ctx, userIds...)
   if err != nil {
     return err
   }
@@ -181,7 +181,7 @@ func (f *followService) GetFollowings(ctx context.Context, userId types.Id, page
 
 func (f *followService) GetStatus(ctx context.Context, userId types.Id, targetUserIds ...types.Id) ([]entity.FollowStatus, status.Object) {
   // NOTE: Currently only return either the user is following the target or not
-  ctx, span := f.tracer.Start(ctx, "FollowService.GetFollowings")
+  ctx, span := f.tracer.Start(ctx, "FollowService.GetStatus")
   defer span.End()
 
   // Validate user id

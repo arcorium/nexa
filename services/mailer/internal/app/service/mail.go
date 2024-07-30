@@ -100,27 +100,27 @@ func (m *mailService) Send(ctx context.Context, mailDTO *dto.SendMailDTO) ([]typ
 
   // Save metadata
   err = m.mailUow.DoTx(ctx, func(ctx context.Context, storage uow.MailStorage) error {
-    ctx, txSpan := m.tracer.Start(ctx, "UOW.Send")
-    defer txSpan.End()
-
     // Create pending mail metadata
     err := storage.Mail().Create(ctx, mails...)
     if err != nil {
-      spanUtil.RecordError(err, txSpan)
+      spanUtil.RecordError(err, span)
       return err
     }
 
-    var tags []repository.MailTags
+    if len(mailDTO.TagIds) > 0 {
+      var tags []repository.MailTags
 
-    for _, mail := range mails {
-      result := types.NewPair(mail.Id, sharedUtil.CastSliceP(mail.Tags, func(from *entity.Tag) types.Id {
-        return from.Id
-      }))
+      for _, mail := range mails {
+        result := types.NewPair(mail.Id, sharedUtil.CastSliceP(mail.Tags, func(from *entity.Tag) types.Id {
+          return from.Id
+        }))
 
-      tags = append(tags, result)
+        tags = append(tags, result)
+      }
+
+      err = storage.Mail().AppendMultipleTags(ctx, tags...)
     }
 
-    err = storage.Mail().AppendMultipleTags(ctx, tags...)
     return err
   })
 

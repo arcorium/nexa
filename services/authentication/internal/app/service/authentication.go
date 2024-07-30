@@ -133,7 +133,7 @@ func (c *credentialService) Register(ctx context.Context, registerDTO *dto.Regis
   if err != nil {
     spanUtil.RecordError(err, span)
     if isRep {
-      return status.FromRepository(err, status.NullCode)
+      return status.FromRepository2(err, status.Null, status.Null)
     }
     return status.ErrExternal(err)
   }

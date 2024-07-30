@@ -2,6 +2,7 @@ include:
   - services/authorization/docker-compose.yml
   - services/authentication/docker-compose.yml
   - services/comment/docker-compose.yml
+  - services/feed/docker-compose.yml
   - services/file_storage/docker-compose.yml
   - services/mailer/docker-compose.yml
   - services/post/docker-compose.yml

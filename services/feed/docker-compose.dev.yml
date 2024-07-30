@@ -1,0 +1,71 @@
+include:
+  - ../reaction/docker-compose.yml
+  - ../comment/docker-compose.yml
+  - ../post/docker-compose.yml
+  - ../relation/docker-compose.yml
+  - ../file_storage/docker-compose.yml
+  - ../authorization/docker-compose.yml
+  - ../authentication/docker-compose.yml
+  - ../token/docker-compose.yml
+  - ../mailer/docker-compose.yml
+
+services:
+  feed-cache-db:
+    image: redis
+    healthcheck:
+      test: [ "CMD-SHELL","redis-cli ping" ]
+      start_period: 5s
+      interval: 30s
+      retries: 3
+      timeout: 30s
+    environment:
+      - REDIS_PASSWORD=rootroot123
+    command: [ "redis-server", "--requirepass", "rootroot123" ]
+    ports:
+      - "6379:6379"
+    networks:
+      - nfeed_network
+  jaeger:
+    image: jaegertracing/all-in-one:1.58
+    ports:
+      - 6831:6831/udp
+      - 6832:6832/udp
+      - 5778:5778
+      - 16686:16686
+      - 4317:4317
+      - 4318:4318
+      - 14250:14250
+      - 14268:14268
+      - 14269:14269
+      - 9411:9411
+    networks:
+      - nfeed_network
+  feed-token_generator:
+    build:
+      context: ../../token_generator/
+      dockerfile: Dockerfile
+    entrypoint: /bin/sh -c "./main > /output/token.txt"
+    volumes:
+      - feed-token_output:/output
+  nexa-feed-seed:
+    build:
+      dockerfile: ./docker/seed.Dockerfile
+    restart: on-failure
+    depends_on:
+      reaction-token_generator:
+        condition: service_completed_successfully
+      nexa-authz:
+        condition: service_healthy
+    environment:
+      - AUTHZ_SERVICE_ADDR=nexa-authz:8080
+    networks:
+      - nfeed_network
+    volumes:
+      - feed-token_output:/output
+
+networks:
+  nfeed_network:
+    driver: bridge
+
+volumes:
+  feed-token_output:

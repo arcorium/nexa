@@ -9,7 +9,7 @@ import (
 
 type Server struct {
   sharedConf.Server
-  JWTAccessTokenExpiration  time.Duration `env:"JWT_ACCESS_TOKEN_EXP" envDefault:"5m"`
+  JWTAccessTokenExpiration  time.Duration `env:"JWT_ACCESS_TOKEN_EXP" envDefault:"24h"`
   JWTRefreshTokenExpiration time.Duration `env:"JWT_REFRESH_TOKEN_EXP" envDefault:"720h"`
   JWTSigningMethod          string        `env:"JWT_SIGNING_METHOD"`
   PrivateKeyPath            string        `env:"PRIVATE_KEY_PATH"`

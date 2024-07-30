@@ -3,8 +3,8 @@ module nexa/services/comment
 go 1.22.4
 
 require (
-	github.com/arcorium/nexa/proto/gen/go v1.0.5-0.20240728143403-c54f113451e9
-	github.com/arcorium/nexa/shared v0.1.7-0.20240727204246-ad7dff50575e
+	github.com/arcorium/nexa/proto/gen/go v1.0.5-0.20240729203418-8e6e8ec34ec8
+	github.com/arcorium/nexa/shared v0.1.7-0.20240729203418-8e6e8ec34ec8
 	github.com/brianvoe/gofakeit/v7 v7.0.4
 	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.0.1

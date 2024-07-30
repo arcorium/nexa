@@ -19,7 +19,7 @@ import (
 
 func NewFileStorageClient(conn grpc.ClientConnInterface, conf *config.CircuitBreaker) external.IFileStorageClient {
   breaker := gobreaker.NewCircuitBreaker(gobreaker.Settings{
-    Name:         "nexa-media-storage",
+    Name:         "nexa-media_storage",
     MaxRequests:  conf.MaxRequest,
     Interval:     conf.ResetInterval,
     Timeout:      conf.OpenStateTimeout,

@@ -7,12 +7,16 @@ github.com/arcorium/nexa/proto/gen/go v1.0.5-0.20240726175144-5b812edcc092/go.mo
 github.com/arcorium/nexa/proto/gen/go v1.0.5-0.20240727141754-f19a0ba9ea60/go.mod h1:iNK4pbds+qZ1Lf0s+MYFT3cNBDs96K2YeB6vYAPmlgY=
 github.com/arcorium/nexa/proto/gen/go v1.0.5-0.20240727204246-ad7dff50575e h1:6ROzsP23ot/7lKri/L0blnf+kvrpW4r742XQrYB0P/w=
 github.com/arcorium/nexa/proto/gen/go v1.0.5-0.20240727204246-ad7dff50575e/go.mod h1:iNK4pbds+qZ1Lf0s+MYFT3cNBDs96K2YeB6vYAPmlgY=
+github.com/arcorium/nexa/proto/gen/go v1.0.5-0.20240729203418-8e6e8ec34ec8 h1:Hsq+ZccXacJ93w5sfgK9egdQxmHWF9uwVMPrUl6DT2c=
+github.com/arcorium/nexa/proto/gen/go v1.0.5-0.20240729203418-8e6e8ec34ec8/go.mod h1:iNK4pbds+qZ1Lf0s+MYFT3cNBDs96K2YeB6vYAPmlgY=
 github.com/arcorium/nexa/shared v0.1.6 h1:rIcnYq075fcTOHaCI7bgFD1N5IW7GVOyZSSGtW2Hsic=
 github.com/arcorium/nexa/shared v0.1.6/go.mod h1:7ULmV/j8UUAaNQIlLhZtq3CYkGE4zdtIIzcVVdPpwOM=
 github.com/arcorium/nexa/shared v0.1.7-0.20240726175144-5b812edcc092 h1:KVFZmA8Ex63IxXxcU10C9rvFRHl/nntOWyodMRAA4pU=
 github.com/arcorium/nexa/shared v0.1.7-0.20240726175144-5b812edcc092/go.mod h1:7ULmV/j8UUAaNQIlLhZtq3CYkGE4zdtIIzcVVdPpwOM=
 github.com/arcorium/nexa/shared v0.1.7-0.20240727204246-ad7dff50575e h1:IaO1nVckHaMDV9hQeWcCReiC3X3xM9ZUA3KprPgclkQ=
 github.com/arcorium/nexa/shared v0.1.7-0.20240727204246-ad7dff50575e/go.mod h1:7ULmV/j8UUAaNQIlLhZtq3CYkGE4zdtIIzcVVdPpwOM=
+github.com/arcorium/nexa/shared v0.1.7-0.20240729203418-8e6e8ec34ec8 h1:X0fdhPw2weYCmKzw6I79ephv/P0Rk8YuYuD08RxQJWI=
+github.com/arcorium/nexa/shared v0.1.7-0.20240729203418-8e6e8ec34ec8/go.mod h1:7ULmV/j8UUAaNQIlLhZtq3CYkGE4zdtIIzcVVdPpwOM=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
 github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6rlkpw=
 github.com/caarlos0/env/v10 v10.0.0 h1:yIHUBZGsyqCnpTkbjk8asUlx6RFhhEs+h7TOBdgdzXA=

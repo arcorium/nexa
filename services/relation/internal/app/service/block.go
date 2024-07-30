@@ -69,7 +69,7 @@ func (b *blockService) checkPermission(ctx context.Context, targetId types.Id, p
 
 func (b *blockService) isUserExists(ctx context.Context, userId types.Id) error {
   // Validate the user id
-  exist, err := b.userClient.Validate(ctx, userId)
+  exist, err := b.userClient.ValidateUsers(ctx, userId)
   if err != nil {
     return err
   }

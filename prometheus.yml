@@ -15,6 +15,7 @@ scrape_configs:
         - 'nexa-authn:8081'
         - 'nexa-comment:8081'
         - 'nexa-storage:8081'
+        - 'nexa-feed:8081'
         - 'nexa-mailer:8081'
         - 'nexa-post:8081'
         - 'nexa-reaction:8081'

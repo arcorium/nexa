@@ -6,5 +6,5 @@ import (
 )
 
 type IUserClient interface {
-  Validate(ctx context.Context, userId types.Id) (bool, error)
+  ValidateUsers(ctx context.Context, userIds ...types.Id) (bool, error)
 }

@@ -22,13 +22,16 @@ func CastBreakerError(err error) error {
 }
 
 // IsGrpcConnectivityError will return true if the error is not related to grpc or the connectivity issue,
-// otherwise it will return false
+// otherwise it will return false (change breaker into open state)
 func IsGrpcConnectivityError(err error) bool {
+  if err == nil {
+    return true
+  }
   s, ok := status.FromError(err)
   if !ok {
     return true
   }
-  return slices.Contains([]codes.Code{
+  return !slices.Contains([]codes.Code{
     codes.Unavailable,
     codes.ResourceExhausted,
     codes.Internal,

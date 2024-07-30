@@ -36,19 +36,19 @@ type userClient struct {
   cb     *gobreaker.CircuitBreaker
 }
 
-func (u *userClient) Validate(ctx context.Context, userId types.Id) (bool, error) {
+func (u *userClient) ValidateUsers(ctx context.Context, userIds ...types.Id) (bool, error) {
   ctx, span := u.tracer.Start(ctx, "UserClient.Validate")
   defer span.End()
 
-  req := authNv1.FindUsersByIdsRequest{Ids: sharedUtil.CastSlice(userId, sharedUtil.ToString[types.Id])}
+  req := authNv1.FindUsersByIdsRequest{Ids: sharedUtil.CastSlice(userIds, sharedUtil.ToString[types.Id])}
   result, err := u.cb.Execute(func() (interface{}, error) {
     return u.client.FindByIds(ctx, &req)
   })
   if err != nil {
-    err = util.CastBreakerError(err)
     spanUtil.RecordError(err, span)
+    err = util.CastBreakerError(err)
     return false, err
   }
   resp := result.(*authNv1.FindUserByIdsResponse)
-  return len(resp.Users) == len(userId), nil
+  return len(resp.Users) == len(userIds), nil
 }

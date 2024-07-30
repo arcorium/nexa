@@ -43,15 +43,15 @@ func (f *relationClient) IsFollower(ctx context.Context, followerId types.Id, fo
   defer span.End()
 
   req := &relationv1.GetRelationRequest{
-    //UserId:         , // Use authorization forwarded
+    //UserId:         , // Use forwarded authorization
     OpponentUserIds: []string{followedId.String()},
   }
   res, err := f.cb.Execute(func() (interface{}, error) {
     return f.followClient.GetRelation(ctx, req)
   })
   if err != nil {
-    err = util.CastBreakerError(err)
     spanUtil.RecordError(err, span)
+    err = util.CastBreakerError(err)
     return false, err
   }
 
@@ -68,8 +68,8 @@ func (f *relationClient) IsBlocked(ctx context.Context, blockerId types.Id) (boo
     return f.blockClient.IsBlocked(ctx, req)
   })
   if err != nil {
-    err = util.CastBreakerError(err)
     spanUtil.RecordError(err, span)
+    err = util.CastBreakerError(err)
     return false, err
   }
 

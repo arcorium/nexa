@@ -121,7 +121,7 @@ func (f *FollowHandler) GetFollowees(ctx context.Context, request *relationv1.Ge
 }
 
 func (f *FollowHandler) GetRelation(ctx context.Context, request *relationv1.GetRelationRequest) (*relationv1.GetRelationResponse, error) {
-  ctx, span := f.tracer.Start(ctx, "FollowHandler.GetFollowStatus")
+  ctx, span := f.tracer.Start(ctx, "FollowHandler.GetRelation")
   defer span.End()
 
   claims := types.Must(jwt.GetUserClaimsFromCtx(ctx))

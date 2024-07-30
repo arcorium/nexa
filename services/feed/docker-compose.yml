@@ -1,0 +1,67 @@
+services:
+  feed-cache-db:
+    image: redis
+    healthcheck:
+      test: ["CMD-SHELL","redis-cli ping"]
+      start_period: 5s
+      interval: 30s
+      retries: 3
+      timeout: 30s
+    environment:
+      - REDIS_PASSWORD=rootroot123
+    command: ["redis-server", "--requirepass", "rootroot123"]
+    networks:
+      - nfeed_network
+  feed-token_generator:
+    build:
+      context: ../../token_generator/
+      dockerfile: Dockerfile
+    entrypoint: /bin/sh -c "./main > /output/token.txt"
+    volumes:
+      - feed-token_output:/output
+  nexa-feed-seed:
+    build:
+      dockerfile: ./docker/seed.Dockerfile
+    restart: on-failure
+    depends_on:
+      feed-token_generator:
+        condition: service_completed_successfully
+#      nexa-authz:
+#        condition: service_healthy
+#    environment:
+#      - AUTHZ_SERVICE_ADDR=nexa-authz:8080
+    networks:
+      - nfeed_network
+    volumes:
+      - feed-token_output:/output
+  nexa-feed:
+    build:
+      dockerfile: ./docker/app.Dockerfile
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "grpc_health_probe", "-addr=localhost:8080"]
+      retries: 3
+      interval: 60s
+      start_period: 5s
+      timeout: 30s
+    depends_on:
+      nexa-feed-seed:
+        condition: service_completed_successfully
+    networks:
+      - nfeed_network
+    environment:
+      - REDIS_ADDRESS=feed-cache-db:6379
+      - REDIS_USERNAME=default
+      - REDIS_PASSWORD=rootroot123
+#      - OTLP_GRPC_COLLECTOR_ADDRESS=
+#      - POST_SERVICE_ADDRESS=
+#      - RELATION_SERVICE_ADDRESS=
+#      - REACTION_SERVICE_ADDRESS=
+#      - COMMENT_SERVICE_ADDRESS=
+
+networks:
+  nfeed_network:
+    driver: bridge
+
+volumes:
+  feed-token_output:
