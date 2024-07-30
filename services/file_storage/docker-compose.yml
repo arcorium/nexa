@@ -20,7 +20,10 @@ services:
     environment:
       - MINIO_ROOT_USER=root
       - MINIO_ROOT_PASSWORD=rootroot123
-    command: server /data
+    command: 'server /data --console-address ":9001"'
+    ports:
+      - "9000:9000"
+      - "9001:9001"
     networks:
       - nf_network
   nexa-storage-migrate:
