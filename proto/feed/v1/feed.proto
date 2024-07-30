@@ -16,7 +16,14 @@ message GetUserFeedRequest {
   optional uint64 limit = 2;
 }
 
+message PostWithCount {
+  post.v1.Post post = 1;
+  uint64 likes = 2;
+  uint64 dislikes = 3;
+  uint64 comments = 4;
+}
+
 message GetUserFeedResponse {
-  repeated post.v1.Post posts = 1;
+  repeated PostWithCount posts = 1;
   uint64 element = 2;
 }
