@@ -41,6 +41,47 @@ services:
       - "9090:9090"
     networks:
       - nexa_networks
+  gateway:
+    build:
+      context: ./gateway
+      dockerfile: Dockerfile
+    depends_on:
+      nexa-authz:
+        condition: service_healthy
+      nexa-authn:
+        condition: service_healthy
+      nexa-comment:
+        condition: service_healthy
+      nexa-feed:
+        condition: service_healthy
+      nexa-storage:
+        condition: service_healthy
+      nexa-mailer:
+        condition: service_healthy
+      nexa-post:
+        condition: service_healthy
+      nexa-reaction:
+        condition: service_healthy
+      nexa-relation:
+        condition: service_healthy
+      nexa-token:
+        condition: service_healthy
+    environment:
+      - NEXA_GATEWAY_RELEASE=$NEXA_RELEASE
+      - AUTHZ_SERVICE_ADDRESS=nexa-authz:8080
+      - AUTHN_SERVICE_ADDRESS=nexa-authn:8080
+      - COMMENT_SERVICE_ADDRESS=nexa-comment:8080
+      - FEED_SERVICE_ADDRESS=nexa-feed:8080
+      - STORAGE_SERVICE_ADDRESS=nexa-storage:8080
+      - MAILER_SERVICE_ADDRESS=nexa-mailer:8080
+      - POST_SERVICE_ADDRESS=nexa-post:8080
+      - REACTION_SERVICE_ADDRESS=nexa-reaction:8080
+      - RELATION_SERVICE_ADDRESS=nexa-relation:8080
+      - TOKEN_SERVICE_ADDRESS=nexa-token:8080
+    ports:
+      - "8080:8080"
+    networks:
+      - nexa_networks
 
 networks:
   nexa_networks:
